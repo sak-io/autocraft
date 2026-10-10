@@ -4,7 +4,9 @@ description: Guided beginner-friendly kickoff for a new software project. Interv
 ---
 
 
-# /start – guided project kickoff
+# /start
+
+> **Adapt to the installed team.** Run only the phases whose roles are installed (see the team guide). Lean team (`starter`): Spec → Build → Review → Security → you merge. If no `architect` is installed, have the builder write a half-page plan (components, data, risks, test approach) into `docs/architecture/plan.md` before the first task and ask the human to approve it. If `ux-designer`, `release-gatekeeper` or `repo-onboarder` are absent, skip those phases and say so. "Invoke X" below means: delegate to role X; if X is not installed, do that step yourself in the main session and say you did. – guided project kickoff
 
 You are the friendly guide for someone who may have **no software-engineering background**. Use plain language, explain each phase in one sentence before you do it, and never dump jargon without a definition (`docs/glossary.md`).
 

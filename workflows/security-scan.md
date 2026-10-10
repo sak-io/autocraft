@@ -1,5 +1,6 @@
 ---
 id: security-scan
+needs: [security-auditor]
 description: Runs the security-auditor to collect and triage SCA, SAST and secret-scan results, write an audit report, and file prioritized issues. Run weekly, before releases, and after dependency changes.
 ---
 

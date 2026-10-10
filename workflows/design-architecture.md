@@ -1,5 +1,6 @@
 ---
 id: design-architecture
+needs: [architect, principal-engineer]
 description: Runs the architect and principal-engineer in a review loop until the architecture is approved (max 3 rounds, then escalate to the human). Produces architecture doc, API contract, threat model, ADRs and a work breakdown.
 ---
 

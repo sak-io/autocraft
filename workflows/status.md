@@ -6,4 +6,4 @@ description: Shows where the project is in the lifecycle, what is in flight, wha
 
 # /status
 
-Invoke `delivery-lead`. It reads the repo state (specs, architecture status, onboarding report, issues, PRs and their `agent:*` labels), prints the status board, updates `docs/STATUS.md`, and names the single next action. Finish by telling the human whether anything is waiting on *them*.
+Invoke `delivery-lead` if installed; otherwise do it yourself in the main session. It reads the repo state (specs, architecture status, onboarding report, issues, PRs and their `agent:*` labels), prints the status board, updates `docs/STATUS.md`, and names the single next action. Finish by telling the human whether anything is waiting on *them*.

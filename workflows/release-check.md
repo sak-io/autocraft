@@ -1,5 +1,6 @@
 ---
 id: release-check
+needs: [release-gatekeeper]
 description: Final pre-release gate on an approved PR. The release-gatekeeper finds remaining gaps, developers fix them, and when clean the PR is labelled release-ready and the human owner is notified.
 ---
 
@@ -12,7 +13,7 @@ Precondition: PR labelled `agent:approved`, CI green.
 loop (max_review_rounds):
   Invoke `release-gatekeeper` on the PR.
     all clear  -> label agent:release-ready, notify human, exit
-    gaps found -> Invoke `developer` to resolve each [RELEASE-BLOCKER], then repeat
+    gaps found -> Invoke the builder role to resolve each [RELEASE-BLOCKER], then repeat
 ```
 
 On success, tell the human, in plain language:

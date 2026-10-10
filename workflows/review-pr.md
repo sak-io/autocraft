@@ -1,5 +1,6 @@
 ---
 id: review-pr
+needs: [pr-reviewer]
 description: Reviews a single pull request (new or updated) with the pr-reviewer agent. Use for PRs created outside the build loop, by humans, or when new commits land on a reviewed branch.
 ---
 

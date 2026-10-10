@@ -5,7 +5,7 @@ summary: The smallest team that is still safe: a planner, a builder and an indep
 fits: [static-site, script-automation, library-cli, web-app, fullstack-app, api-service]
 roles: [requirements-analyst, developer, pr-reviewer, security-auditor]
 optional: [architect, qa-engineer, technical-writer, ux-designer]
-workflows: [discover, explain, build-feature, review-pr, security-scan, status]
+workflows: [discover, explain, start, build-feature, review-pr, security-scan, status]
 ---
 
 # Playbook: Starter Team

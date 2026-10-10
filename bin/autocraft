@@ -64,7 +64,7 @@ EXPERIENCE = {
 ARCH_KEYWORDS = {
     "static-site": "website, landing page, blog, portfolio, brochure, marketing site, docs site, personal site",
     "web-app": "web app, web application, browser, single page, frontend, front end",
-    "fullstack-app": "saas, accounts, sign up, signup, login, log in, subscription, marketplace, booking, book classes, membership, store, shop, e-commerce, ecommerce, platform where",
+    "fullstack-app": "saas, accounts, sign up, signup, login, log in, subscription, marketplace, booking, bookings, book a spot, book classes, book, reserve, reservation, appointment, appointments, schedule, members, membership, students, customers, clients, orders, cancel, spots, store, shop, e-commerce, ecommerce, platform where, add classes, add products, manage",
     "mobile-app": "mobile, phone, smartphone, ios, android, iphone, app store, play store, phone app, mobile app",
     "desktop-app": "desktop app, windows app, mac app, macos, electron, installer, desktop software",
     "game": "game, player, levels, multiplayer, unity, godot, arcade, puzzle",
@@ -78,7 +78,7 @@ ARCH_KEYWORDS = {
     "script-automation": "script, automate, automation, scrape, scraper, rename files, spreadsheet, chore, repetitive",
     "data-pipeline": "etl, pipeline, data warehouse, warehouse, analytics, sync data, data sources, reporting data",
     "ml-service": "machine learning, predict, prediction, classifier, recommendation, forecast, train a model, ml model",
-    "ai-assistant": "ai, llm, gpt, claude, chatbot, assistant, rag, copilot, agent, ask questions about, summarize, generative",
+    "ai-assistant": "questions about, ai, llm, gpt, claude, chatbot, assistant, rag, copilot, agent, ask questions about, summarize, generative",
     "library-cli": "library, sdk, package, cli, command line, command-line, npm package, pip package, developers install",
     "infrastructure": "terraform, infrastructure, cloud setup, kubernetes, devops, deploy pipeline, aws setup, iac",
     "embedded-iot": "iot, arduino, raspberry pi, sensor, firmware, microcontroller, smart device, esp32",
@@ -285,11 +285,16 @@ def resolve_roster(cfg, proj, fw=FW):
         if r not in roles:
             raise SystemExit(f"error: unknown role '{r}'. Known: {', '.join(roles)}")
     wf_all = load_dir("workflows", fw)
+    have = set(ids)
+    ok = lambda w: set(as_list(wf_all[w].get("needs"))) <= have  # workflow's required roles are all present
     wf = []
     for t in team_ids:
         for w in as_list(teams[t].get("workflows")):
-            if w in wf_all and w not in wf:
+            if w in wf_all and w not in wf and ok(w):
                 wf.append(w)
+    for w in wf_all:  # roles you add switch on their workflows
+        if w not in wf and as_list(wf_all[w].get("needs")) and ok(w):
+            wf.append(w)
     for w in (proj / ".autocraft" / "custom" / "workflows").glob("*.md") if (proj / ".autocraft" / "custom" / "workflows").is_dir() else []:
         meta, body = parse_md(w)
         meta.setdefault("id", w.stem)

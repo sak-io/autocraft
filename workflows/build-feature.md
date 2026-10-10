@@ -7,14 +7,14 @@ description: Implements a work item end to end - developer writes code plus unit
 # /build-feature [task id or description]
 
 1. **Pick work.** Read `docs/architecture/work-breakdown.md` and open PRs. Choose the next task whose dependencies are merged (or the one the human named). For parallel work, choose only tasks that are independent and touch different files; cap at `max_parallel_developers` (config, default 3).
-2. **Develop.** Invoke `developer` (one per task, in parallel if several; use `isolation: worktree` so they don't collide). Each opens a PR labelled `agent:needs-review`.
+2. **Develop.** Invoke the builder role that fits the task (`developer`, or `backend-developer` / `frontend-developer` / `mobile-developer` / `data-engineer` / `ml-engineer` / `ai-engineer` / `devops-engineer` / …, whichever the team has) (one per task, in parallel if several; use `isolation: worktree` so they don't collide). Each opens a PR labelled `agent:needs-review`.
 3. **Review loop** — for each PR:
    ```
    round = 1
    loop:
      Invoke `pr-reviewer` on the PR (round number, previous comments)
        VERDICT: APPROVED           -> exit loop (label agent:approved)
-       VERDICT: CHANGES REQUESTED  -> Invoke `developer` with PR number + instruction to address every comment
+       VERDICT: CHANGES REQUESTED  -> Invoke the same builder role with PR number + instruction to address every comment
                                       round += 1; if round > max_review_rounds -> label needs-human, escalate
    ```
 4. **Hand-off.** When approved, tell the human which PRs are approved and proceed to `/release-check` for each.

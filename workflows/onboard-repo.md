@@ -1,5 +1,6 @@
 ---
 id: onboard-repo
+needs: [repo-onboarder]
 description: Creates the project's GitHub repository (private by default), installs the framework, configures CI/lint/test, SCA + SAST + secret scanning, labels, templates and main-branch protection, then verifies each control and writes an onboarding report.
 ---
 
