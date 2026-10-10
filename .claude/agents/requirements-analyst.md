@@ -32,3 +32,8 @@ Write `docs/specs/<kebab-case-name>.md` from `.autocraft/templates/architecture/
 
 ## Handoff
 End with a handoff block (see `docs/protocol.md`): `From: requirements-analyst → To: architect`, status, path to the spec, and the open questions that still need a human answer.
+
+## Archetype awareness
+At the start, read `.autocraft/config.yml` → `archetypes` and each matching profile in `.autocraft/archetypes/<name>.md`. If several are listed (e.g. `mobile-app` + `api-service`), treat the project as multiple components with an explicit contract between them. If no archetype is set, ask the human what is being built (api-service, web-app, mobile-app, scheduled-job, library-cli, or a combination) and record it in the config.
+- Ask the profile's **Questions the requirements-analyst must ask** (still max 5 at a time, with defaults) and fold the answers into the spec.
+- Multi-component: one spec with a section per component and a short "contract between components" section.

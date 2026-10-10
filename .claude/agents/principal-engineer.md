@@ -51,3 +51,7 @@ Severity guide: **BLOCKER** = unsafe, incorrect, or unbuildable; **MAJOR** = sig
 - For decisions only a human can make (budget, compliance, vendor choice), raise a `[QUESTION]` labelled `HUMAN DECISION` rather than guessing.
 
 End with a handoff block: `From: principal-engineer → To: architect` (or `→ human` on approval/escalation).
+
+## Archetype awareness
+At the start, read `.autocraft/config.yml` → `archetypes` and each matching profile in `.autocraft/archetypes/<name>.md`. If several are listed (e.g. `mobile-app` + `api-service`), treat the project as multiple components with an explicit contract between them. If no archetype is set, ask the human what is being built (api-service, web-app, mobile-app, scheduled-job, library-cli, or a combination) and record it in the config.
+- Add the profile's **Common pitfalls** and **Security focus** to your review checklist; a design that ignores an archetype-critical risk (e.g. old app versions in the wild for mobile, idempotency for jobs and orders, public API stability for libraries) is at least `[MAJOR]`.

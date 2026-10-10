@@ -4,6 +4,7 @@
 |---|---|---|---|---|---|
 | 0 | Kickoff | delivery-lead / `/start` | your idea | `.autocraft/config.yml` | autonomy level chosen |
 | 1 | Spec | requirements-analyst | idea | `docs/specs/*.md` | every story has testable acceptance criteria; open questions answered or assumed |
+| 1b | UX design (UI archetypes only) | ux-designer | spec | `docs/design/` flows, wireframes, states, accessibility | every story maps to screens and states |
 | 2 | Architecture | architect ⇄ principal-engineer | spec | architecture, API, threat model, ADRs, work breakdown | `status.md = APPROVED`, 0 open BLOCKER/MAJOR |
 | 3 | Onboarding | repo-onboarder | approved architecture | repo, CI, scanning, protection, `docs/onboarding-report.md` | no ❌; every control read back |
 | 4 | Build | developer(s) ⇄ pr-reviewer | a ready task | PR with unit + integration tests | `VERDICT: APPROVED`, CI green |
@@ -32,3 +33,6 @@ developer ──approved PR─► release-gatekeeper
 
 ## Typical timeline for a small service
 Spec (minutes) → Architecture (2-3 rounds) → Onboarding (minutes, needs your confirmation) → T1 walking skeleton → T2…Tn features, each a PR → release check on each.
+
+## The lifecycle adapts to the archetype
+The phases are the same for every project; the *content* of the gates changes. See [archetypes](../archetypes/README.md): e.g. mobile adds store review + staged rollout to the release gate, jobs add idempotency and missed-run alerting, web adds accessibility and E2E journeys, libraries add semver and public-API stability, APIs add contract compatibility and authorization checks.

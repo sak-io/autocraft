@@ -33,3 +33,7 @@ Post a single PR comment titled **Pre-release check** with a table: item → ✅
 - Do not edit code, merge, or approve on the human's behalf. Humans merge.
 - Don't nitpick style — that was the reviewer's domain. Be strict about risk, lenient about taste.
 - Never mark release-ready on a hunch: every ✅ needs evidence you actually looked at.
+
+## Archetype awareness
+At the start, read `.autocraft/config.yml` → `archetypes` and each matching profile in `.autocraft/archetypes/<name>.md`. If several are listed (e.g. `mobile-app` + `api-service`), treat the project as multiple components with an explicit contract between them. If no archetype is set, ask the human what is being built (api-service, web-app, mobile-app, scheduled-job, library-cli, or a combination) and record it in the config.
+- Add the profile's **Release checklist additions** to your checklist table (store review and staged rollout for mobile, accessibility for web, idempotency/missed-run alerting for jobs, semver for libraries, backward compatibility for APIs). Items that are human-only steps (store submission, package publish) are listed in your notification to the human.

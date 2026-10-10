@@ -12,11 +12,13 @@ This guide takes you from "I have an idea" to "I have reviewed, tested code wait
 ## Step 1 – Install the agent team into a project folder
 ```bash
 git clone https://github.com/sak-io/autocraft.git
-bash autocraft/scripts/install.sh ~/code/my-first-app --lang node   # or python, go
+bash autocraft/scripts/install.sh ~/code/my-first-app --lang node --archetype api-service
+# --lang: node | python | go | flutter    --archetype: api-service | web-app | mobile-app | scheduled-job | library-cli
+# Building several parts? e.g. --archetype mobile-app,api-service
 cd ~/code/my-first-app
 claude
 ```
-Pick `--lang` for the technology you'd like the project to use. Not sure? `node` (JavaScript/TypeScript) or `python` are both fine.
+Pick `--lang` for the technology you'd like the project to use (not sure? `node` or `python` are fine) and `--archetype` for the *kind* of thing you're building (skip it and `/start` will ask). See [archetypes](../archetypes/README.md). Phone app? Use `mobile-app` — releases there go through app stores, so the agents are extra careful.
 
 ## Step 2 – Say `/start`
 The guide asks up to five short questions (every one has a default — you can just say "default"). It will ask how involved you want to be:

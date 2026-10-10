@@ -43,3 +43,11 @@ Open PR #2 → read → Approve → Squash and merge. 🎉
 
 ## 7. Ongoing
 Monday: weekly scan runs; `/security-scan` triages 3 Dependabot alerts → 1 real HIGH issue filed → `/build-feature` fixes it through the same loop.
+
+---
+## Same team, different archetype: adding a mobile app
+Later you want a phone app for these orders. In the same repo set `archetypes: [api-service, mobile-app]` and run `/start` (or `/status`). Differences you will see:
+- **ux-designer** produces flows/wireframes first, including offline and permission-denied states.
+- **architect** adds a mobile section (offline cache, secure token storage, **force-update path for old app versions**) and a `[contract]` task so the API's OpenAPI file lands before `[mobile]` and `[api]` work proceeds in parallel.
+- **Reviewers** reject a mobile PR with no widget tests for the error state, or an API change that breaks the previous app version.
+- **release-gatekeeper** adds store-review items and a staged-rollout plan; **you** submit to the stores.

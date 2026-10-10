@@ -7,6 +7,8 @@ description: Runs the architect and principal-engineer in a review loop until th
 
 Precondition: a spec exists in `docs/specs/`. If not, run the `requirements-analyst` first.
 
+For UI archetypes (`web-app`, `mobile-app`) run `ux-designer` first if `docs/design/` is missing, and again whenever a review finding asks for UX changes.
+
 Subagents cannot call each other, so **you** (the main session) run the loop:
 
 ```

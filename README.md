@@ -6,13 +6,27 @@ You bring the idea. The agents behave like a disciplined engineering team: they 
 
 > New to software engineering? Start with **[docs/getting-started.md](docs/getting-started.md)**. No prior knowledge assumed.
 
+## What are you building? (archetypes)
+
+The same agent team adapts to the kind of product via an **archetype** profile — its questions, architecture checklist, test strategy, security focus and release gates:
+
+| Archetype | For | Flag |
+|---|---|---|
+| [api-service](archetypes/api-service/archetype.md) | backends others call (REST/GraphQL/gRPC) | `--lang python\|node\|go` |
+| [web-app](archetypes/web-app/archetype.md) | browser UIs | `--lang node` |
+| [mobile-app](archetypes/mobile-app/archetype.md) | iOS / Android apps | `--lang node` (React Native/Expo) or `flutter` |
+| [scheduled-job](archetypes/scheduled-job/archetype.md) | cron, queue workers, batch/ETL | `--lang python\|node\|go` |
+| [library-cli](archetypes/library-cli/archetype.md) | packages, SDKs, command-line tools | `--lang node\|python\|go` |
+
+Combine them (e.g. `mobile-app` + `api-service`) — see [archetypes/README.md](archetypes/README.md). Missing yours? Adding one is a single markdown file.
+
 ## The team
 
 ```
  idea
   │
   ▼
-requirements-analyst ──► architect ⇄ principal-engineer      (design loop, max 3 rounds)
+requirements-analyst ──► (ux-designer, for UI) ──► architect ⇄ principal-engineer      (design loop, max 3 rounds)
                                 │ approved
                                 ▼
                          repo-onboarder        (private repo, protected main, CI, lint, tests, SCA/SAST)
@@ -33,6 +47,7 @@ requirements-analyst ──► architect ⇄ principal-engineer      (design loo
 | Agent | One-line job |
 |---|---|
 | [requirements-analyst](.claude/agents/requirements-analyst.md) | Vague idea → testable spec |
+| [ux-designer](.claude/agents/ux-designer.md) | Flows, wireframes, UI states, accessibility (web / mobile) |
 | [architect](.claude/agents/architect.md) | Spec → architecture, API, threat model, ADRs, task list |
 | [principal-engineer](.claude/agents/principal-engineer.md) | Critiques and approves the architecture |
 | [repo-onboarder](.claude/agents/repo-onboarder.md) | Creates & hardens the GitHub repo, verifies every control |
@@ -62,10 +77,12 @@ requirements-analyst ──► architect ⇄ principal-engineer      (design loo
 git clone https://github.com/sak-io/autocraft.git && cd autocraft
 
 # 2. Install it into a new (or existing) project folder
-bash scripts/install.sh ~/code/my-service --lang node     # node | python | go
+bash scripts/install.sh ~/code/my-app --lang node --archetype web-app,api-service
+#   --lang: node | python | go | flutter      --archetype: api-service, web-app, mobile-app, scheduled-job, library-cli
+#   (--archetype is optional: /start will ask you)
 
 # 3. Open Claude Code there and kick off
-cd ~/code/my-service && claude
+cd ~/code/my-app && claude
 > /start
 ```
 
@@ -84,6 +101,7 @@ Agents don't talk in secret: everything they exchange lives **in the repo** (doc
 | Doc | For |
 |---|---|
 | [Getting started](docs/getting-started.md) | First-timers: setup → first project |
+| [Archetypes](archetypes/README.md) | Choosing and combining project types |
 | [Lifecycle](docs/lifecycle.md) | Each phase: inputs, outputs, quality gates |
 | [Protocol](docs/protocol.md) | Handoffs, labels, review rules, autonomy levels |
 | [Worked example](docs/example-order-service.md) | An e-commerce order API, start to release |
@@ -95,6 +113,7 @@ Agents don't talk in secret: everything they exchange lives **in the repo** (doc
 ```
 .claude/agents/      the agent definitions (copied into your projects)
 .claude/skills/      the slash-command workflows
+archetypes/          project-type profiles (api, web, mobile, job, library)
 templates/           CI workflows, PR/issue templates, architecture & release templates, branch protection
 scripts/             install.sh, onboard-repo.sh, validate.sh
 docs/                guides and protocol

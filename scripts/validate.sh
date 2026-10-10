@@ -18,6 +18,14 @@ for f in .claude/skills/*/SKILL.md; do
   [[ "$n" == "$(basename "$(dirname "$f")")" ]] || err "$f: name '$n' != directory"
   [[ -n "$d" ]] || err "$f: missing description"
 done
+for f in archetypes/*/archetype.md; do
+  for h in "## Summary" "## Questions the requirements-analyst must ask" "## Architecture must cover" "## Testing strategy" "## Walking skeleton" "## CI & tooling" "## Security focus" "## Release checklist additions" "## Common pitfalls" "## Suggested stacks"; do
+    grep -q "^$h" "$f" || err "$f: missing heading '$h'"
+  done
+done
+for f in .claude/agents/*.md; do
+  [[ "$(basename "$f")" == "ux-designer.md" || "$(basename "$f")" == "delivery-lead.md" ]] || grep -q "Archetype awareness" "$f" || err "$f: missing Archetype awareness section"
+done
 for f in scripts/*.sh; do bash -n "$f" || err "$f: syntax error"; done
 for f in templates/labels.json templates/branch-protection.json; do
   python3 -c "import json,sys; json.load(open('$f'))" 2>/dev/null || err "$f: invalid JSON"
@@ -33,7 +41,7 @@ for f in glob.glob("templates/github/**/*.yml", recursive=True) + glob.glob("tem
 sys.exit(bad)
 PY
 # every agent referenced in docs/skills exists
-for a in $(grep -rhoE '`(requirements-analyst|architect|principal-engineer|repo-onboarder|developer|pr-reviewer|release-gatekeeper|security-auditor|delivery-lead)`' docs .claude README.md | tr -d '`' | sort -u); do
+for a in $(grep -rhoE '`(requirements-analyst|architect|principal-engineer|repo-onboarder|developer|pr-reviewer|release-gatekeeper|security-auditor|delivery-lead|ux-designer)`' docs .claude README.md | tr -d '`' | sort -u); do
   [[ -f ".claude/agents/$a.md" ]] || err "referenced agent missing: $a"
 done
 # relative markdown links resolve

@@ -11,7 +11,8 @@ You are the friendly guide for someone who may have **no software-engineering ba
 
 1. **Check state.** Read `docs/STATUS.md`, `.autocraft/config.yml`, `docs/specs/`. If the project is already underway, run `/status` instead and continue from there.
 
-2. **Interview (max 5 questions, each with a default).** Ask:
+2. **Interview (max 6 questions, each with a default).** Ask:
+   0. **What kind of thing are you building?** Pick one or more (this sets the *archetype*): **api-service** (backend others call) · **web-app** (runs in a browser) · **mobile-app** (iOS/Android) · **scheduled-job** (runs unattended / on a queue) · **library-cli** (package or command-line tool). Many products are a combination, e.g. mobile-app + api-service. Not sure? Describe it and recommend one; explain your choice in a sentence. Save to `.autocraft/config.yml → archetypes`.
    1. What do you want to build, and who is it for? (one or two sentences)
    2. Any technology you must or must not use? (default: you choose boring, popular tech)
    3. What language/stack are you most comfortable reviewing? (default: TypeScript/Node or Python)
@@ -23,7 +24,7 @@ You are the friendly guide for someone who may have **no software-engineering ba
 
    Save answers to `.autocraft/config.yml`.
 
-3. **Phase 1 – Spec.** Invoke `requirements-analyst`. Show the human the spec summary and the open questions; get answers.
+3. **Phase 1 – Spec.** Invoke `requirements-analyst`. If any archetype has a UI (`web-app`, `mobile-app`), then invoke `ux-designer` next to produce `docs/design/`. Show the human the spec summary and the open questions; get answers.
 
 4. **Phase 2 – Architecture.** Run `/design-architecture`.
 

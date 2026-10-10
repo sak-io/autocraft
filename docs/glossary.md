@@ -29,4 +29,10 @@
 | **Walking skeleton** | The tiniest end-to-end version (app starts, one endpoint, CI green) built first |
 | **Idempotent** | Doing it twice has the same effect as once (important for payments/orders) |
 | **Release-ready** | Reviewed, tested, checked — only the human merge remains |
+| **Archetype** | A project-type profile (API, web app, mobile app, job, library) that tunes what the agents ask, test and check |
+| **E2E test** | Test that drives the whole app like a user (browser or phone) |
+| **Accessibility (a11y)** | Making the product usable by people with disabilities (screen readers, keyboard-only, contrast) |
+| **Staged rollout** | Releasing to a small % of users first, then more |
+| **Cron job** | A task that runs automatically on a schedule |
+| **Semver** | Version numbers (MAJOR.MINOR.PATCH) that signal whether an update breaks things |
 | **Autonomy level** | How often agents pause to ask you |

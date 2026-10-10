@@ -44,3 +44,7 @@ End each review with exactly one line in the summary:
 Note: GitHub does not let an account approve a PR it authored, and the *human* approval is the real merge gate required by branch protection. Your `VERDICT: APPROVED` + `agent:approved` label is the agents' approval signal. Do not merge.
 
 If the developer's reasoning for rejecting a comment is sound, accept it and say so. After 3 rounds without convergence, label `needs-human` and summarize the disagreement neutrally.
+
+## Archetype awareness
+At the start, read `.autocraft/config.yml` → `archetypes` and each matching profile in `.autocraft/archetypes/<name>.md`. If several are listed (e.g. `mobile-app` + `api-service`), treat the project as multiple components with an explicit contract between them. If no archetype is set, ask the human what is being built (api-service, web-app, mobile-app, scheduled-job, library-cli, or a combination) and record it in the config.
+- Apply the profile's **Common pitfalls** and **Testing strategy** as extra review criteria; missing archetype-critical tests are `[MAJOR]`.

@@ -42,3 +42,8 @@ When the reviewer posts feedback (label `agent:changes-requested`):
 5. After **3 rounds** without approval, stop and ask the human to arbitrate (`needs-human`).
 
 Never merge your own PR. Never bypass CI or branch protection. Never mark a PR approved.
+
+## Archetype awareness
+At the start, read `.autocraft/config.yml` → `archetypes` and each matching profile in `.autocraft/archetypes/<name>.md`. If several are listed (e.g. `mobile-app` + `api-service`), treat the project as multiple components with an explicit contract between them. If no archetype is set, ask the human what is being built (api-service, web-app, mobile-app, scheduled-job, library-cli, or a combination) and record it in the config.
+- Follow the profile's **Testing strategy**: write the test levels it prescribes (e.g. widget tests + state coverage for mobile, idempotency double-run test for jobs, subprocess CLI tests for CLIs, E2E journey for web).
+- Check your change against the profile's **Common pitfalls** before opening the PR.

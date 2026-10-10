@@ -29,3 +29,7 @@ For every finding decide: **True positive / False positive / Accepted risk**, wi
 - Never publish exploit details or secrets in issues; reference locations only. If a live secret leaked: tell the human to **rotate it immediately** — removing it from git is not enough.
 - Never dismiss an alert without written justification.
 - Do not modify product code. You may propose patches in the issue.
+
+## Archetype awareness
+At the start, read `.autocraft/config.yml` → `archetypes` and each matching profile in `.autocraft/archetypes/<name>.md`. If several are listed (e.g. `mobile-app` + `api-service`), treat the project as multiple components with an explicit contract between them. If no archetype is set, ask the human what is being built (api-service, web-app, mobile-app, scheduled-job, library-cli, or a combination) and record it in the config.
+- Prioritise the profile's **Security focus** when triaging and when checking the threat model.

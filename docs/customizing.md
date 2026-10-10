@@ -4,9 +4,12 @@
 Edit `.autocraft/config.yml`: `autonomy_level`, `max_review_rounds`, `max_parallel_developers`, `human_owner`.
 
 ## Change or add a stack
-1. Add `templates/github/workflows/ci-<stack>.yml` (job must be named `ci`).
+1. Add `templates/github/workflows/ci-<stack>.yml` (flutter already included) (job must be named `ci`).
 2. Add the stack to `scripts/install.sh` (`--lang` case, CodeQL language, Dependabot ecosystem).
 3. Mention stack-specific lint/test commands in `repo-onboarder`.
+
+## Add an archetype
+Copy `archetypes/api-service/archetype.md` to `archetypes/<name>/archetype.md`, rewrite each section (the headings are required — `validate.sh` checks), and add the name to the table in `archetypes/README.md`. All agents pick it up automatically via `.autocraft/config.yml → archetypes`. Add a CI template if the stack is new.
 
 ## Add an agent
 Create `.claude/agents/<name>.md`:

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Create + harden a GitHub repository for an autocraft project.
 #
-# Usage: onboard-repo.sh <owner/name> --lang node|python|go [--public] [--dir PATH] [--dry-run]
+# Usage: onboard-repo.sh <owner/name> --lang node|python|go|flutter [--public] [--dir PATH] [--dry-run]
 #
 # Works in two situations:
 #   * run from a project folder that already has autocraft installed (.autocraft/config.yml):
@@ -25,8 +25,8 @@ while [[ $# -gt 0 ]]; do
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
 done
-[[ "$REPO" == */* ]] || { echo "Usage: $0 <owner/name> --lang node|python|go [--public] [--dir PATH] [--dry-run]" >&2; exit 2; }
-case "$LANG_" in node|python|go) ;; *) echo "--lang is required: node | python | go" >&2; exit 2 ;; esac
+[[ "$REPO" == */* ]] || { echo "Usage: $0 <owner/name> --lang node|python|go|flutter [--public] [--dir PATH] [--dry-run]" >&2; exit 2; }
+case "$LANG_" in node|python|go|flutter) ;; *) echo "--lang is required: node | python | go | flutter" >&2; exit 2 ;; esac
 NAME="${REPO#*/}"
 if [[ -z "$DIR" ]]; then if [[ -f .autocraft/config.yml ]]; then DIR="$PWD"; else DIR="$PWD/$NAME"; fi; fi
 
@@ -53,11 +53,11 @@ if [[ ! -f "$DIR/.autocraft/config.yml" ]]; then
   run bash "$FRAMEWORK/scripts/install.sh" "$DIR" --lang "$LANG_"
 elif [[ ! -f "$DIR/.github/workflows/ci.yml" ]]; then
   echo "  adding CI + CodeQL for $LANG_"
-  case "$LANG_" in node) CQ=javascript-typescript ;; python) CQ=python ;; go) CQ=go ;; esac
+  case "$LANG_" in node) CQ=javascript-typescript ;; python) CQ=python ;; go) CQ=go ;; flutter) CQ="" ;; esac
   if ! ((DRY)); then
     mkdir -p "$DIR/.github/workflows"
     cp "$TPL/github/workflows/ci-$LANG_.yml" "$DIR/.github/workflows/ci.yml"
-    sed "s/__CODEQL_LANGUAGE__/$CQ/" "$TPL/github/workflows/codeql.yml" > "$DIR/.github/workflows/codeql.yml"
+    [[ -z "$CQ" ]] || sed "s/__CODEQL_LANGUAGE__/$CQ/" "$TPL/github/workflows/codeql.yml" > "$DIR/.github/workflows/codeql.yml"
   fi
 else echo "  already prepared"; fi
 

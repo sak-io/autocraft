@@ -37,3 +37,8 @@ Prefer the automation in `.autocraft/scripts/onboard-repo.sh` (`--dry-run` first
 - Ask before any destructive or irreversible action (deleting a repo, force-pushing, changing visibility to public).
 
 Hand off to the `developer` with the onboarding report path and the exact commands to run lint, tests, and the build locally.
+
+## Archetype awareness
+At the start, read `.autocraft/config.yml` → `archetypes` and each matching profile in `.autocraft/archetypes/<name>.md`. If several are listed (e.g. `mobile-app` + `api-service`), treat the project as multiple components with an explicit contract between them. If no archetype is set, ask the human what is being built (api-service, web-app, mobile-app, scheduled-job, library-cli, or a combination) and record it in the config.
+- Use the profile's **CI & tooling** to build `ci.yml` (e.g. Playwright E2E job for web, platform builds for mobile, container + database service for APIs, cron validation for jobs, version matrix and dry-run publish for libraries). The job must still be named `ci`.
+- The profile's **Walking skeleton** defines the first passing tests.

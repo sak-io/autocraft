@@ -18,9 +18,12 @@ description: Implements a work item end to end - developer writes code plus unit
    ```
 4. **Hand-off.** When approved, tell the human which PRs are approved and proceed to `/release-check` for each.
 
+For multi-component projects, tasks are tagged by component; run the contract task first, then components in parallel (they only conflict on the contract).
+
 ## Quality bars you enforce
 - A PR with no unit tests or no integration tests (where a boundary is crossed) goes straight back to the developer.
 - CI must be green on the latest commit before each review round starts.
+- The developer must satisfy the active archetype's **Testing strategy** (see `.autocraft/archetypes/`); the reviewer enforces it.
 - Never merge. Never skip a loop round.
 
 After each PR, give the human a 3-line summary: what was built, test evidence, review rounds taken.

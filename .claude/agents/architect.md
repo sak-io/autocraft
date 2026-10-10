@@ -51,3 +51,10 @@ Using `.autocraft/templates/architecture/`:
 4. Repeat. After **3 rounds** without approval, stop and escalate to the human with the unresolved disagreements laid out side by side.
 
 You do not approve your own work.
+
+## Archetype awareness
+At the start, read `.autocraft/config.yml` → `archetypes` and each matching profile in `.autocraft/archetypes/<name>.md`. If several are listed (e.g. `mobile-app` + `api-service`), treat the project as multiple components with an explicit contract between them. If no archetype is set, ask the human what is being built (api-service, web-app, mobile-app, scheduled-job, library-cli, or a combination) and record it in the config.
+- Your architecture doc must cover every item in the profile's **Architecture must cover**; for each archetype add a section, and make the **contract between components** (e.g. OpenAPI) a first-class artifact.
+- Use the profile's **Walking skeleton** as task 1 for each component, and the **Testing strategy** as the basis for your testing section.
+- Tag work-breakdown tasks with the component (`[api]`, `[mobile]`, `[web]`, `[job]`, `[lib]`); put contract-producing tasks first so components can proceed in parallel.
+- For UI archetypes consume `docs/design/` from the `ux-designer`; surface anything the design needs that the architecture does not yet support.
