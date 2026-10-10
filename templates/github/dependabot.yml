@@ -4,7 +4,7 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
-  # The ecosystem for your language is enabled automatically by install.sh --lang.
+  # The ecosystem for your language is enabled automatically by `autocraft init --lang` / `autocraft github --lang`.
   # - package-ecosystem: npm
   #   directory: /
   #   schedule: { interval: weekly }

@@ -1,5 +1,7 @@
 # The lifecycle
 
+These phases are the same in every tool. A *team* decides which roles are present (the lean `starter` team collapses several phases into builder + reviewer); an *archetype* decides what each gate checks.
+
 | # | Phase | Agents | Inputs | Outputs | Exit gate |
 |---|---|---|---|---|---|
 | 0 | Discover & kickoff | `/discover`, `/start` | your idea in plain words | `.autocraft/config.yml` (archetypes, capabilities, experience, autonomy) | you confirmed the plan |

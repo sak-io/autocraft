@@ -4,11 +4,13 @@ Goal: *"An API to create and manage customer orders for a retail site."*
 
 ## 0. Kickoff
 ```
-$ bash autocraft/scripts/install.sh ~/code/orders --lang python
+$ python3 autocraft/bin/autocraft recommend "an API to create and manage customer orders for a retail site"
+  -> api-service · team: api-backend (lean: starter)
+$ python3 autocraft/bin/autocraft init ~/code/orders --tool claude-code --team api-backend --archetype api-service --capability authentication,database,payments --lang python
 $ cd ~/code/orders && claude
 > /start
 ```
-Answers: payments are handled by a third party; personal data yes → sensitive: *personal*; autonomy **L2**.
+(`--lang python` also adds the optional GitHub module: CI, scanning, templates.) Answers: payments are handled by a third party; personal data yes → sensitive: *personal*; autonomy **L2**.
 
 ## 1. Spec (requirements-analyst)
 `docs/specs/orders.md` — actors: Customer, Admin, Payment provider. Stories: place order, view order, cancel order, list my orders, admin updates fulfilment status. Acceptance criteria, e.g.
@@ -45,8 +47,8 @@ Open PR #2 → read → Approve → Squash and merge. 🎉
 Monday: weekly scan runs; `/security-scan` triages 3 Dependabot alerts → 1 real HIGH issue filed → `/build-feature` fixes it through the same loop.
 
 ---
-## Same team, different archetype: adding a mobile app
-Later you want a phone app for these orders. In the same repo set `archetypes: [api-service, mobile-app]` and run `/start` (or `/status`). Differences you will see:
+## Same project, bigger team: adding a mobile app
+Later you want a phone app for these orders: `autocraft init . --team api-backend,mobile --archetype api-service,mobile-app` (it adds `ux-designer` and `mobile-developer`; nothing is lost). Differences you will see:
 - **ux-designer** produces flows/wireframes first, including offline and permission-denied states.
 - **architect** adds a mobile section (offline cache, secure token storage, **force-update path for old app versions**) and a `[contract]` task so the API's OpenAPI file lands before `[mobile]` and `[api]` work proceeds in parallel.
 - **Reviewers** reject a mobile PR with no widget tests for the error state, or an API change that breaks the previous app version.

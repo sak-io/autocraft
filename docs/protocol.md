@@ -97,3 +97,9 @@ Constants at every level: tests, security checks, independent review, and **a hu
 
 ## 11. Capabilities
 `capabilities` lists cross-cutting needs (authentication, payments, database, …). Each has a profile in `capabilities/` with *Safe defaults*, *Must test*, *Common mistakes*, and what *not* to build yourself. Architects design them in, developers implement and test them, reviewers/gatekeepers/auditors check them.
+
+## 12. Collaboration surface (GitHub or not)
+The protocol works with any surface:
+- **GitHub (preferred):** pull requests, review comments, `agent:*` labels (sections 3-4).
+- **No GitHub / no remote:** use files. For task `T3`, keep `.autocraft/work/T3/` containing `handoff-N.md` (the handoff block), `review-N.md` (reviewer findings with the same severity tags and a `VERDICT:` line), and `response-N.md` (author's answers: `Fixed in <commit>` / `Not changing because …`). State lives in the files, so any tool or session can continue. The human "merge" is then the human's own commit/merge of the branch.
+- **Tools without sub-agents:** run roles as hats, one role per session; reviewers always in a **fresh session** that sees only the spec, the diff and the protocol.

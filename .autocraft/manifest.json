@@ -1,0 +1,12 @@
+{
+ ".autocraft/archetypes/README.md": "ff4b9dd6f1f6ec2af61cace4f50329e910af0e3b908aa93a009467510ec39465",
+ ".autocraft/capabilities/analytics-observability.md": "538e16c836ff315a24bdfac058c22ec6647cb0437ab849a54316df41827e78ad",
+ ".autocraft/capabilities/deployment-hosting.md": "7c3d05c860592bcdf335196fbc94dc189c06a3c5b1581df6d18fbe3e16dc2ad2",
+ ".autocraft/capabilities/secrets-and-config.md": "58c7b610ce834ab426edadf6b880146ae4ce34f2ec3f687b962e6bebed8d37e5",
+ ".autocraft/protocol.md": "7f84c6a3946758b2b2dcb018c3bad24b2a620ec0ef56abf58bbe55486da3ffa1",
+ ".claude/agents/team-builder.md": "60cdd0dd6e61deec96ae769e35d8a91245b915526cb785858684a39b039cd9d2",
+ ".claude/skills/build-my-team/SKILL.md": "7a1194682287116a8e83fb165f4644f6b67e0433a5f030e7d00be5b9ea41a89c",
+ ".claude/skills/customize-team/SKILL.md": "bfcfea3a658f72cf1e46050a333f0d8b3061cb100c26341a10fc4fbfb04536fc",
+ ".claude/skills/discover/SKILL.md": "25f09315a7befecde12cca93cb78389c43c8980d0a58afeab6a3bf4185485626",
+ ".claude/skills/explain/SKILL.md": "27ae8412a4c42c07fd0d3db8b901668f9efdbf1bd4183f6f2824a204347f9c05"
+}

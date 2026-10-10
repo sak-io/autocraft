@@ -1,37 +1,40 @@
-# Customizing
+# Customizing your agent team
 
-## Tune strictness
-Edit `.autocraft/config.yml`: `autonomy_level`, `max_review_rounds`, `max_parallel_developers`, `human_owner`.
+Your team is plain files. The rule: **edit config and `.autocraft/custom/`, never generated files** (they are overwritten on `autocraft sync`). Run the CLI from your project with `python3 .autocraft/framework/bin/autocraft <command>`.
 
-## Change or add a stack
-1. Add `templates/github/workflows/ci-<stack>.yml` (flutter already included) (job must be named `ci`).
-2. Add the stack to `scripts/install.sh` (`--lang` case, CodeQL language, Dependabot ecosystem).
-3. Mention stack-specific lint/test commands in `repo-onboarder`.
+## The knobs (`.autocraft/config.yml`)
+| Key | What it does |
+|---|---|
+| `tools` | which AI tools get files (`claude-code, claude-app, cursor, copilot, gemini-cli, windsurf, cline, agents-md, prompts`) |
+| `team` | one or more teams: `starter, web-product, api-backend, mobile, ai-product, data-ml, platform, toolsmith, makers` |
+| `roles_add` / `roles_remove` | fine-tune the roster |
+| `archetypes`, `capabilities` | what you build / what it needs → agents apply those profiles |
+| `experience` | `beginner / intermediate / expert` — how agents explain and decide |
+| `autonomy_level`, `max_review_rounds`, `max_parallel_developers` | how often you're asked, loop limits, parallelism |
 
-## Add a capability
-Copy `capabilities/authentication.md`, keep its six headings, add a row to `capabilities/README.md`. Trigger words drive automatic detection in `/discover`.
+## Common changes
+| I want to… | Do |
+|---|---|
+| Start lean, add specialists later | `autocraft init . --team starter` … later `autocraft add-role qa-engineer` |
+| Combine software types | `--team mobile,ai-product` |
+| Use a second AI tool | `autocraft add-tool cursor` |
+| House rules for everyone | write `.autocraft/custom/team-rules.md` |
+| House rules for one role | write `.autocraft/custom/roles/<id>.append.md` |
+| Replace a role entirely | copy `.autocraft/framework/roles/<id>.md` to `.autocraft/custom/roles/<id>.md`, edit |
+| Invent a role | `autocraft new-role security-champion`, edit, `autocraft add-role security-champion` |
+| Custom workflow | add `.autocraft/custom/workflows/<id>.md` (frontmatter `id`, `description`) and list it in a team |
 
-## Add an archetype
-Copy `archetypes/api-service/archetype.md` to `archetypes/<name>/archetype.md`, rewrite each section (the headings are required — `validate.sh` checks), and add the name to the table in `archetypes/README.md`. All agents pick it up automatically via `.autocraft/config.yml → archetypes`. Add a CI template if the stack is new.
+Then `autocraft sync` and `autocraft doctor`.
 
-## Add an agent
-Create `.claude/agents/<name>.md`:
-```markdown
----
-name: <name>            # must equal the filename
-description: <when to use it — this is how Claude decides to delegate>
-tools: Read, Grep, Glob # least privilege; add Write/Edit/Bash only if needed
-model: inherit
----
-<role, inputs, outputs, checklist, rules, handoff>
-```
-Ideas: `ux-designer`, `data-engineer`, `devops-engineer` (deploy/IaC), `technical-writer`, `performance-engineer`, `compliance-reviewer`. Then wire it into a skill (`.claude/skills/*/SKILL.md`) and add a row in `README.md`. Run `bash scripts/validate.sh`.
+## Keep these fixed
+Independent review, tests with every change, no secrets in code, and **humans merge**. `doctor` warns if your team has no reviewer or builder.
 
-## Add a workflow
-Create `.claude/skills/<name>/SKILL.md` with `name`/`description` frontmatter. Write the loop explicitly (who runs, in what order, exit conditions, round limit).
+## Extend the framework itself (contribute)
+- **Role:** add `roles/<id>.md` (frontmatter `id, title, category, abilities, description`), list it in the right `teams/*.md`.
+- **Team:** add `teams/<id>.md` (`roles`, `optional`, `workflows`, `fits`, and a playbook body).
+- **Archetype / capability:** copy an existing profile and keep its headings.
+- **Another AI tool:** add an `export()` branch in `bin/autocraft`, an entry in `TOOLS`/`HOWTO`, and `docs/tools/<tool>.md`. `scripts/validate.sh` checks it all.
+- **Another language's CI:** add `templates/github/workflows/ci-<lang>.yml` and an entry in `LANGS` in `bin/autocraft`.
 
-## Make an agent stricter or more lenient
-Edit its checklist and severity guidance. Keep one rule fixed: **humans merge**.
-
-## Keep your project updated
-Re-run `install.sh` on your project: agents/skills are overwritten with the latest; your `CLAUDE.md`, config, and `.github` files are kept (never clobbered).
+## Update the framework
+Pull the latest autocraft, then `python3 <clone>/bin/autocraft sync <your-project>` — it re-vendors the framework and regenerates files; your config and `custom/` are untouched.

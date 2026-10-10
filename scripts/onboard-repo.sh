@@ -3,18 +3,17 @@
 #
 # Usage: onboard-repo.sh <owner/name> --lang <lang> [--public] [--dir PATH] [--dry-run]
 #
-# Works in two situations:
-#   * run from a project folder that already has autocraft installed (.autocraft/config.yml):
+# This is the OPTIONAL GitHub module of autocraft. It works in two situations:
+#   * run from a project folder that already has an agent team (.autocraft/config.yml):
 #     that folder becomes the repository.
-#   * run from the autocraft clone: a new folder ./<name> is created and installed first.
+#   * run from the autocraft clone: a new folder ./<name> is created with the lean starter team.
 # Requires: git, gh (authenticated), jq.
 set -euo pipefail
 
+# Works from an autocraft clone or from the vendored copy in a project (.autocraft/framework/)
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-if [[ -d "$HERE/.claude/agents" ]]; then FRAMEWORK="$HERE"; TPL="$HERE/templates"   # autocraft clone
-else FRAMEWORK=""; TPL="$HERE/templates"; fi                                        # installed copy (.autocraft/)
-# shellcheck source=lang.sh
-. "$HERE/scripts/lang.sh"
+TPL="$HERE/templates"
+AUTOCRAFT=(python3 "$HERE/bin/autocraft")
 
 REPO="${1:-}"; shift || true
 LANG_=""; VIS="private"; DRY=0; DIR=""
@@ -28,7 +27,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 [[ "$REPO" == */* ]] || { echo "Usage: $0 <owner/name> --lang <lang> [--public] [--dir PATH] [--dry-run]" >&2; exit 2; }
-valid_lang "$LANG_" || { echo "--lang is required, one of: $LANGS" >&2; exit 2; }
+[[ -n "$LANG_" ]] || { echo "--lang is required (node, python, go, java, dotnet, rust, flutter, terraform)" >&2; exit 2; }
 NAME="${REPO#*/}"
 if [[ -z "$DIR" ]]; then if [[ -f .autocraft/config.yml ]]; then DIR="$PWD"; else DIR="$PWD/$NAME"; fi; fi
 
@@ -49,18 +48,12 @@ if ((DRY)); then echo "(dry run: nothing will be changed)"; else
 fi
 echo "  project folder: $DIR"
 
-step "1. Prepare the project folder (agents, skills, CI, security config)"
+step "1. Prepare the project folder (agent team, CI, security config)"
 if [[ ! -f "$DIR/.autocraft/config.yml" ]]; then
-  [[ -n "$FRAMEWORK" ]] || { echo "No autocraft install found in $DIR. Run scripts/install.sh from the autocraft clone first." >&2; exit 1; }
-  run bash "$FRAMEWORK/scripts/install.sh" "$DIR" --lang "$LANG_"
+  run "${AUTOCRAFT[@]}" init "$DIR" --team starter --lang "$LANG_"
 elif [[ ! -f "$DIR/.github/workflows/ci.yml" ]]; then
-  echo "  adding CI + CodeQL for $LANG_"
-  lang_info "$LANG_"
-  if ! ((DRY)); then
-    mkdir -p "$DIR/.github/workflows"
-    cp "$TPL/github/workflows/ci-$LANG_.yml" "$DIR/.github/workflows/ci.yml"
-    [[ -z "$CQ" ]] || sed "s/__CODEQL_LANGUAGE__/$CQ/" "$TPL/github/workflows/codeql.yml" > "$DIR/.github/workflows/codeql.yml"
-  fi
+  echo "  adding CI, scanning and GitHub templates for $LANG_"
+  run "${AUTOCRAFT[@]}" github "$DIR" --lang "$LANG_"
 else echo "  already prepared"; fi
 
 step "2. Commit locally"

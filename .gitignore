@@ -1,3 +1,9 @@
 .DS_Store
 node_modules/
 *.log
+__pycache__/
+# scaffolding created by `autocraft init` in this meta-repo (real projects commit these)
+docs/specs/
+docs/architecture/
+docs/adr/
+.autocraft/templates/

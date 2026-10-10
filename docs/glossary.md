@@ -2,6 +2,11 @@
 
 | Term | Meaning |
 |---|---|
+| **Role** | A job description for an agent (architect, reviewer, …) |
+| **Team** | A set of roles chosen for a kind of software (e.g. mobile, ai-product) |
+| **Sub-agent** | An agent that a main AI session can hand a task to, with its own separate context |
+| **Role hat** | Playing one role at a time in tools that have no sub-agents — reviewers in a fresh session |
+| **AGENTS.md** | A tool-neutral file where AI coding tools look for project instructions |
 | **Agent** | An AI assistant with a specific job description (e.g. reviewer) |
 | **Skill / slash command** | A saved workflow you start by typing `/name` |
 | **Repository (repo)** | The folder of your project's code and history, hosted on GitHub |

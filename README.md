@@ -1,134 +1,104 @@
 # autocraft
 
-**A team of AI agents for the whole software lifecycle** — architecture, review, repo setup, building, code review, pre-release checks and security — packaged as ready-to-use [Claude Code](https://claude.com/claude-code) agents and skills.
+**Agent teams for building software with AI — pick your kind of software, pick your AI tool, get a ready-made team.**
 
-You bring the idea. The agents behave like a disciplined engineering team: they design, challenge each other, build with tests, review each other's work, and hand you a *release-ready* pull request. **You stay in control: humans approve and merge.**
+Most people build software with *one* AI agent doing everything: planning, coding, and judging its own work. It works until it doesn't — mistakes go unnoticed, context gets muddled, and nobody is holding the quality bar. Professional teams solve this with **roles**: someone who defines the problem, someone who designs, someone who builds, someone *else* who reviews, someone who checks before release.
 
-> New to software engineering (or "vibe coding")? Start with **[docs/vibe-coders.md](docs/vibe-coders.md)**, then **[docs/getting-started.md](docs/getting-started.md)**. No prior knowledge assumed.
+autocraft gives you that team as plain files your AI tool already understands — and a small CLI (plus an agent, the **Team Builder**) that sets it up for you, in the tool you use, for the kind of software you're building, and lets you customize it.
 
-## What are you building? (archetypes + capabilities)
+> **Never set up agents before?** Don't read further — open your AI tool in an empty folder and paste the **[bootstrap prompt](docs/bootstrap-prompt.md)**. The Team Builder interviews you and does the rest.
 
-Never built software? Run **`/discover`** and describe your idea in plain words — the agents work out what kind of project it is, what it needs, and explain it back to you without jargon. Start with the **[beginner guide](docs/vibe-coders.md)**.
-
-The same agent team adapts to the kind of product through **archetype** profiles — 20 of them, each with its own questions, architecture checklist, test strategy, security focus, hosting defaults and release gates:
-
-| Group | Archetypes |
-|---|---|
-| Things people use | [static-site](archetypes/static-site/archetype.md) · [web-app](archetypes/web-app/archetype.md) · [fullstack-app](archetypes/fullstack-app/archetype.md) · [mobile-app](archetypes/mobile-app/archetype.md) · [desktop-app](archetypes/desktop-app/archetype.md) · [game](archetypes/game/archetype.md) · [internal-tool](archetypes/internal-tool/archetype.md) · [chat-bot](archetypes/chat-bot/archetype.md) · [plugin-extension](archetypes/plugin-extension/archetype.md) |
-| Behind the scenes | [api-service](archetypes/api-service/archetype.md) · [realtime-service](archetypes/realtime-service/archetype.md) · [event-processor](archetypes/event-processor/archetype.md) · [scheduled-job](archetypes/scheduled-job/archetype.md) · [script-automation](archetypes/script-automation/archetype.md) · [data-pipeline](archetypes/data-pipeline/archetype.md) |
-| Intelligence | [ai-assistant](archetypes/ai-assistant/archetype.md) · [ml-service](archetypes/ml-service/archetype.md) |
-| Foundations | [library-cli](archetypes/library-cli/archetype.md) · [infrastructure](archetypes/infrastructure/archetype.md) · [embedded-iot](archetypes/embedded-iot/archetype.md) |
-
-Products usually combine several (a store = `fullstack-app` + payments + email…) — see the **recipes table** in [archetypes/README.md](archetypes/README.md). On top of that, ten **[capabilities](capabilities/README.md)** (authentication, payments, database, email, file uploads, search, observability, secrets, hosting, privacy) are applied wherever your idea calls for them.
-
-## The team
+## How it works
 
 ```
- idea
-  │
-  ▼
-requirements-analyst ──► (ux-designer, for UI) ──► architect ⇄ principal-engineer      (design loop, max 3 rounds)
-                                │ approved
-                                ▼
-                         repo-onboarder        (private repo, protected main, CI, lint, tests, SCA/SAST)
-                                │
-                                ▼
-              developer(s) ⇄ pr-reviewer       (build loop per PR: code + unit/integration tests)
-                                │ approved
-                                ▼
-                       release-gatekeeper      (final gap check → label release-ready)
-                                │
-                                ▼
-                       👤 you review & merge
-
-        security-auditor   (weekly + pre-release: triage SCA/SAST/secret findings)
-        delivery-lead      (tracks state, enforces limits, tells you what's next)
+        what you build                 who builds it                     where it runs
+   ┌─────────────────────┐      ┌──────────────────────┐        ┌───────────────────────────┐
+   │ 20 archetypes       │      │ 22 roles → 10 teams  │        │ Claude Code (CLI/web/app) │
+   │ 10 capabilities     │ ───► │ + workflows          │ ─────► │ Claude app (chat Projects)│
+   │ (api, mobile, web,  │      │ (lean → full)        │ export │ Cursor · GitHub Copilot   │
+   │  AI, data, game, …) │      │ customizable         │        │ Gemini CLI · Windsurf     │
+   └─────────────────────┘      └──────────────────────┘        │ Cline · Codex & AGENTS.md │
+                                                                 │ any chat (plain prompts)  │
+                                                                 └───────────────────────────┘
 ```
 
-| Agent | One-line job |
-|---|---|
-| [requirements-analyst](.claude/agents/requirements-analyst.md) | Vague idea → testable spec |
-| [ux-designer](.claude/agents/ux-designer.md) | Flows, wireframes, UI states, accessibility (web / mobile) |
-| [architect](.claude/agents/architect.md) | Spec → architecture, API, threat model, ADRs, task list |
-| [principal-engineer](.claude/agents/principal-engineer.md) | Critiques and approves the architecture |
-| [repo-onboarder](.claude/agents/repo-onboarder.md) | Creates & hardens the GitHub repo, verifies every control |
-| [developer](.claude/agents/developer.md) | One task → one PR with unit + integration tests |
-| [pr-reviewer](.claude/agents/pr-reviewer.md) | Reviews each PR and every update until clean |
-| [release-gatekeeper](.claude/agents/release-gatekeeper.md) | Last look at approved PRs; marks **release-ready** |
-| [security-auditor](.claude/agents/security-auditor.md) | Triage of dependency / code / secret scan results |
-| [delivery-lead](.claude/agents/delivery-lead.md) | Status board, next action, human gates |
+One tool-neutral definition → exported into each tool's **native** format (subagents, rules, custom agents, commands, instructions). Learn once, switch tools freely, keep your team.
 
-## Workflows (slash commands)
-
-| Command | What it does |
-|---|---|
-| `/discover` | Describe your idea in plain words → recommended archetypes & capabilities |
-| `/start` | Guided kickoff for a new project — runs everything below in order |
-| `/design-architecture` | architect ⇄ principal-engineer loop until approved |
-| `/onboard-repo` | Create + harden the GitHub repo |
-| `/build-feature` | developer ⇄ pr-reviewer loop (parallel tasks supported) |
-| `/review-pr <n>` | Review any single PR |
-| `/release-check` | Pre-release gate → `release-ready` → notify you |
-| `/security-scan` | SCA / SAST / secrets triage |
-| `/status` | Where are we, what's next, what do you need to do |
-| `/explain <anything>` | Plain-language explanation of a file, PR, comment, error or term |
-
-## Quick start
+## 60-second start
 
 ```bash
-# 1. Get the framework
-git clone https://github.com/sak-io/autocraft.git && cd autocraft
-
-# 2. Install it into a new (or existing) project folder
-bash scripts/install.sh ~/code/my-app            # --lang and --archetype are optional; /discover and /start will ask
-#   power users:  --lang node|python|go|java|dotnet|rust|flutter|terraform   --archetype fullstack-app,ai-assistant
-
-# 3. Open Claude Code there and kick off
-cd ~/code/my-app && claude
-> /discover        # describe your idea in plain words (or skip if you know)
-> /start
+git clone https://github.com/sak-io/autocraft.git
+python3 autocraft/bin/autocraft recommend "an app where my students book yoga classes on their phone and pay online"
+python3 autocraft/bin/autocraft init ~/code/yoga --tool claude-code --team mobile --archetype mobile-app,api-service
+cd ~/code/yoga && claude        # then type:  /start
 ```
 
-Prerequisites: [Claude Code](https://claude.com/claude-code), `git`, the [GitHub CLI](https://cli.github.com) (`gh auth login`), and `jq`.
+Or let an agent do it: [`docs/bootstrap-prompt.md`](docs/bootstrap-prompt.md). Only Python 3.8+ is needed (no installs).
 
-## How agents collaborate
+## Your AI tool
 
-Agents don't talk in secret: everything they exchange lives **in the repo** (docs, PR comments, labels), so you can read it, and any session can pick up where the last left off. Full rules: **[docs/protocol.md](docs/protocol.md)**. Highlights:
+| Tool | What you get | Guide |
+|---|---|---|
+| **Claude Code** (terminal, desktop, web, Claude app code sessions) | 1 subagent per role in `.claude/agents/`, workflows as `/slash` skills, `CLAUDE.md` | [claude-code](docs/tools/claude-code.md) |
+| **Claude app** (chat Projects, mobile) | Project instructions + knowledge files; the model plays the team in one chat | [claude-app](docs/tools/claude-app.md) |
+| **Cursor** | `.cursor/rules/*.mdc` — role & workflow rules | [cursor](docs/tools/cursor.md) |
+| **GitHub Copilot** | `.github/agents/*.agent.md`, prompt files, `copilot-instructions.md` | [copilot](docs/tools/copilot.md) |
+| **Gemini CLI** | `GEMINI.md` + `.gemini/commands/*.toml` | [gemini-cli](docs/tools/gemini-cli.md) |
+| **Windsurf** | `.windsurf/rules/*.md` | [windsurf](docs/tools/windsurf.md) |
+| **Cline** | `.clinerules/` | [cline](docs/tools/cline.md) |
+| **Codex, Jules, Aider, Zed, … (AGENTS.md)** | `AGENTS.md` + `.autocraft/roles/` | [agents-md](docs/tools/agents-md.md) |
+| **Anything else** (ChatGPT, …) | pasteable `prompts/` | [prompts](docs/tools/prompts.md) |
 
-- **Review loops** use severity-tagged feedback (`[BLOCKER] [MAJOR] [MINOR] [NIT]`), must-answer comments, and a **3-round limit** before escalating to you.
-- **PR labels are the state machine:** `agent:needs-review → agent:changes-requested ⇄ agent:approved → agent:release-ready`.
-- **You choose how involved to be** (autonomy levels L1–L3).
+Tools without real sub-agents run the team as **role hats** with a fresh session for every reviewer — see [orchestration patterns](docs/orchestration-patterns.md). Vendor file formats change; each exporter is a small function in [`bin/autocraft`](bin/autocraft).
+
+## Pick a team
+
+Start **lean**, grow when needed. Every team keeps the three things that matter: *a builder who isn't the judge of their own work*, *a security check*, and *a human who merges*.
+
+| Team | For | Roles (core) |
+|---|---|---|
+| **[starter](teams/starter.md)** (lean) | anything small; start here when unsure | requirements-analyst · developer · pr-reviewer · security-auditor |
+| **[web-product](teams/web-product.md)** | websites, web apps, SaaS, internal tools | + ux-designer · architect · principal-engineer · frontend/backend-developer · qa · release-gatekeeper · delivery-lead |
+| **[api-backend](teams/api-backend.md)** | APIs, jobs, queues, realtime, automation | architect · principal · backend-developer · qa · reviewer · security · release gate |
+| **[mobile](teams/mobile.md)** | iOS/Android (+ backend) | ux-designer · mobile-developer · backend-developer · qa (device matrix) · release gate (store-aware) |
+| **[ai-product](teams/ai-product.md)** | chatbots, assistants, RAG, agents | ai-engineer · eval-first QA · injection red-team |
+| **[data-ml](teams/data-ml.md)** | pipelines, analytics, ML models | data-engineer · ml-engineer · data-quality QA |
+| **[platform](teams/platform.md)** | cloud/infrastructure as code | devops-engineer · plan-first review |
+| **[toolsmith](teams/toolsmith.md)** | libraries, CLIs, plugins, desktop | semver & compatibility gates · technical-writer |
+| **[makers](teams/makers.md)** | games, embedded/IoT | game-developer / embedded-engineer · playtest & OTA gates |
+| **[setup](teams/setup.md)** | (meta) builds your team | team-builder |
+
+Teams combine: `--team mobile,ai-product`. Browse the [22 roles](roles/), the [20 software-type archetypes](archetypes/README.md) (with a recipes table: "online store", "SaaS", "Slack bot", …) and [10 capabilities](capabilities/README.md) (login, payments, database, email, uploads, search, privacy, …).
+
+## Customize it
+
+Everything is files you own; generated files are never the place to edit.
+
+```bash
+autocraft add-role qa-engineer            # add a specialist
+autocraft remove-role ux-designer         # drop one
+autocraft new-role compliance-reviewer    # invent your own, then add-role it
+autocraft add-tool cursor                 # support another AI tool, same team
+echo "Use pnpm and TypeScript strict." > .autocraft/custom/team-rules.md   # rules for every role
+echo "- Prefer Vitest." > .autocraft/custom/roles/developer.append.md      # rules for one role
+autocraft sync                            # regenerate every tool's files
+autocraft doctor                          # sanity-check the setup
+```
+Details: [docs/customizing.md](docs/customizing.md). Strictness knobs (autonomy level, review rounds, parallel builders, audience level `beginner|intermediate|expert`) are in `.autocraft/config.yml`.
+
+## The collaboration model (the same in every tool)
+
+Roles don't share a mind — they share **files**: specs, reviews, handoff blocks and a status file, plus PR labels when GitHub is used. That is what makes the team portable across tools and sessions. Authors answer every review comment; reviewers re-verify each one; after N rounds they stop and ask you; **humans merge**. Full rules: [docs/protocol.md](docs/protocol.md). The lifecycle: [docs/lifecycle.md](docs/lifecycle.md).
+
+## Optional: GitHub hardening module
+If your project lives on GitHub, `autocraft github --lang python` (or [`scripts/onboard-repo.sh`](scripts/onboard-repo.sh)) adds CI, linting/test steps, SCA/SAST/secret scanning, labels, templates and branch protection for `main`, and the `repo-onboarder` role verifies each control. It is a module, not the point — the team works without it.
 
 ## Learn more
-
-| Doc | For |
-|---|---|
-| [Beginner guide](docs/vibe-coders.md) | Never built software? The whole picture in 5 minutes |
-| [Getting started](docs/getting-started.md) | Setup → first project |
-| [Capabilities](capabilities/README.md) | Login, payments, email, … the things every product needs |
-| [Archetypes](archetypes/README.md) | Choosing and combining project types |
-| [Lifecycle](docs/lifecycle.md) | Each phase: inputs, outputs, quality gates |
-| [Protocol](docs/protocol.md) | Handoffs, labels, review rules, autonomy levels |
-| [Worked example](docs/example-order-service.md) | An e-commerce order API, start to release |
-| [Customizing](docs/customizing.md) | Add agents, change stacks, tune strictness |
-| [Glossary](docs/glossary.md) | Plain-language definitions of the jargon |
-
-## Repository layout
-
-```
-.claude/agents/      the agent definitions (copied into your projects)
-.claude/skills/      the slash-command workflows
-archetypes/          20 project-type profiles + recipes
-capabilities/        cross-cutting checklists (auth, payments, database, …)
-templates/           CI workflows, PR/issue templates, architecture & release templates, branch protection
-scripts/             install.sh, onboard-repo.sh, validate.sh
-docs/                guides and protocol
-```
-
-Validate the framework itself: `bash scripts/validate.sh`.
+[Beginner guide](docs/vibe-coders.md) · [Why teams & orchestration patterns](docs/orchestration-patterns.md) · [Bootstrap prompt](docs/bootstrap-prompt.md) · [Lifecycle](docs/lifecycle.md) · [Protocol](docs/protocol.md) · [Worked example](docs/example-order-service.md) · [Glossary](docs/glossary.md)
 
 ## Honest limitations
+- Agents make mistakes; the process (tests, independent review, CI, human merge) is what catches them. Don't remove the human gate for anything important.
+- Non-Claude exports follow each vendor's documented conventions as of writing; formats evolve, so run `autocraft doctor` and check the vendor docs if a tool ignores the files.
+- Chat-only tools can't run tests; for real repo work use an agentic tool (Claude Code, Cursor, Copilot, Gemini CLI, …).
 
-- Agents make mistakes; the process (tests, CI, independent review, human merge) is what catches them. Don't remove the human gate for anything important.
-- Some GitHub protections need a paid plan for private repos; the onboarder reports what it could and could not enable.
-- Claude Code subagents can't spawn other subagents, so the *skills* run the loops from the main session.
+Validate the framework itself: `bash scripts/validate.sh`.
