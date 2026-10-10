@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # Keep CI actions current (they are a supply-chain risk too)
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+  # Uncomment the ecosystem for your stack (onboarding does this for you):
+  # - package-ecosystem: npm
+  #   directory: /
+  #   schedule: { interval: weekly }
+  # - package-ecosystem: pip
+  #   directory: /
+  #   schedule: { interval: weekly }
+  # - package-ecosystem: gomod
+  #   directory: /
+  #   schedule: { interval: weekly }
