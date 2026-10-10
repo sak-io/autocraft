@@ -4,21 +4,22 @@
 
 You bring the idea. The agents behave like a disciplined engineering team: they design, challenge each other, build with tests, review each other's work, and hand you a *release-ready* pull request. **You stay in control: humans approve and merge.**
 
-> New to software engineering? Start with **[docs/getting-started.md](docs/getting-started.md)**. No prior knowledge assumed.
+> New to software engineering (or "vibe coding")? Start with **[docs/vibe-coders.md](docs/vibe-coders.md)**, then **[docs/getting-started.md](docs/getting-started.md)**. No prior knowledge assumed.
 
-## What are you building? (archetypes)
+## What are you building? (archetypes + capabilities)
 
-The same agent team adapts to the kind of product via an **archetype** profile — its questions, architecture checklist, test strategy, security focus and release gates:
+Never built software? Run **`/discover`** and describe your idea in plain words — the agents work out what kind of project it is, what it needs, and explain it back to you without jargon. Start with the **[beginner guide](docs/vibe-coders.md)**.
 
-| Archetype | For | Flag |
-|---|---|---|
-| [api-service](archetypes/api-service/archetype.md) | backends others call (REST/GraphQL/gRPC) | `--lang python\|node\|go` |
-| [web-app](archetypes/web-app/archetype.md) | browser UIs | `--lang node` |
-| [mobile-app](archetypes/mobile-app/archetype.md) | iOS / Android apps | `--lang node` (React Native/Expo) or `flutter` |
-| [scheduled-job](archetypes/scheduled-job/archetype.md) | cron, queue workers, batch/ETL | `--lang python\|node\|go` |
-| [library-cli](archetypes/library-cli/archetype.md) | packages, SDKs, command-line tools | `--lang node\|python\|go` |
+The same agent team adapts to the kind of product through **archetype** profiles — 20 of them, each with its own questions, architecture checklist, test strategy, security focus, hosting defaults and release gates:
 
-Combine them (e.g. `mobile-app` + `api-service`) — see [archetypes/README.md](archetypes/README.md). Missing yours? Adding one is a single markdown file.
+| Group | Archetypes |
+|---|---|
+| Things people use | [static-site](archetypes/static-site/archetype.md) · [web-app](archetypes/web-app/archetype.md) · [fullstack-app](archetypes/fullstack-app/archetype.md) · [mobile-app](archetypes/mobile-app/archetype.md) · [desktop-app](archetypes/desktop-app/archetype.md) · [game](archetypes/game/archetype.md) · [internal-tool](archetypes/internal-tool/archetype.md) · [chat-bot](archetypes/chat-bot/archetype.md) · [plugin-extension](archetypes/plugin-extension/archetype.md) |
+| Behind the scenes | [api-service](archetypes/api-service/archetype.md) · [realtime-service](archetypes/realtime-service/archetype.md) · [event-processor](archetypes/event-processor/archetype.md) · [scheduled-job](archetypes/scheduled-job/archetype.md) · [script-automation](archetypes/script-automation/archetype.md) · [data-pipeline](archetypes/data-pipeline/archetype.md) |
+| Intelligence | [ai-assistant](archetypes/ai-assistant/archetype.md) · [ml-service](archetypes/ml-service/archetype.md) |
+| Foundations | [library-cli](archetypes/library-cli/archetype.md) · [infrastructure](archetypes/infrastructure/archetype.md) · [embedded-iot](archetypes/embedded-iot/archetype.md) |
+
+Products usually combine several (a store = `fullstack-app` + payments + email…) — see the **recipes table** in [archetypes/README.md](archetypes/README.md). On top of that, ten **[capabilities](capabilities/README.md)** (authentication, payments, database, email, file uploads, search, observability, secrets, hosting, privacy) are applied wherever your idea calls for them.
 
 ## The team
 
@@ -61,6 +62,7 @@ requirements-analyst ──► (ux-designer, for UI) ──► architect ⇄ pri
 
 | Command | What it does |
 |---|---|
+| `/discover` | Describe your idea in plain words → recommended archetypes & capabilities |
 | `/start` | Guided kickoff for a new project — runs everything below in order |
 | `/design-architecture` | architect ⇄ principal-engineer loop until approved |
 | `/onboard-repo` | Create + harden the GitHub repo |
@@ -69,6 +71,7 @@ requirements-analyst ──► (ux-designer, for UI) ──► architect ⇄ pri
 | `/release-check` | Pre-release gate → `release-ready` → notify you |
 | `/security-scan` | SCA / SAST / secrets triage |
 | `/status` | Where are we, what's next, what do you need to do |
+| `/explain <anything>` | Plain-language explanation of a file, PR, comment, error or term |
 
 ## Quick start
 
@@ -77,12 +80,12 @@ requirements-analyst ──► (ux-designer, for UI) ──► architect ⇄ pri
 git clone https://github.com/sak-io/autocraft.git && cd autocraft
 
 # 2. Install it into a new (or existing) project folder
-bash scripts/install.sh ~/code/my-app --lang node --archetype web-app,api-service
-#   --lang: node | python | go | flutter      --archetype: api-service, web-app, mobile-app, scheduled-job, library-cli
-#   (--archetype is optional: /start will ask you)
+bash scripts/install.sh ~/code/my-app            # --lang and --archetype are optional; /discover and /start will ask
+#   power users:  --lang node|python|go|java|dotnet|rust|flutter|terraform   --archetype fullstack-app,ai-assistant
 
 # 3. Open Claude Code there and kick off
 cd ~/code/my-app && claude
+> /discover        # describe your idea in plain words (or skip if you know)
 > /start
 ```
 
@@ -100,7 +103,9 @@ Agents don't talk in secret: everything they exchange lives **in the repo** (doc
 
 | Doc | For |
 |---|---|
-| [Getting started](docs/getting-started.md) | First-timers: setup → first project |
+| [Beginner guide](docs/vibe-coders.md) | Never built software? The whole picture in 5 minutes |
+| [Getting started](docs/getting-started.md) | Setup → first project |
+| [Capabilities](capabilities/README.md) | Login, payments, email, … the things every product needs |
 | [Archetypes](archetypes/README.md) | Choosing and combining project types |
 | [Lifecycle](docs/lifecycle.md) | Each phase: inputs, outputs, quality gates |
 | [Protocol](docs/protocol.md) | Handoffs, labels, review rules, autonomy levels |
@@ -113,7 +118,8 @@ Agents don't talk in secret: everything they exchange lives **in the repo** (doc
 ```
 .claude/agents/      the agent definitions (copied into your projects)
 .claude/skills/      the slash-command workflows
-archetypes/          project-type profiles (api, web, mobile, job, library)
+archetypes/          20 project-type profiles + recipes
+capabilities/        cross-cutting checklists (auth, payments, database, …)
 templates/           CI workflows, PR/issue templates, architecture & release templates, branch protection
 scripts/             install.sh, onboard-repo.sh, validate.sh
 docs/                guides and protocol

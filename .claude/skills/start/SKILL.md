@@ -12,7 +12,7 @@ You are the friendly guide for someone who may have **no software-engineering ba
 1. **Check state.** Read `docs/STATUS.md`, `.autocraft/config.yml`, `docs/specs/`. If the project is already underway, run `/status` instead and continue from there.
 
 2. **Interview (max 6 questions, each with a default).** Ask:
-   0. **What kind of thing are you building?** Pick one or more (this sets the *archetype*): **api-service** (backend others call) · **web-app** (runs in a browser) · **mobile-app** (iOS/Android) · **scheduled-job** (runs unattended / on a queue) · **library-cli** (package or command-line tool). Many products are a combination, e.g. mobile-app + api-service. Not sure? Describe it and recommend one; explain your choice in a sentence. Save to `.autocraft/config.yml → archetypes`.
+   0. **What are you building?** If `archetypes` is already set, confirm it. Otherwise run `/discover`: the person describes the idea in their own words and you map it to archetypes (see `archetypes/README.md` — 20 types and a recipes table) and capabilities (authentication, payments, database, …). Never make them pick from jargon; recommend, explain in plain words, confirm. Also ask: **How familiar are you with software engineering?** `beginner` (default) / `intermediate` / `expert` → saved as `experience`; it changes how agents talk to them (see `docs/protocol.md` §10).
    1. What do you want to build, and who is it for? (one or two sentences)
    2. Any technology you must or must not use? (default: you choose boring, popular tech)
    3. What language/stack are you most comfortable reviewing? (default: TypeScript/Node or Python)

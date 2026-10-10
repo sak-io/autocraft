@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Create + harden a GitHub repository for an autocraft project.
 #
-# Usage: onboard-repo.sh <owner/name> --lang node|python|go|flutter [--public] [--dir PATH] [--dry-run]
+# Usage: onboard-repo.sh <owner/name> --lang <lang> [--public] [--dir PATH] [--dry-run]
 #
 # Works in two situations:
 #   * run from a project folder that already has autocraft installed (.autocraft/config.yml):
@@ -13,6 +13,8 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 if [[ -d "$HERE/.claude/agents" ]]; then FRAMEWORK="$HERE"; TPL="$HERE/templates"   # autocraft clone
 else FRAMEWORK=""; TPL="$HERE/templates"; fi                                        # installed copy (.autocraft/)
+# shellcheck source=lang.sh
+. "$HERE/scripts/lang.sh"
 
 REPO="${1:-}"; shift || true
 LANG_=""; VIS="private"; DRY=0; DIR=""
@@ -25,8 +27,8 @@ while [[ $# -gt 0 ]]; do
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
 done
-[[ "$REPO" == */* ]] || { echo "Usage: $0 <owner/name> --lang node|python|go|flutter [--public] [--dir PATH] [--dry-run]" >&2; exit 2; }
-case "$LANG_" in node|python|go|flutter) ;; *) echo "--lang is required: node | python | go | flutter" >&2; exit 2 ;; esac
+[[ "$REPO" == */* ]] || { echo "Usage: $0 <owner/name> --lang <lang> [--public] [--dir PATH] [--dry-run]" >&2; exit 2; }
+valid_lang "$LANG_" || { echo "--lang is required, one of: $LANGS" >&2; exit 2; }
 NAME="${REPO#*/}"
 if [[ -z "$DIR" ]]; then if [[ -f .autocraft/config.yml ]]; then DIR="$PWD"; else DIR="$PWD/$NAME"; fi; fi
 
@@ -53,7 +55,7 @@ if [[ ! -f "$DIR/.autocraft/config.yml" ]]; then
   run bash "$FRAMEWORK/scripts/install.sh" "$DIR" --lang "$LANG_"
 elif [[ ! -f "$DIR/.github/workflows/ci.yml" ]]; then
   echo "  adding CI + CodeQL for $LANG_"
-  case "$LANG_" in node) CQ=javascript-typescript ;; python) CQ=python ;; go) CQ=go ;; flutter) CQ="" ;; esac
+  lang_info "$LANG_"
   if ! ((DRY)); then
     mkdir -p "$DIR/.github/workflows"
     cp "$TPL/github/workflows/ci-$LANG_.yml" "$DIR/.github/workflows/ci.yml"

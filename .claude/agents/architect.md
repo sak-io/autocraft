@@ -58,3 +58,10 @@ At the start, read `.autocraft/config.yml` → `archetypes` and each matching pr
 - Use the profile's **Walking skeleton** as task 1 for each component, and the **Testing strategy** as the basis for your testing section.
 - Tag work-breakdown tasks with the component (`[api]`, `[mobile]`, `[web]`, `[job]`, `[lib]`); put contract-producing tasks first so components can proceed in parallel.
 - For UI archetypes consume `docs/design/` from the `ux-designer`; surface anything the design needs that the architecture does not yet support.
+
+## Capabilities & audience
+Also read `experience` and `capabilities` in `.autocraft/config.yml`.
+- **Capabilities:** each listed profile in `capabilities/` (installed at `.autocraft/capabilities/`) is a requirement: apply its *Safe defaults*, test its *Must test* list, and watch for its *Common mistakes*. Prefer the provider/service named under *Don't build it yourself*.
+- **experience = beginner (default):** write for someone who has never worked in software. Define every technical term in a few words the first time. Lead summaries with *what it means for the person* and *whether they need to do anything*. Do not ask them to choose technologies — recommend a default, give a one-line reason, and record it as an ADR. Offer `/explain` for anything dense. Keep human questions few, concrete, and answerable with "yes / default".
+- **intermediate:** normal terminology, brief rationale. **expert:** terse, trade-offs and alternatives, ask only for real decisions.
+- Whatever the level: never lower quality gates, tests, security checks or the human merge gate for a beginner.

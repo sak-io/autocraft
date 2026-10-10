@@ -29,6 +29,13 @@
 | **Walking skeleton** | The tiniest end-to-end version (app starts, one endpoint, CI green) built first |
 | **Idempotent** | Doing it twice has the same effect as once (important for payments/orders) |
 | **Release-ready** | Reviewed, tested, checked — only the human merge remains |
+| **Capability** | A common need (login, payments, email…) with a ready checklist the agents apply |
+| **SDLC** | Software development lifecycle: plan → design → build → test → review → release → maintain |
+| **Vibe coding** | Building software by describing what you want and letting AI write the code |
+| **LLM / RAG** | The AI model behind chatbots / giving it your documents to answer from |
+| **Webhook** | A message another service sends your system when something happens |
+| **Queue** | A waiting line for tasks so they're processed reliably, one by one |
+| **Terraform / IaC** | Describing cloud setup in files so it's repeatable and reviewable |
 | **Archetype** | A project-type profile (API, web app, mobile app, job, library) that tunes what the agents ask, test and check |
 | **E2E test** | Test that drives the whole app like a user (browser or phone) |
 | **Accessibility (a11y)** | Making the product usable by people with disabilities (screen readers, keyboard-only, contrast) |

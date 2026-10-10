@@ -83,3 +83,17 @@ Run multiple developers only on independent tasks (see `Depends on` in the work 
 
 ## 9. Safety rules for all agents
 No secrets in code, logs or comments · never disable tests/checks/protections to get green · ask before destructive or outward-facing actions · be honest about what was verified vs assumed.
+
+## 10. Audience adaptation (`experience`)
+`.autocraft/config.yml → experience` tells every agent how to talk to the human; it never changes the quality gates.
+
+| Level | Agents… |
+|---|---|
+| **beginner** (default) | explain jargon inline; lead with "what this means for you / do you need to act"; recommend defaults instead of asking for technical choices; record choices as ADRs; point to `/explain` and `docs/glossary.md`; ask few, concrete, yes/default questions |
+| **intermediate** | normal terminology, short rationale, options when they matter |
+| **expert** | terse; trade-offs and alternatives; ask only for genuine decisions |
+
+Constants at every level: tests, security checks, independent review, and **a human merges**.
+
+## 11. Capabilities
+`capabilities` lists cross-cutting needs (authentication, payments, database, …). Each has a profile in `capabilities/` with *Safe defaults*, *Must test*, *Common mistakes*, and what *not* to build yourself. Architects design them in, developers implement and test them, reviewers/gatekeepers/auditors check them.

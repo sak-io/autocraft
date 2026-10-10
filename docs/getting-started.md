@@ -1,5 +1,7 @@
 # Getting started (no experience required)
 
+> Brand new to all this? Read [the beginner guide](vibe-coders.md) first — five minutes, no jargon.
+
 This guide takes you from "I have an idea" to "I have reviewed, tested code waiting for my approval".
 
 ## What you need (15 minutes, once)
@@ -13,14 +15,16 @@ This guide takes you from "I have an idea" to "I have reviewed, tested code wait
 ```bash
 git clone https://github.com/sak-io/autocraft.git
 bash autocraft/scripts/install.sh ~/code/my-first-app --lang node --archetype api-service
-# --lang: node | python | go | flutter    --archetype: api-service | web-app | mobile-app | scheduled-job | library-cli
+# --lang: node | python | go | java | dotnet | rust | flutter | terraform   --archetype: see archetypes/README.md
 # Building several parts? e.g. --archetype mobile-app,api-service
 cd ~/code/my-first-app
 claude
 ```
-Pick `--lang` for the technology you'd like the project to use (not sure? `node` or `python` are fine) and `--archetype` for the *kind* of thing you're building (skip it and `/start` will ask). See [archetypes](../archetypes/README.md). Phone app? Use `mobile-app` — releases there go through app stores, so the agents are extra careful.
+Both flags are optional — `/discover` and `/start` will work them out from your description. If you know them: `--lang` is the technology you'd like the project to use (not sure? `node` or `python` are fine) and `--archetype` the *kind* of thing you're building (20 types, see [archetypes](../archetypes/README.md)). Phone app? Use `mobile-app` — releases there go through app stores, so the agents are extra careful.
 
-## Step 2 – Say `/start`
+## Step 2 – Say `/discover`, then `/start`
+`/discover` turns "I want an app where…" into a plan: which kind(s) of project it is and what else it needs (login, payments, email…). Then `/start` runs the build.
+
 The guide asks up to five short questions (every one has a default — you can just say "default"). It will ask how involved you want to be:
 
 - **L1 Guided** — it checks with you after every phase. Choose this to learn.

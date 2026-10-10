@@ -3,6 +3,9 @@
 ## Summary
 A user-facing website or single-page app that runs in the browser: dashboards, storefronts, admin consoles, marketing sites with logic.
 
+## In plain words
+"I want a website people use in the browser, with buttons, forms and screens." This archetype is the screens. If it also saves data or has accounts, pair it with `api-service` — or use `fullstack-app` for one combined project.
+
 ## Typical products
 SPA (React/Vue/Svelte), server-rendered app (Next.js/Remix), admin UI on top of an existing API.
 
@@ -28,6 +31,9 @@ App builds and deploys a home page + one routed page + a call to `/health` (or m
 
 ## CI & tooling
 Lint, type-check, unit/component tests, Playwright E2E job (browsers installed), build, bundle-size budget, dependency audit, optional preview deployments.
+
+## Where it runs (simple defaults)
+Static hosting + CDN (Vercel/Netlify/Cloudflare Pages) for a single-page app; a managed platform if it renders on the server.
 
 ## Security focus
 XSS (escaping, no `dangerouslySetInnerHTML` with user data), CSRF, content security policy, secure cookie flags, token storage, open redirects, third-party scripts, secrets never in the client bundle, dependency CVEs.

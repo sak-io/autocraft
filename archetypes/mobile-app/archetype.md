@@ -3,6 +3,9 @@
 ## Summary
 An app installed on phones/tablets (iOS, Android or both). Releases go through app stores, so mistakes are slow and costly to undo.
 
+## In plain words
+"I want an app people install from the App Store / Google Play." Once released you cannot take it back from phones, so testing and careful rollout matter more than on the web.
+
 ## Typical products
 Consumer apps, companion apps for a service, internal field-worker apps.
 
@@ -29,6 +32,9 @@ App launches to a home screen, navigates to a second screen, calls the API healt
 
 ## CI & tooling
 Lint/analyze, unit + widget tests, debug build for each platform (iOS builds need macOS runners), dependency audit, signing handled via CI secrets (never in repo), optional beta distribution (TestFlight/Play internal track).
+
+## Where it runs (simple defaults)
+On users' phones, distributed through the stores. Needs developer accounts (Apple ≈ $99/yr, Google ≈ $25 once). Any server it talks to is a separate `api-service`.
 
 ## Security focus
 Secure storage for tokens, certificate pinning where warranted, no secrets in the app binary (assume it will be unpacked), permission minimization, deep-link validation, insecure local data, jailbreak/root sensitivity for payments, privacy disclosures (data collected).

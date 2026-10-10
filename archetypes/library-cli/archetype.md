@@ -3,6 +3,9 @@
 ## Summary
 Reusable code other developers install (a library/SDK) or a command-line tool people run. The public interface is the product.
 
+## In plain words
+"I want to share reusable code or a command other developers can install." Its users are developers; your interface is the product, and changing it later can break their work.
+
 ## Typical products
 Open-source packages, internal SDKs, CLIs, developer tools, GitHub Actions.
 
@@ -28,6 +31,9 @@ Package builds, exports one function (or CLI `--help`/`--version`), has tests ac
 
 ## CI & tooling
 Lint, type-check, test matrix, build, API-diff check, dependency audit, dry-run publish, changelog check.
+
+## Where it runs (simple defaults)
+Published to a package registry (npm, PyPI, crates.io, GitHub Releases) and installed by users; no server to run.
 
 ## Security focus
 Dependency footprint and typosquatting, publish credentials (trusted publishing / provenance), safe defaults, no telemetry without consent, command/path injection in CLIs, secrets in logs or error output.

@@ -8,6 +8,9 @@ Edit `.autocraft/config.yml`: `autonomy_level`, `max_review_rounds`, `max_parall
 2. Add the stack to `scripts/install.sh` (`--lang` case, CodeQL language, Dependabot ecosystem).
 3. Mention stack-specific lint/test commands in `repo-onboarder`.
 
+## Add a capability
+Copy `capabilities/authentication.md`, keep its six headings, add a row to `capabilities/README.md`. Trigger words drive automatic detection in `/discover`.
+
 ## Add an archetype
 Copy `archetypes/api-service/archetype.md` to `archetypes/<name>/archetype.md`, rewrite each section (the headings are required — `validate.sh` checks), and add the name to the table in `archetypes/README.md`. All agents pick it up automatically via `.autocraft/config.yml → archetypes`. Add a CI template if the stack is new.
 

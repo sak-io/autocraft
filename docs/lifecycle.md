@@ -2,7 +2,7 @@
 
 | # | Phase | Agents | Inputs | Outputs | Exit gate |
 |---|---|---|---|---|---|
-| 0 | Kickoff | delivery-lead / `/start` | your idea | `.autocraft/config.yml` | autonomy level chosen |
+| 0 | Discover & kickoff | `/discover`, `/start` | your idea in plain words | `.autocraft/config.yml` (archetypes, capabilities, experience, autonomy) | you confirmed the plan |
 | 1 | Spec | requirements-analyst | idea | `docs/specs/*.md` | every story has testable acceptance criteria; open questions answered or assumed |
 | 1b | UX design (UI archetypes only) | ux-designer | spec | `docs/design/` flows, wireframes, states, accessibility | every story maps to screens and states |
 | 2 | Architecture | architect ⇄ principal-engineer | spec | architecture, API, threat model, ADRs, work breakdown | `status.md = APPROVED`, 0 open BLOCKER/MAJOR |

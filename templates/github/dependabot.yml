@@ -4,7 +4,7 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
-  # Uncomment the ecosystem for your stack (onboarding does this for you):
+  # The ecosystem for your language is enabled automatically by install.sh --lang.
   # - package-ecosystem: npm
   #   directory: /
   #   schedule: { interval: weekly }
@@ -14,6 +14,18 @@ updates:
   # - package-ecosystem: gomod
   #   directory: /
   #   schedule: { interval: weekly }
+  # - package-ecosystem: maven
+  #   directory: /
+  #   schedule: { interval: weekly }
+  # - package-ecosystem: nuget
+  #   directory: /
+  #   schedule: { interval: weekly }
+  # - package-ecosystem: cargo
+  #   directory: /
+  #   schedule: { interval: weekly }
   # - package-ecosystem: pub
+  #   directory: /
+  #   schedule: { interval: weekly }
+  # - package-ecosystem: terraform
   #   directory: /
   #   schedule: { interval: weekly }

@@ -19,13 +19,26 @@ for f in .claude/skills/*/SKILL.md; do
   [[ -n "$d" ]] || err "$f: missing description"
 done
 for f in archetypes/*/archetype.md; do
-  for h in "## Summary" "## Questions the requirements-analyst must ask" "## Architecture must cover" "## Testing strategy" "## Walking skeleton" "## CI & tooling" "## Security focus" "## Release checklist additions" "## Common pitfalls" "## Suggested stacks"; do
+  for h in "## Summary" "## In plain words" "## Questions the requirements-analyst must ask" "## Architecture must cover" "## Testing strategy" "## Walking skeleton" "## CI & tooling" "## Where it runs (simple defaults)" "## Security focus" "## Release checklist additions" "## Common pitfalls" "## Suggested stacks"; do
+    grep -q "^$h" "$f" || err "$f: missing heading '$h'"
+  done
+done
+for f in capabilities/*.md; do
+  [[ "$(basename "$f")" == README.md ]] && continue
+  for h in "## In plain words" "## Trigger words" "## Safe defaults" "## Must test" "## Common mistakes" "## Don't build it yourself"; do
     grep -q "^$h" "$f" || err "$f: missing heading '$h'"
   done
 done
 for f in .claude/agents/*.md; do
   [[ "$(basename "$f")" == "ux-designer.md" || "$(basename "$f")" == "delivery-lead.md" ]] || grep -q "Archetype awareness" "$f" || err "$f: missing Archetype awareness section"
+  grep -q "Capabilities & audience" "$f" || err "$f: missing Capabilities & audience section"
 done
+# every supported language has a CI template; archetypes listed in the catalog exist and vice versa
+# shellcheck source=lang.sh
+. scripts/lang.sh
+for l in $LANGS; do [[ -f "templates/github/workflows/ci-$l.yml" ]] || err "no CI template for language $l"; done
+for d in archetypes/*/; do n="$(basename "$d")"; grep -q "($n/archetype.md)" archetypes/README.md || err "archetype $n missing from archetypes/README.md"; done
+for f in capabilities/*.md; do n="$(basename "$f")"; [[ "$n" == README.md ]] || grep -q "($n)" capabilities/README.md || err "capability $n missing from capabilities/README.md"; done
 for f in scripts/*.sh; do bash -n "$f" || err "$f: syntax error"; done
 for f in templates/labels.json templates/branch-protection.json; do
   python3 -c "import json,sys; json.load(open('$f'))" 2>/dev/null || err "$f: invalid JSON"
@@ -49,7 +62,7 @@ while IFS= read -r l; do
   file="${l%%:*}"; target="${l#*:}"; target="${target%%#*}"
   [[ -z "$target" || "$target" == http* ]] && continue
   [[ -e "$(dirname "$file")/$target" ]] || err "$file: broken link -> $target"
-done < <(grep -rnoE '\]\(([^)]+)\)' README.md docs | sed -E 's/^([^:]+):[0-9]+:\]\((.*)\)$/\1:\2/')
+done < <(grep -rnoE '\]\(([^)]+)\)' README.md docs archetypes capabilities | sed -E 's/^([^:]+):[0-9]+:\]\((.*)\)$/\1:\2/')
 
 ((fail)) && { echo "Validation FAILED" >&2; exit 1; }
-echo "Validation passed: $(ls .claude/agents | wc -l) agents, $(ls .claude/skills | wc -l) skills"
+echo "Validation passed: $(ls .claude/agents | wc -l) agents, $(ls .claude/skills | wc -l) skills, $(ls -d archetypes/*/ | wc -l) archetypes, $(($(ls capabilities | wc -l)-1)) capabilities, $(echo $LANGS | wc -w) languages"

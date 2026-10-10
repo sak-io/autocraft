@@ -3,6 +3,9 @@
 ## Summary
 A backend that other programs call over HTTP/gRPC/GraphQL: order management, payments, user accounts, internal platform services.
 
+## In plain words
+"I want other programs or apps to talk to my system." An API is a doorway with rules: who may enter, what they may ask for, and what they get back. Everything behind it (data, logic) stays private.
+
 ## Typical products
 REST/GraphQL APIs, microservices, webhooks receivers, backends-for-frontends.
 
@@ -27,6 +30,9 @@ App boots, `GET /health`, DB connection, structured logging, OpenAPI file served
 
 ## CI & tooling
 Lint, type-check, unit + integration (database service container), OpenAPI lint, dependency audit, build/container image.
+
+## Where it runs (simple defaults)
+A managed platform (Render/Fly.io/Railway/Cloud Run) with a managed Postgres database; a container if you know Docker. Avoid self-managed servers at the start.
 
 ## Security focus
 Broken object-level authorization (IDOR), injection, mass assignment, authn/z on every route, rate limiting, secrets, PII in logs, SSRF, dependency CVEs.

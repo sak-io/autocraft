@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Install the autocraft agent team into a project directory.
-# Usage: scripts/install.sh <target-dir> [--lang node|python|go|flutter] [--archetype a,b]
+# Usage: scripts/install.sh <target-dir> [--lang <lang>] [--archetype a,b]
 set -euo pipefail
 
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=lang.sh
+. "$SRC/scripts/lang.sh"
 TARGET="${1:-}"; shift || true
 LANG_=""; ARCH=""
 while [[ $# -gt 0 ]]; do
@@ -13,8 +15,8 @@ while [[ $# -gt 0 ]]; do
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
 done
-[[ -n "$TARGET" ]] || { echo "Usage: $0 <target-dir> [--lang node|python|go|flutter] [--archetype api-service,web-app,...]" >&2; exit 2; }
-case "$LANG_" in ""|node|python|go|flutter) ;; *) echo "--lang must be node, python, go or flutter" >&2; exit 2 ;; esac
+[[ -n "$TARGET" ]] || { echo "Usage: $0 <target-dir> [--lang <lang>] [--archetype api-service,web-app,...]" >&2; exit 2; }
+[[ -z "$LANG_" ]] || valid_lang "$LANG_" || { echo "--lang must be one of: $LANGS" >&2; exit 2; }
 for a in ${ARCH//,/ }; do [[ -f "$SRC/archetypes/$a/archetype.md" ]] || { echo "Unknown archetype: $a (see archetypes/)" >&2; exit 2; }; done
 
 mkdir -p "$TARGET"
@@ -40,10 +42,14 @@ copy_new "$SRC/docs/glossary.md" "$TARGET/docs/glossary.md"
 mkdir -p "$TARGET/.autocraft/archetypes"
 for f in "$SRC"/archetypes/*/archetype.md; do cp "$f" "$TARGET/.autocraft/archetypes/$(basename "$(dirname "$f")").md"; done
 
+# Capability checklists
+mkdir -p "$TARGET/.autocraft/capabilities"
+for f in "$SRC"/capabilities/*.md; do [[ "$(basename "$f")" == README.md ]] || cp "$f" "$TARGET/.autocraft/capabilities/"; done
+
 # Templates and helper scripts the agents refer to
 mkdir -p "$TARGET/.autocraft/templates" "$TARGET/.autocraft/scripts"
 cp -R "$SRC/templates/." "$TARGET/.autocraft/templates/"
-cp "$SRC/scripts/onboard-repo.sh" "$TARGET/.autocraft/scripts/"
+cp "$SRC/scripts/onboard-repo.sh" "$SRC/scripts/lang.sh" "$TARGET/.autocraft/scripts/"
 
 # Docs scaffolding
 for d in docs/specs docs/architecture/reviews docs/adr docs/security; do
@@ -63,7 +69,7 @@ copy_new "$G/workflows/security-scheduled.yml" "$TARGET/.github/workflows/securi
 
 if [[ -n "$LANG_" ]]; then
   copy_new "$G/workflows/ci-$LANG_.yml" "$TARGET/.github/workflows/ci.yml"
-  case "$LANG_" in node) CQ=javascript-typescript; ECO=npm ;; python) CQ=python; ECO=pip ;; go) CQ=go; ECO=gomod ;; flutter) CQ=""; ECO=pub ;; esac
+  lang_info "$LANG_"
   if [[ -n "$CQ" && ! -e "$TARGET/.github/workflows/codeql.yml" ]]; then
     sed "s/__CODEQL_LANGUAGE__/$CQ/" "$G/workflows/codeql.yml" > "$TARGET/.github/workflows/codeql.yml"; echo "  add: .github/workflows/codeql.yml"
   fi

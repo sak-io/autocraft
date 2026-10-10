@@ -3,6 +3,9 @@
 ## Summary
 Work that runs without a user present: on a schedule (cron), on events/queues, or as batch pipelines. Failure is silent unless you design for it.
 
+## In plain words
+"I want something to run by itself every night / every hour / when something happens." Nobody is watching, so it must tell you when it fails — and when it never ran at all.
+
 ## Typical products
 Nightly reports, data syncs/ETL, cleanup tasks, reminder emails, queue consumers, billing runs.
 
@@ -27,6 +30,9 @@ Job entrypoint runs locally and in CI, logs start/finish with a run id, writes a
 
 ## CI & tooling
 Lint, type-check, unit + integration tests, build image/package, validate schedule definition (cron expression), dependency audit.
+
+## Where it runs (simple defaults)
+A scheduler on a managed platform (GitHub Actions schedule, Cloud Scheduler, Kubernetes CronJob, Render cron) running a container or script.
 
 ## Security focus
 Least-privilege credentials, secrets management (never in the schedule definition), PII handling in logs/outputs, safe handling of untrusted input files/messages, blast radius of a bad run (destructive operations need guards and dry-run).

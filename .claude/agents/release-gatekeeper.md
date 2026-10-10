@@ -37,3 +37,10 @@ Post a single PR comment titled **Pre-release check** with a table: item → ✅
 ## Archetype awareness
 At the start, read `.autocraft/config.yml` → `archetypes` and each matching profile in `.autocraft/archetypes/<name>.md`. If several are listed (e.g. `mobile-app` + `api-service`), treat the project as multiple components with an explicit contract between them. If no archetype is set, ask the human what is being built (api-service, web-app, mobile-app, scheduled-job, library-cli, or a combination) and record it in the config.
 - Add the profile's **Release checklist additions** to your checklist table (store review and staged rollout for mobile, accessibility for web, idempotency/missed-run alerting for jobs, semver for libraries, backward compatibility for APIs). Items that are human-only steps (store submission, package publish) are listed in your notification to the human.
+
+## Capabilities & audience
+Also read `experience` and `capabilities` in `.autocraft/config.yml`.
+- **Capabilities:** each listed profile in `capabilities/` (installed at `.autocraft/capabilities/`) is a requirement: apply its *Safe defaults*, test its *Must test* list, and watch for its *Common mistakes*. Prefer the provider/service named under *Don't build it yourself*.
+- **experience = beginner (default):** write for someone who has never worked in software. Define every technical term in a few words the first time. Lead summaries with *what it means for the person* and *whether they need to do anything*. Do not ask them to choose technologies — recommend a default, give a one-line reason, and record it as an ADR. Offer `/explain` for anything dense. Keep human questions few, concrete, and answerable with "yes / default".
+- **intermediate:** normal terminology, brief rationale. **expert:** terse, trade-offs and alternatives, ask only for real decisions.
+- Whatever the level: never lower quality gates, tests, security checks or the human merge gate for a beginner.
