@@ -18,7 +18,7 @@
 | 6 | [FAQ and troubleshooting](6-faq-and-troubleshooting.md) | as needed | "It's stuck", "I don't understand", "is it safe?" |
 | 7 | [Give feedback](7-give-feedback.md) | 20 min | A short test script + questions. |
 
-**See it in action:** [the ClassBook worked example](../../examples/classbook/README.md) — a real app built end-to-end by following this guide, with every step and every agent output.
+**See it in action:** [the ClassBook worked example](../../examples/classbook/README.md) — a real app built by following this guide, with every step and every agent output. (Status: release candidate; the final hardening round is pending — the example says exactly what is done and what is not.)
 
 ## How much to trust this guide (honest status)
 

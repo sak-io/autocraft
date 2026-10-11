@@ -1,0 +1,12 @@
+# ClassBook status
+- T1 skeleton + kernel: MERGED (review: approved round 1). Follow-ups: M-4 (write_tx should yield `now`; brief T5), M-5 (APP_ENV production in T8), M-6 (log redaction: never pass user data as log fields; brief T3), Q-1 (non-root user can write to Render disk? prove in T8 step 1).
+- T2 web shell: MERGED (approved round 1). Follow-ups assigned: M-1 Dockerfile `--no-proxy-headers` and M-2 429/503 messages and N-3 rotate_csrf at login/logout -> T3; M-3 template-scan self-test must run the real scan -> T4; N-4 replace NullMailer and fail test if still wired -> T6; M-4 `now` read inside the lock -> T5.
+- Next: T3 (accounts), T4 (schedule + admin), T5 (booking) in parallel.
+- T3 accounts: MERGED (approved round 1). Tracked MINORs -> T7/T8: warm `dummy_hash` at startup; tests pinning ADR-0003 conditions (scrypt params, no hashing inside write tx, >128-char password); decide bookings of a promoted student (T8 runbook).
+- T5 booking: MERGED (approved round 1; 9 mutation probes all caught). Tracked: api.md/spec note that the action cap is checked before 404; replace the removed router assertion once all routers have routes; 503-on-lock-timeout test for book/cancel (T7); kernel yielding `now` is a follow-up.
+- T4 schedule + admin: CHANGES REQUESTED (1 MAJOR roster test gap, 4 MINOR) - back with the developer.
+- T4 schedule + admin: MERGED (round 1 CHANGES REQUESTED: 1 MAJOR roster test gap + 4 MINOR; round 2 APPROVED).
+- T5 fixture fix (integration): MERGED. T6 confirmation emails: MERGED (approved round 1; 10 mutation probes).
+- Integrated main: 344 tests passing.
+- Handed to T7 (QA): T6 M-1 test that mail is sent AFTER the response (inline-send mutant survives); T6 M-2 exact-body/no-student-name test + record decision; T6 M-3 stale `pending` rows = outbox-upgrade signal (runbook); T5 M-3 503-on-lock-timeout test for book/cancel; T5 M-2 every router has routes; T3 ADR-0003 condition tests (scrypt params, no hashing in write tx, >128-char password); studio class-cancel route sends no mail; api.md note: action cap checked before 404.
+- Still open: T3 `dummy_hash` lazily built (one-time timing signal) and promoted-student bookings case (decision for runbook); T8 ops (blocked on Maya's host sign-up).

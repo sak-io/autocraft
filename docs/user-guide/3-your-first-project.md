@@ -89,7 +89,20 @@ Open the change, read the summary and the checklist, confirm the automated check
 
 ## What to expect (from the worked example)
 
-The [ClassBook example](../../examples/classbook/README.md) recorded what a small app actually costs. See its **Results** section: number of agent runs, review rounds, issues the reviewers caught that the builders had missed, and elapsed time. Your numbers will vary with the size of your project.
+The [ClassBook example](../../examples/classbook/README.md) — a booking app for a yoga studio, built with the lean team plus four added roles — recorded what a small real project costs:
+
+| | ClassBook |
+|---|---|
+| Agent runs | 24 (several in parallel) |
+| Tokens used | ≈ 2 million (the independent QA pass alone was ≈ 320 thousand) |
+| Agent time | ≈ 96 minutes in total (less on the clock: builders and reviewers ran in parallel) |
+| Your effort (estimated) | ≈ 30–40 minutes, in short moments |
+| Review rounds | architecture 2; tasks: 5 of 6 approved first time, 1 needed a fix round |
+| What reviewers caught that builders missed | a design that broke "sign in, then return to the class"; a lock-out that would have hit the owner; a test that couldn't fail; a crash on huge IDs; and two correct branches that only broke when merged |
+
+**Two lessons from it:**
+1. **Say "simpler" at the plan gate.** The architect built a more careful design than a one-room studio needs. The reviewer judged it sound, not proportionate. If the plan looks heavier than your idea deserves, tell the team: *"This is a small studio, keep it as simple as safely possible."* It will redo the plan.
+2. **Budget for the big steps.** Independent QA and security checks are the most valuable *and* the most expensive steps. Long runs can reach your AI tool's usage limit; work is saved in your files (`/status` resumes it), but plan for pauses. Starting with the lean team keeps usage down.
 
 ## Your time, realistically
 

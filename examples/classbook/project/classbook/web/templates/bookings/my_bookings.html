@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}My bookings{% endblock %}
+{% block content %}
+<h1>My bookings</h1>
+{% if items %}
+<ul class="bookings">
+  {% for b in items %}
+  <li{% if b.studio_cancelled %} class="muted"{% endif %}>
+    <strong>{{ b.title }}</strong> with {{ b.instructor }}<br>
+    {{ b.when }}, {{ b.duration_min }} minutes
+    {% if b.studio_cancelled %}
+      <br><em>Cancelled by the studio</em>
+    {% elif b.can_cancel %}
+      <form method="post" action="/bookings/{{ b.id }}/cancel">
+        {{ csrf_field() }}
+        <button type="submit">Cancel booking</button>
+      </form>
+    {% else %}
+      <br><span class="muted">Too late to cancel online (less than 12 hours to go).</span>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>You have no upcoming bookings. <a href="/">Browse the classes</a>.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ heading }}{% endblock %}
+{% block content %}
+<h1>{{ heading }}</h1>
+<form method="post" action="{{ action }}" novalidate>
+  {{ csrf_field() }}
+  {% for name, label, type in (("title", "Title", "text"), ("starts_at", "Start (London time)", "datetime-local"), ("duration_min", "Duration (minutes)", "number"), ("instructor", "Instructor", "text"), ("capacity", "Capacity (places)", "number")) %}
+  <p>
+    <label for="f-{{ name }}">{{ label }}</label><br>
+    <input id="f-{{ name }}" name="{{ name }}" type="{{ type }}" value="{{ values[name] }}"{% if errors[name] %} aria-invalid="true" aria-describedby="e-{{ name }}"{% endif %}>
+    {% if errors[name] %}<br><span class="error" id="e-{{ name }}">{{ errors[name] }}</span>{% endif %}
+  </p>
+  {% endfor %}
+  <button type="submit">Save</button>
+  <a href="/admin/classes">Back</a>
+</form>
+{% endblock %}

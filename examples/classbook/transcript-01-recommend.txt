@@ -1,0 +1,13 @@
+$ python3 ~/autocraft/bin/autocraft recommend "I run a small yoga studio. Students should be able to see our classes, book a spot, and cancel. Classes have limited spots. I want to add classes myself. Payments can come later."
+Based on your description (a first guess - the `discover` workflow refines it with you):
+
+  * fullstack-app: "I want an app people sign in to and use in the browser, that remembers their stuff." One project, one deployment: pages the user sees plus the behind-the-scenes code and a database.
+
+  Also likely needed: authentication, database
+
+  LEAN team  -> starter: The smallest team that is still safe: a planner, a builder and an independent reviewer, plus a security check. Start here when unsure.
+  FULL team  -> web-product: Full team for websites and web apps with accounts and data: design, architecture, front end and back end, QA, review, release.
+
+  Install the full team:  autocraft init . --team web-product --archetype fullstack-app --tool <your-tool>
+  or the lean team:       autocraft init . --team starter --archetype fullstack-app --tool <your-tool>
+  tools: claude-code, claude-app, cursor, copilot, gemini-cli, windsurf, cline, agents-md, prompts

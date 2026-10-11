@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}ClassBook{% endblock %} - ClassBook</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header>
+    <nav aria-label="Main">
+      <a class="brand" href="/">ClassBook</a>
+      <a href="/">Classes</a>
+      {% if user and user.role == "admin" %}
+        <a href="/admin/classes">Manage classes</a>
+      {% elif user %}
+        <a href="/my-bookings">My bookings</a>
+      {% endif %}
+      {% if user %}
+        <form method="post" action="/logout" class="inline">
+          {{ csrf_field() }}
+          <button type="submit">Sign out</button>
+        </form>
+      {% else %}
+        <a href="/login">Sign in</a>
+        <a href="/signup">Sign up</a>
+      {% endif %}
+    </nav>
+  </header>
+  {% if flashes %}
+  <div class="flashes" role="status">
+    {% for f in flashes %}<p class="flash {{ f.level }}">{{ f.text }}</p>{% endfor %}
+  </div>
+  {% endif %}
+  <main id="main">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

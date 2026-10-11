@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Classes{% endblock %}
+{% block content %}
+<h1>Upcoming classes</h1>
+{% if not classes %}
+<p>No classes are scheduled yet. Please check back soon.</p>
+{% else %}
+<ul class="classes">
+{% for c in classes %}
+  <li class="class {{ 'greyed' if c.state == 'opens_later' }}" data-state="{{ c.state }}">
+    <h2><a href="/classes/{{ c.id }}">{{ c.title }}</a></h2>
+    <p>{{ c.when }} &middot; {{ c.duration }} min &middot; with {{ c.instructor }}</p>
+    {% if c.state == "opens_later" %}
+      <p class="muted">Opens for booking on {{ c.opens }}</p>
+    {% elif c.state == "full" %}
+      <p><strong>Full</strong></p>
+    {% else %}
+      <p>{{ c.left }} {{ 'spot' if c.left == 1 else 'spots' }} left &middot; <a href="/classes/{{ c.id }}">View and book</a></p>
+    {% endif %}
+  </li>
+{% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

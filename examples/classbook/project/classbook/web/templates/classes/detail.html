@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ c.title }}{% endblock %}
+{% block content %}
+<h1>{{ c.title }}</h1>
+<p>{{ c.when }} &middot; {{ c.duration }} min &middot; with {{ c.instructor }}</p>
+{% if c.state in ("bookable", "full") %}<p>{{ 'Full' if c.left <= 0 else (c.left ~ (' spot left' if c.left == 1 else ' spots left')) }}</p>{% endif %}
+<div class="booking" data-state="{{ c.state }}">
+{% if c.state == "cancelled" %}
+  <p>This class has been cancelled by the studio.</p>
+{% elif c.state == "started" %}
+  <p>This class has already started.</p>
+{% elif c.state == "opens_later" %}
+  <p class="muted">Opens for booking on {{ c.opens }}</p>
+{% elif user and user.role == "admin" %}
+  <p><a href="/admin/classes/{{ c.id }}">Manage this class</a></p>
+{% elif already_booked %}
+  <p>You are booked on this class. <a href="/my-bookings">My bookings</a></p>
+{% elif c.state == "full" %}
+  <p><strong>Full</strong></p>
+{% elif user %}
+  <form method="post" action="/classes/{{ c.id }}/book">
+    {{ csrf_field() }}
+    <button type="submit">Book</button>
+  </form>
+{% else %}
+  <p><a href="/login?next=/classes/{{ c.id }}">Sign in to book</a></p>
+{% endif %}
+{% if user and user.role == "admin" and c.state in ("cancelled", "started", "opens_later") %}
+  <p><a href="/admin/classes/{{ c.id }}">Manage this class</a></p>
+{% endif %}
+</div>
+<p><a href="/">Back to the class list</a></p>
+{% endblock %}
