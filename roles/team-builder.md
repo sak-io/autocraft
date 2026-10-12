@@ -28,7 +28,7 @@ Used when a repo's `CLAUDE.md` points you here. The owner's whole instruction ma
 1. Read the source documents completely before asking anything. Your first message to the owner is *what you understood* (3-5 plain lines), the lean-vs-full recommendation with a one-line reason per role, and **the contradictions and risks you already noticed** in their documents (examples: offline use promised but the plan only polls; sign-in by email but no email service; sending user data to an AI provider; a paid plan with no payments design; testing deferred). Do not wait for the spec to surface these.
 2. Ask at most 4 questions, each with a default: anything off-limits in v1? how often to be asked (default: approve the plan and the final pull request = autonomy 2)? lean or full (default: your recommendation)? notifications and their GitHub handle (`--owner`)?
 3. Map the answers to `autocraft init` flags exactly as the repo's pointer lists. Lean for a project that arrives with a technical plan = `starter` + `architect` (+ `qa-engineer` when personal data or access control is involved). Don't pass `--lang`; CI/GitHub hardening comes after the plan is approved.
-4. Be transparent about what the install adds to their repo: team files, a one-time copy of the framework (so later sessions don't need autocraft access), and `.claude/settings.json` pre-approving routine safe commands.
+4. Be transparent about what the install adds to their repo: team files, a one-time copy of the framework (so later sessions don't need to fetch autocraft again), and `.claude/settings.json` pre-approving routine safe commands.
 5. Commit on the session branch; push if there is a remote. Then hand over to the `kickoff` workflow.
 
 ## Rules

@@ -13,9 +13,8 @@
 | Need | How |
 |---|---|
 | The **Claude app** with **Code** sessions | Claude app → *Code* tab |
-| **GitHub connected** to Claude | Claude settings → connect GitHub (claude.ai/connect-github), and allow access to **your project repo and the `sak-io/autocraft` repo** |
+| **GitHub connected** to Claude | Claude settings → connect GitHub (claude.ai/connect-github) and allow access to **your project repo**. (`sak-io/autocraft` is public, so no special access is needed to clone it.) |
 | Your **project repo** with your documents | e.g. `docs/product-concept.md` and `docs/technical-plan.md` (any names; markdown) |
-| **autocraft** has the framework on its `main` branch | The framework currently lives on the branch `claude/multi-agent-engineering-framework-5fddra`. Merge that branch into `main` first (or tell the session which branch to use). |
 
 You do **not** need a terminal, Python on your phone, or any setup in the repo beyond one small file (next).
 
@@ -37,15 +36,15 @@ Create a file named **`CLAUDE.md`** in the root of your repo containing the text
 # This project is built with an autocraft agent team
 
 **Owner's source documents (authoritative inputs):** `docs/product-concept.md`, `docs/technical-plan.md`
-**Framework:** `sak-io/autocraft` on GitHub (private; the session needs read access to it).
+**Framework:** `sak-io/autocraft` on GitHub (a public repository; no special access is needed to clone it).
 
 ## Kickoff (the team is not installed in this repo yet)
 When the owner asks you to kick off / start / build this project:
 
-1. **Get autocraft into this session.** If `/tmp/autocraft` does not exist: make sure the repository `sak-io/autocraft` is in scope (the owner may have selected it when starting the session; otherwise use the `add_repo` tool for `sak-io/autocraft`), then clone it OUTSIDE this repo, e.g. `git clone https://github.com/sak-io/autocraft /tmp/autocraft`. If access is refused, or the clone has no `bin/autocraft`, tell the owner exactly which GitHub step failed and stop.
+1. **Get autocraft into this session.** If `/tmp/autocraft` does not exist, clone it OUTSIDE this repo: `git clone https://github.com/sak-io/autocraft /tmp/autocraft`. If the clone is blocked by the session's network settings, make sure `sak-io/autocraft` is in scope (the owner may have selected it when starting the session; otherwise use the `add_repo` tool for it) and try again. If it still fails, or the clone has no `bin/autocraft`, tell the owner exactly which step failed and stop.
 2. **Act as the `team-builder`.** Read `/tmp/autocraft/roles/team-builder.md` and `/tmp/autocraft/workflows/kickoff.md` and follow them (section "Pointer-driven kickoff"). Read the source documents yourself, run `python3 /tmp/autocraft/bin/autocraft recommend --file <each source document>` as a first guess only, explain the lean and full options in plain words (including contradictions or risks you noticed in the documents), recommend one, and ask the owner at most 4 short questions.
 3. **Install after the owner confirms**, mapping the answers to flags: `python3 /tmp/autocraft/bin/autocraft init . --tool claude-code --sources docs/product-concept.md,docs/technical-plan.md --git-mode session-branch --team <team> --add-role <extra roles> --archetype <types> --capability <needs> --experience <beginner|intermediate|expert> --autonomy <1|2|3> --owner <owner's GitHub handle>`. Notes: `--tool claude-code` is correct for Claude app Code sessions too. For a project that arrives with a technical plan, "lean" means `--team starter --add-role architect` (add `qa-engineer` when personal data or access control is involved). Do NOT pass `--lang` yet: CI and GitHub hardening are added later, after the plan is approved.
-4. **Commit** the result on the session branch (`git add -A && git commit`), then `git push -u origin HEAD` (if there is no remote, just commit). Tell the owner in plain words what was added: the team (`.claude/agents`, commands in `.claude/skills`), a one-time copy of the framework in `.autocraft/framework` (so later sessions do not need access to autocraft), and `.claude/settings.json` which pre-approves routine safe commands (git, tests, the autocraft tool).
+4. **Commit** the result on the session branch (`git add -A && git commit`), then `git push -u origin HEAD` (if there is no remote, just commit). Tell the owner in plain words what was added: the team (`.claude/agents`, commands in `.claude/skills`), a one-time copy of the framework in `.autocraft/framework` (so later sessions do not need to fetch autocraft again), and `.claude/settings.json` which pre-approves routine safe commands (git, tests, the autocraft tool).
 5. **Continue with the `kickoff` workflow** (now installed in `.claude/skills/`): ingest the source documents into a spec, validate the technical plan, get the owner's approval, then build with reviewers, QA and a security check. This pointer is replaced by the full team guide as soon as `autocraft init` runs.
 
 Never paste or commit secrets. Nothing reaches `main` until the owner merges the pull request.
@@ -66,7 +65,7 @@ That is all. From here the session leads; you answer and approve.
 | # | What the agents do | What you do | Typical time for you |
 |---|---|---|---|
 | 1 | **Team Builder** reads your documents, tells you in plain words what it understood, **points out contradictions and risks it already noticed in them**, and recommends a **lean** or **full** team. Asks ≤ 4 short questions (off-limits things, how often to be asked, notifications and your GitHub handle). | Answer; confirm the team. *Not sure? Take lean.* | 2–3 min |
-| 2 | Installs the team into your repo and **commits it to the session's branch**: the agents (`.claude/agents`), the commands (`.claude/skills`), a **one-time copy of the framework** in `.autocraft/framework` (so later sessions don't need access to autocraft), and `.claude/settings.json` that pre-approves routine safe commands. It tells you this in plain words. | Nothing. | 0 |
+| 2 | Installs the team into your repo and **commits it to the session's branch**: the agents (`.claude/agents`), the commands (`.claude/skills`), a **one-time copy of the framework** in `.autocraft/framework` (so later sessions don't need to fetch autocraft again), and `.claude/settings.json` that pre-approves routine safe commands. It tells you this in plain words. | Nothing. | 0 |
 | 3 | **Spec (`/kickoff` step 1):** the requirements analyst turns your concept into a spec with testable acceptance criteria, each citing the section of *your* document it came from, plus a numbered list of **gaps, ambiguities and contradictions** with a recommended default for each. | Answer the questions that matter (defaults are fine). Say "AGREED". | 5–10 min |
 | 4 | **Plan (step 2):** the architect adopts *your* technical plan (your choices become decisions "given by owner"), checks it against the spec, flags risks, and writes the task list. A principal engineer challenges it, up to 3 rounds. | Read the plain-language summary. Approve — or say "keep it simpler". | 5–10 min |
 | 5 | **Build (step 3):** a foundation task first, then independent tasks **in parallel** — each builder writes code **and tests**; a *different* reviewer runs the tests itself and probes. Findings go back and forth (max 3 rounds). | Nothing; skim the short per-task summaries. | seconds each |
@@ -93,8 +92,8 @@ The [ClassBook example](../examples/classbook/README.md) — a small app — use
 | Problem | What to do |
 |---|---|
 | The session doesn't mention autocraft | `CLAUDE.md` isn't at the repo root or wasn't committed to the branch you selected. Check it, or just paste the pointer text into the chat. |
-| "Access denied" cloning `sak-io/autocraft` | Connect GitHub (claude.ai/connect-github) and give Claude access to `sak-io/autocraft`; or start the session with that repo also selected. |
-| It clones an empty autocraft (only a README) | The framework isn't on `main` yet — merge `claude/multi-agent-engineering-framework-5fddra` into `main`, or tell the session to use that branch. |
+| Cloning `sak-io/autocraft` fails | It is a public repo, so this is normally the session's network settings. Start the session with `sak-io/autocraft` also selected (or let the session use the `add_repo` tool), or paste the pointer text and say *"use the add_repo tool for sak-io/autocraft"*. |
+| The clone has no `bin/autocraft` | You cloned a stale fork or the wrong branch. Use `https://github.com/sak-io/autocraft` (branch `main`). |
 | It says it can't use `gh` | Normal in cloud sessions. The team uses the session's GitHub tools instead (protocol §13). |
 | A new agent role "isn't available" | The role files were created this session. The team lead falls back to a general-purpose agent that reads the role file. If it doesn't, say: *"use a general-purpose agent and have it read .claude/agents/<role>.md"*. |
 | It starts building before you approved the plan | Say *"Stop. Wait for my approval at each gate."* and set `autonomy_level: 1` in `.autocraft/config.yml`. |
