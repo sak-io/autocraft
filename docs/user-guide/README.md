@@ -18,6 +18,8 @@
 | 6 | [FAQ and troubleshooting](6-faq-and-troubleshooting.md) | as needed | "It's stuck", "I don't understand", "is it safe?" |
 | 7 | [Give feedback](7-give-feedback.md) | 20 min | A short test script + questions. |
 
+**Have your own documents already?** [Kick off a project from them](../kickoff-existing-docs.md) (Claude app).
+
 **See it in action:** [the ClassBook worked example](../../examples/classbook/README.md) — a real app built by following this guide, with every step and every agent output. (Status: release candidate; the final hardening round is pending — the example says exactly what is done and what is not.)
 
 ## How much to trust this guide (honest status)

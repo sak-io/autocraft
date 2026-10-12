@@ -8,6 +8,8 @@ autocraft gives you that team as plain files your AI tool already understands �
 
 > **New here?** Read the **[User Guide](docs/user-guide/README.md)** (60 minutes end to end, no developer background needed) and see the **[worked example](examples/classbook/README.md)** — a real app built step by step.
 >
+> **Already have a product concept / technical plan in a repo?** Add a small pointer file and tell a Claude app Code session *"Kick off this project with autocraft"* — see **[Kick off from your own documents](docs/kickoff-existing-docs.md)** (rehearsal: [examples/pantry-pal-kickoff](examples/pantry-pal-kickoff/README.md)).
+>
 > **Never set up agents before?** Open your AI tool in an empty folder and paste the **[bootstrap prompt](docs/bootstrap-prompt.md)**. The Team Builder interviews you and does the rest.
 
 ## How it works
@@ -96,7 +98,7 @@ Roles don't share a mind — they share **files**: specs, reviews, handoff block
 If your project lives on GitHub, `autocraft github --lang python` (or [`scripts/onboard-repo.sh`](scripts/onboard-repo.sh)) adds CI, linting/test steps, SCA/SAST/secret scanning, labels, templates and branch protection for `main`, and the `repo-onboarder` role verifies each control. It is a module, not the point — the team works without it.
 
 ## Learn more
-[**User Guide**](docs/user-guide/README.md) · [Worked example](examples/classbook/README.md) · [Beginner guide](docs/vibe-coders.md) · [Why teams & orchestration patterns](docs/orchestration-patterns.md) · [Bootstrap prompt](docs/bootstrap-prompt.md) · [Lifecycle](docs/lifecycle.md) · [Protocol](docs/protocol.md) · [Worked example](docs/example-order-service.md) · [Glossary](docs/glossary.md)
+[**User Guide**](docs/user-guide/README.md) · [Kick off from your documents](docs/kickoff-existing-docs.md) · [Worked example](examples/classbook/README.md) · [Beginner guide](docs/vibe-coders.md) · [Why teams & orchestration patterns](docs/orchestration-patterns.md) · [Bootstrap prompt](docs/bootstrap-prompt.md) · [Lifecycle](docs/lifecycle.md) · [Protocol](docs/protocol.md) · [Worked example](docs/example-order-service.md) · [Glossary](docs/glossary.md)
 
 ## Honest limitations
 - Agents make mistakes; the process (tests, independent review, CI, human merge) is what catches them. Don't remove the human gate for anything important.

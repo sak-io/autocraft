@@ -49,6 +49,11 @@ TOOL_ALIASES = {"claude": "claude-code", "codex": "agents-md", "aider": "agents-
 NEEDS_NEUTRAL_COPIES = {"agents-md", "gemini-cli", "cline"}  # tools that point at .autocraft/roles + workflows
 ROLE_HATS_TOOLS = {"claude-app", "cursor", "gemini-cli", "windsurf", "cline", "agents-md", "prompts"}  # no real subagents
 
+SAFE_COMMANDS = ["Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git show:*)", "Bash(git add:*)", "Bash(git commit:*)",
+                 "Bash(git switch:*)", "Bash(git checkout:*)", "Bash(git merge:*)", "Bash(git worktree:*)", "Bash(git branch:*)",
+                 "Bash(git fetch:*)", "Bash(git push -u origin:*)", "Bash(python3 .autocraft/framework/bin/autocraft:*)",
+                 "Bash(python3 -m pytest:*)", "Bash(pytest:*)", "Bash(npm test:*)", "Bash(npm run:*)", "Bash(ls:*)"]
+
 BEGIN, END = "<!-- autocraft:begin (managed block - edit .autocraft/custom/, then run autocraft sync) -->", "<!-- autocraft:end -->"
 
 EXPERIENCE = {
@@ -141,7 +146,7 @@ def as_list(v):
 
 # ----------------------------------------------------------------------------- config
 CONFIG_KEYS_ORDER = ["autonomy_level", "max_review_rounds", "max_parallel_developers", "default_branch", "tools", "team",
-                     "roles_add", "roles_remove", "archetypes", "capabilities", "experience", "language", "human_owner"]
+                     "roles_add", "roles_remove", "archetypes", "capabilities", "experience", "language", "human_owner", "sources", "git_mode"]
 
 
 def config_path(proj):
@@ -206,6 +211,28 @@ def catalog(fw=FW):
     return arch, caps
 
 
+RISK_FLAGS = {
+    "offline": "works offline / flaky connection: needs a local copy, a queue of changes and conflict rules; polling alone is not offline support",
+    "connection drops": "works offline / flaky connection: needs a local copy, a queue of changes and conflict rules; polling alone is not offline support",
+    "patchy signal": "works offline / flaky connection: needs a local copy, a queue of changes and conflict rules; polling alone is not offline support",
+    "push notification": "push notifications: need a scheduler and a delivery design (web push on iPhones needs the app installed to the home screen)",
+    "notification": "notifications: decide channel (push/email), schedule, opt-out and a test mode that does not really send",
+    "camera": "camera/barcode: browser camera needs HTTPS, results vary by phone; plan a manual fallback",
+    "barcode": "camera/barcode: browser camera needs HTTPS, results vary by phone; plan a manual fallback",
+    "real-time": "real-time updates: decide polling vs websockets and what 'quickly' means",
+    "claude api": "sends user data to an AI provider: privacy statement, consent, per-user limits and a spending cap",
+    "llm": "sends user data to an AI provider: privacy statement, consent, per-user limits and a spending cap",
+    "premium": "paid plan: needs payments, pricing and entitlement rules (price may still be undecided)",
+    "subscription": "paid plan: needs payments, pricing and entitlement rules",
+    "children": "children's data: privacy law (COPPA/GDPR-K) - involve a professional",
+    "health": "health data: regulated - involve a professional",
+    "row-level security": "per-tenant data isolation: must be tested thoroughly (one mistake exposes another household's data)",
+    "household": "multi-user data sharing: define who can see/change what, invites and removal",
+    "magic link": "email sign-in needs real email delivery (or a dev inbox in development)",
+    "testing": "check the plan's testing statement against the rule 'every change ships with tests'",
+}
+
+
 def count_hits(text, phrases):
     n = 0
     for p in phrases:
@@ -238,8 +265,10 @@ def recommend(idea, fw=FW):
     # sensible implications
     if "mobile-app" in chosen and ({"authentication", "database", "payments", "email-and-notifications", "file-uploads", "search"} & set(cap_hits) or "fullstack-app" in chosen) and "api-service" not in chosen:
         chosen.append("api-service")
-    if "fullstack-app" in chosen and "api-service" in chosen and "web-app" not in chosen and "mobile-app" not in chosen:
-        chosen.remove("api-service")
+    if "fullstack-app" in chosen:  # one project that already contains its screens and its API
+        for covered in ("web-app", "api-service"):
+            if covered in chosen and "mobile-app" not in chosen:
+                chosen.remove(covered)
     if "ai-assistant" in chosen and "chat-bot" in chosen and scores.get("chat-bot", 0) <= 1 and not re.search(r"slack|discord|telegram|teams|whatsapp", text):
         chosen.remove("chat-bot")
     confident = bool(chosen)
@@ -247,8 +276,15 @@ def recommend(idea, fw=FW):
         for c in ("authentication", "database"):
             if c not in cap_hits and "fullstack-app" in chosen:
                 cap_hits.append(c)
-    return {"archetypes": chosen, "capabilities": cap_hits, "lean_team": "starter",
-            "full_teams": cover_teams(chosen, teams) or ["starter"], "confident": confident}
+    also = [a for a, sc in sorted(scores.items(), key=lambda x: -x[1]) if sc > 0 and a not in chosen
+            and not (a in ("web-app", "api-service") and "fullstack-app" in chosen)][:3]
+    risks = []
+    for phrase, note in RISK_FLAGS.items():
+        if re.search(r"(?<![a-z0-9])" + re.escape(phrase), text) and note not in risks:
+            risks.append(note)
+    return {"archetypes": chosen, "also_mentioned": also, "capabilities": cap_hits, "lean_team": "starter",
+            "full_teams": cover_teams(chosen, teams) or ["starter"], "confident": confident, "risk_flags": risks,
+            "always_on": ALWAYS_ON_CAPS}
 
 
 # ----------------------------------------------------------------------------- roster
@@ -312,11 +348,24 @@ def read_custom(proj, rel):
     return re.sub(r"<!--.*?-->", "", p.read_text(), flags=re.S).strip()  # HTML comments are notes, not rules
 
 
+GIT_MODES = {
+    "session-branch": ("work on the branch the session started on; do NOT create or push other remote branches and do NOT open pull requests unless the "
+                       "owner asks. Parallel tasks use LOCAL `git worktree` branches (`feat/<task>`, never pushed) that the main session merges into the "
+                       "session branch with `git merge --no-ff` once the reviewer approved. Handoffs/reviews are files under `.autocraft/work/<task>/`, "
+                       "committed on the session branch. Push the session branch regularly (`git push -u origin HEAD`, retry on network errors) so work "
+                       "survives the session ending. 'Humans merge' means: nothing reaches `main` until the owner merges the session branch's pull request."),
+    "pr-per-task": ("each task on its own branch `feat/<task>`, pushed, with its own pull request and `agent:*` labels (protocol sections 3-4); reviews "
+                    "are PR reviews/comments; the owner merges every pull request."),
+}
+
+
 def effective_body(role, cfg, proj, roster, archetypes, capabilities, team_names):
     exp = cfg.get("experience") or "beginner"
     body = role["body"]
     append = read_custom(proj, f"roles/{role['id']}.append.md")
     team_rules = read_custom(proj, "team-rules.md")
+    sources = as_list(cfg.get("sources"))
+    git_mode = cfg.get("git_mode") or "session-branch"
     colleagues = "\n".join(f"  - `{r['id']}`: {first_sentence(r.get('description', ''), 110)}" for r in roster if r["id"] != role["id"])
     ctx = [
         "## Project context (generated by autocraft)",
@@ -331,7 +380,14 @@ def effective_body(role, cfg, proj, roster, archetypes, capabilities, team_names
         f"Limits: {cfg.get('max_review_rounds', 3)} review rounds, {cfg.get('max_parallel_developers', 3)} parallel developers, autonomy level {cfg.get('autonomy_level', 2)}.",
         "- **Collaboration surface:** use GitHub pull requests and labels when the project has them; otherwise exchange reviews as files under "
         "`.autocraft/work/<task>/` (see protocol section 12).",
+        f"- **Git mode (`git_mode: {git_mode}`):** {GIT_MODES.get(git_mode, GIT_MODES['session-branch'])}",
+        "- **GitHub operations:** use the `gh` CLI if it is installed. If it is not (for example in Claude app / cloud sessions), use the session's "
+        "GitHub tools instead; the operation-by-operation mapping is in `.autocraft/protocol.md` section 13.",
     ]
+    if sources:
+        ctx.insert(2, "- **Owner's source documents (authoritative inputs; read them before anything else):** " + ", ".join(f"`{x}`" for x in sources)
+                   + ". They express the owner's intent. Do not silently contradict or embellish them: record gaps, ambiguities and contradictions as numbered "
+                   "questions with a recommended default, and trace what you produce back to the section it came from.")
     if team_rules:
         ctx += ["", "### Team rules (project-specific)", team_rules]
     if append:
@@ -361,6 +417,17 @@ def hats_text(tool):
                 "(`pr-reviewer`, `principal-engineer`, `release-gatekeeper`, `qa-engineer`) and give it only the diff, the spec and the "
                 "protocol - not the author's reasoning - so the review is genuinely independent. Pass work between roles through files "
                 "(specs, reviews, `docs/STATUS.md`), not memory.")
+    if tool == "claude-code":
+        return ("Roles are Claude Code subagents with their own context. **You, the main session, are the team lead.**\n"
+                "- Delegate with the Agent tool using `subagent_type` = the role id (e.g. `architect`). If a role is not listed as an agent type yet "
+                "(its file was created this session), start a `general-purpose` agent and tell it to read `.claude/agents/<role>.md` first and follow it.\n"
+                "- Subagents cannot call subagents: run the loops yourself (author -> reviewer -> author) and enforce the round limit.\n"
+                "- Run independent tasks **in parallel** (background agents, each in its own `git worktree`); reviewers are always a **fresh agent** that "
+                "never sees the author's reasoning and must run the tests itself.\n"
+                "- Do not poll agents; wait for their completion notifications. After every step update `docs/STATUS.md` and commit.\n"
+                "- When you need the owner (a gate, a decision, a deadlock, release-ready) say exactly what you need, with a recommended default, at the "
+                "end of your message; if a push-notification tool is available, send one.\n"
+                "- The owner asking you to use this team is authorization to spawn these agents. Keep a lean start: do not spawn roles a task does not need.")
     return ("Roles run as separate agents with their own context. A role cannot call another role; the main session coordinates the "
             "loops (author -> reviewer -> author) and enforces the round limit.")
 
@@ -505,7 +572,7 @@ Team: {', '.join(t['name'] for t in teams)}. Software type: {', '.join(A) or 'no
 
 
 HOWTO = {
-    "claude-code": "Open this folder in Claude Code (`claude`), then type  /start  (new project)  or  /build-my-team  /status. Ask for a role by name: \"use the architect subagent\". In Claude Code on the web or the Claude app, select this repo for the session - the same files load.",
+    "claude-code": "Open this folder in Claude Code (`claude`) or start a Claude app / web Code session on this repo, then type  /kickoff  (you already have product docs)  /start  (new idea)  /build-my-team  /status. Ask for a role by name: \"use the architect subagent\". In Claude Code on the web or the Claude app, select this repo for the session - the same files load.",
     "claude-app": "In claude.ai create a Project, paste claude-project/INSTRUCTIONS.md into its instructions, upload claude-project/knowledge/*.md, then say: \"Let's start\". (For repo work with tests and PRs use Claude Code instead.)",
     "cursor": "Open the folder in Cursor. Rules in .cursor/rules attach by description; @-mention a role (e.g. @role-architect) or a workflow (@workflow-start). Open a NEW chat for reviewers.",
     "copilot": "In VS Code / GitHub, open Copilot chat and pick a custom agent (e.g. architect) from the agent picker; run prompts with /start etc. Reviews should happen in a separate chat.",
@@ -629,6 +696,11 @@ def build(proj, dry=False):
             (proj / d / ".gitkeep").write_text("")
     if not (proj / "docs" / "architecture" / "status.md").exists():
         shutil.copy2(FW / "templates" / "architecture" / "status.md", proj / "docs" / "architecture" / "status.md")
+    if "claude-code" in tools:
+        sp = proj / ".claude" / "settings.json"
+        if not sp.exists():
+            sp.write_text(json.dumps({"permissions": {"allow": SAFE_COMMANDS}}, indent=2) + "\n")
+            warnings.append("wrote .claude/settings.json pre-approving routine commands (git, tests, autocraft); edit it to taste, sync never overwrites it")
     mpath.write_text(json.dumps(manifest, indent=1, sort_keys=True))
     summary["warnings"] = warnings
     return summary
@@ -704,8 +776,18 @@ def cmd_list(a):
             print(f"{k:<12} {v}")
 
 
+def read_files_text(paths):
+    out = []
+    for f in paths or []:
+        p = Path(f)
+        if not p.is_file():
+            raise SystemExit(f"error: file not found: {f}")
+        out.append(p.read_text(errors="replace"))
+    return "\n".join(out)
+
+
 def cmd_recommend(a):
-    r = recommend(" ".join(a.idea))
+    r = recommend(" ".join(a.idea) + "\n" + read_files_text(a.file))
     if a.json:
         print(json.dumps(r, indent=1))
         return
@@ -716,8 +798,14 @@ def cmd_recommend(a):
     arch, _ = catalog()
     for x in r["archetypes"]:
         print(f"  * {x}: {arch[x]['plain'] or arch[x]['summary']}")
+    if r.get("also_mentioned"):
+        print(f"\n  Also mentioned (check whether they are separate parts): {', '.join(r['also_mentioned'])}")
     if r["capabilities"]:
-        print(f"\n  Also likely needed: {', '.join(r['capabilities'])}")
+        print(f"\n  Also likely needed: {', '.join(r['capabilities'])}  (always on: {', '.join(r['always_on'])})")
+    if r.get("risk_flags"):
+        print("\n  Design-risk flags found in the text (a keyword scan - read the documents yourself):")
+        for note in r["risk_flags"]:
+            print(f"   - {note}")
     print(f"\n  LEAN team  -> {r['lean_team']}: {teams['starter']['summary']}")
     for t in r["full_teams"]:
         if t != "starter":
@@ -758,6 +846,12 @@ def cmd_init(a):
         upd["experience"] = a.experience
     if a.autonomy:
         upd["autonomy_level"] = a.autonomy
+    if a.owner:
+        upd["human_owner"] = a.owner
+    if a.sources:
+        upd["sources"] = split(a.sources)
+    if a.git_mode:
+        upd["git_mode"] = a.git_mode
     if a.add_role:
         upd["roles_add"] = list(dict.fromkeys(as_list(cfg.get("roles_add")) + split(a.add_role)))
     if a.remove_role:
@@ -800,6 +894,20 @@ def report(proj, s):
     for t in s["tools"]:
         print(f"  [{t}] {HOWTO[t]}")
     print("\nCustomize any time:  python3 .autocraft/framework/bin/autocraft add-role <id> | remove-role <id> | new-role <id> | sync | doctor")
+
+
+def cmd_pointer(a):
+    proj = Path(a.dir).resolve()
+    proj.mkdir(parents=True, exist_ok=True)
+    srcs = split(a.sources) or []
+    lst = ", ".join(f"`{x}`" for x in srcs) if srcs else "(none listed - ask the owner which files describe the product)"
+    arg = ",".join(srcs)
+    text = (FW / "templates" / "kickoff" / "CLAUDE.pointer.md").read_text().replace("{SOURCES_LIST}", lst).replace("{SOURCES_ARG}", arg)
+    if a.print_only:
+        print(text)
+        return
+    write_managed(proj / "CLAUDE.md", text)
+    print(f"wrote the autocraft pointer into {proj / 'CLAUDE.md'} (replaced automatically by the full team guide after `autocraft init`)")
 
 
 def cmd_sync(a):
@@ -914,6 +1022,11 @@ def cmd_doctor(a):
         if not meta_only and not any(r["id"] in ("developer", "backend-developer", "frontend-developer", "mobile-developer", "data-engineer", "ml-engineer",
                                "ai-engineer", "devops-engineer", "embedded-engineer", "game-developer") for r in roster):
             problems.append("no builder role in the team")
+        if not cfg.get("human_owner") and not meta_only:
+            notes.append("human_owner is not set: use `autocraft init . --owner <github-handle>` so release-ready notifications and CODEOWNERS know who you are")
+        for src in as_list(cfg.get("sources")):
+            if not (proj / src).exists():
+                problems.append(f"source document listed in config does not exist: {src}")
         if not as_list(cfg.get("archetypes")) and not meta_only:
             notes.append("archetypes not set yet - run the `discover` workflow")
         m = proj / ".autocraft" / "manifest.json"
@@ -942,11 +1055,18 @@ def main():
     ap = argparse.ArgumentParser(prog="autocraft", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sp = ap.add_subparsers(dest="cmd", required=True)
     p = sp.add_parser("list"); p.add_argument("what", choices=["roles", "teams", "workflows", "archetypes", "capabilities", "tools"]); p.set_defaults(f=cmd_list)
-    p = sp.add_parser("recommend"); p.add_argument("idea", nargs="+"); p.add_argument("--json", action="store_true"); p.set_defaults(f=cmd_recommend)
+    p = sp.add_parser("recommend"); p.add_argument("idea", nargs="*", default=[]); p.add_argument("--file", action="append", help="also read this document (repeatable)")
+    p.add_argument("--json", action="store_true"); p.set_defaults(f=cmd_recommend)
+    p = sp.add_parser("pointer", help="write a small CLAUDE.md pointer so an AI session in this repo can kick the project off with autocraft")
+    p.add_argument("dir", nargs="?", default="."); p.add_argument("--sources", help="comma-separated owner documents, e.g. docs/product-concept.md,docs/technical-plan.md")
+    p.add_argument("--print", dest="print_only", action="store_true"); p.set_defaults(f=cmd_pointer)
     p = sp.add_parser("init")
     p.add_argument("dir", nargs="?", default=".")
     p.add_argument("--tool"); p.add_argument("--team"); p.add_argument("--archetype"); p.add_argument("--capability")
     p.add_argument("--experience", choices=list(EXPERIENCE)); p.add_argument("--autonomy", type=int, choices=[1, 2, 3])
+    p.add_argument("--sources", help="owner documents the team treats as authoritative inputs (comma-separated paths)")
+    p.add_argument("--git-mode", choices=list(GIT_MODES), help="session-branch (default) or pr-per-task")
+    p.add_argument("--owner", help="the owner's GitHub handle (notifications target, CODEOWNERS)")
     p.add_argument("--add-role"); p.add_argument("--remove-role"); p.add_argument("--lang", help="also install CI/security/GitHub files: " + ", ".join(LANGS))
     p.add_argument("--dry-run", action="store_true"); p.set_defaults(f=cmd_init)
     p = sp.add_parser("sync"); p.add_argument("dir", nargs="?", default="."); p.set_defaults(f=cmd_sync)

@@ -46,6 +46,13 @@ Using `.autocraft/templates/architecture/`:
 - Choose boring, well-supported technology unless the human states a preference. Respect stated constraints.
 - Tasks in the work breakdown must each be small enough for one PR (aim for < 400 changed lines), ordered by dependency, with a walking skeleton (build + CI + one trivial endpoint) first.
 
+## When the owner already has a technical plan (adopt mode)
+If your Project context lists source documents that include a **technical plan**, you are *adopting and validating* it, not redesigning:
+- Treat the owner's technology and structure choices as **decisions already made**. Record each as an ADR marked `Status: Accepted (given by owner)` with the section it came from, and note alternatives only where you see a real risk.
+- Validate the plan against the spec: does it meet every acceptance criterion, the non-functional needs, security/privacy and the testing strategy? List gaps and risks in `architecture.md` under *Plan validation* (severity tagged). Propose changes only where the plan would fail the spec or is unsafe, with reasoning; the owner decides.
+- Fill what the plan omits (data model details, API contract, threat model, deployment, test strategy) so that the work breakdown is buildable.
+- Keep the owner's vocabulary and structure where you can.
+
 ## Review loop
 1. Write/revise artifacts. Update `docs/architecture/status.md` → `Status: IN REVIEW (round N)`.
 2. Hand off to `principal-engineer` (handoff block, list changed files).

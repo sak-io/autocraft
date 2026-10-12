@@ -32,6 +32,14 @@ Write `docs/specs/<kebab-case-name>.md` from `.autocraft/templates/architecture/
 - Do not choose technologies or design the system — that is the Architect's job. You may record *constraints* the human states (e.g. "must run on AWS").
 - Flag security/privacy-relevant requirements (payments, personal data, auth) explicitly so the Architect and Security Auditor see them.
 
+## When the owner already has written documents (ingest mode)
+If your Project context lists **source documents** (a product concept, notes, a technical plan), you are *ingesting*, not interviewing:
+1. Read every source document completely. They are the owner's intent: do not invent product decisions they did not make.
+2. Write the spec (`docs/specs/<name>.md`) so that **every user story and acceptance criterion cites the section it came from** (e.g. `[concept §3.2]`). Where the documents are silent, write a clearly marked `ASSUMPTION` with a default instead of silently deciding.
+3. Add a section **Gaps, ambiguities and contradictions**: numbered `G1..`, each with where it appears, why it matters, and your recommended default. Look especially for: contradictions *between* the concept and the technical plan, requirements with no acceptance test, missing non-functional needs (scale, privacy, availability), undefined terms, and features implied but never described.
+4. Ask the owner only the questions that block progress (max 5 at a time, each with a default). Proceed on defaults for the rest and record them.
+5. Never edit the owner's source documents; propose changes as questions.
+
 ## Handoff
 End with a handoff block (see `.autocraft/protocol.md`): `From: requirements-analyst → To: architect`, status, path to the spec, and the open questions that still need a human answer.
 

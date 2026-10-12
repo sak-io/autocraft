@@ -59,7 +59,7 @@ Exactly one `agent:*` state label on a PR at a time. Whoever moves the PR forwar
 | Commit to feature branches, open PRs | ✅ developer | ✅ |
 | Review, label, comment | ✅ reviewer, gatekeeper | ✅ |
 | Approve architecture | ✅ principal-engineer (+ human at L1/L2) | ✅ |
-| **Approve & merge PRs into `main`** | ❌ never | ✅ always |
+| **Approve & merge PRs into `main`** | ❌ never | ✅ always (in `session-branch` mode: the owner merges the session branch's pull request; inside the session branch the team lead integrates reviewer-approved task branches) |
 | Change branch protection / visibility / delete repo | ❌ never without explicit ask | ✅ |
 | Create the repo | ✅ after human confirmation | ✅ |
 
@@ -103,3 +103,25 @@ The protocol works with any surface:
 - **GitHub (preferred):** pull requests, review comments, `agent:*` labels (sections 3-4).
 - **No GitHub / no remote:** use files. For task `T3`, keep `.autocraft/work/T3/` containing `handoff-N.md` (the handoff block), `review-N.md` (reviewer findings with the same severity tags and a `VERDICT:` line), and `response-N.md` (author's answers: `Fixed in <commit>` / `Not changing because …`). State lives in the files, so any tool or session can continue. The human "merge" is then the human's own commit/merge of the branch.
 - **Tools without sub-agents:** run roles as hats, one role per session; reviewers always in a **fresh session** that sees only the spec, the diff and the protocol.
+
+## 13. GitHub operations: `gh` or the session's GitHub tools
+Use `gh` if it is installed. Cloud sessions (Claude app, Claude Code on the web) usually have no `gh`; they have GitHub tools instead. Same operations, different handles:
+
+| Operation | `gh` | GitHub tools (names as in Claude cloud sessions) |
+|---|---|---|
+| Read a PR: details, diff, changed files, check status | `gh pr view / diff / checks` | `pull_request_read` (choose the method for details, diff, files or status) |
+| Post a review with line comments | `gh pr review`, `gh api` | `pull_request_review_write` (create pending) -> `add_comment_to_pending_review` -> `pull_request_review_write` (submit) |
+| Reply on a review thread | `gh api` | `add_reply_to_pull_request_comment` |
+| Comment on a PR / issue | `gh pr comment` | `add_issue_comment` |
+| Add/remove a label, edit an issue | `gh pr edit --add-label`, `gh issue edit` | `issue_write` (a PR is an issue for labels) |
+| Create a PR (only when the owner asked in `session-branch` mode) | `gh pr create` | `create_pull_request` |
+| CI results and failing logs | `gh run view`, `gh pr checks` | `pull_request_read` (status), `actions_get`, `get_job_logs` |
+| Read a file from another repo/branch | `gh api` | `get_file_contents` |
+| Create a repository (only after the owner confirms) | `gh repo create` | `create_repository` |
+| **Merge a PR** | never | **never** |
+
+If a needed operation has no tool in your session, say so plainly and fall back to files (section 12); do not improvise with credentials.
+
+## 14. Git modes (`git_mode` in `.autocraft/config.yml`)
+- **`session-branch` (default):** everything happens on the branch the session started on. Parallel work uses *local* git worktrees (`feat/<task>`, never pushed) that the team lead merges into the session branch (`--no-ff`) once the reviewer approved. Handoffs and reviews are files in `.autocraft/work/<task>/` committed on the session branch. No extra remote branches, no pull requests unless the owner asks; push the session branch regularly so work survives the session. The owner's merge gate is the pull request from the session branch into `main`.
+- **`pr-per-task`:** one pushed branch and pull request per task with `agent:*` labels (sections 3-4); the owner merges each.

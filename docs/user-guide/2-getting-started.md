@@ -51,22 +51,22 @@ Pick the path that matches how you work. If you're unsure, take **Path B (Claude
 
 ## Path B — Claude app (Code session on web or phone)
 
-Claude's **Code** sessions run in the cloud against a GitHub repository, so you need no terminal. The same agents and `/commands` work.
+Claude's **Code** sessions run in the cloud against a GitHub repository, so you need no terminal. The same agents and `/commands` work, and sub-agents run in parallel.
 
-**One-time:**
-1. In the Claude app go to Settings → connect **GitHub** (the app will link you to claude.ai/connect-github) and allow access to the repository you will use.
-2. On github.com (or the GitHub mobile app) **create a new, empty, private repository** for your project, e.g. `my-project`.
+**One-time:** connect **GitHub** to Claude (Settings → connect, or claude.ai/connect-github) and allow access to your project repository **and** the `sak-io/autocraft` repository.
 
-**Each project:**
-3. In the Claude app open **Code** → start a **new session** and **select your repository** (repositories are chosen when the session starts).
-4. Paste the [bootstrap prompt](../bootstrap-prompt.md) (the first block). The Team Builder will ask for access to `autocraft` if needed, interview you, install the team into your repository, and commit it.
-5. When it says the team is installed, type `/start`.
+**If you already have written documents** (a product concept, a technical plan) in your repo — the best case — follow **[Kick off a project from your own documents](../kickoff-existing-docs.md)**: add one small `CLAUDE.md` pointer to the repo, start a Code session on it, and type *"Kick off this project with autocraft."*
+
+**If you only have an idea:**
+1. On github.com (or the GitHub app) create a **new, empty, private repository**.
+2. In the Claude app open **Code → New session → select that repository**.
+3. Paste the first prompt from the [bootstrap prompt](../bootstrap-prompt.md). The Team Builder interviews you, installs the team, and commits it to the session's branch. Then type `/start`.
 
 > **Today's limits (Path B)**
-> - The team commits to the single branch your session was given; it does **not** open extra branches or pull requests unless you ask. Parallel builders work in isolated copies and are merged back for you.
-> - Cloud sessions have GitHub *tools* rather than the `gh` command. Roles that mention `gh` will use whatever the session provides; if a step fails, say *"do that with the GitHub tools"*.
-> - The repository must exist before you start. You can't create one from inside the session unless you ask the agent to (it can, with your OK).
-> - Every command or file change may need your approval tap. In the session settings you can pre-approve routine commands — see the FAQ.
+> - The team commits to the single branch your session was given and **does not open pull requests or push other branches unless you ask** (`git_mode: session-branch`). Say *"open the pull request"* when you are ready to merge.
+> - Cloud sessions have GitHub *tools* rather than the `gh` command; the roles adapt (protocol §13).
+> - A full run from the phone app has not yet been rehearsed end to end; please report anything that surprises you.
+> - Long multi-agent runs can reach your usage limit. Work is saved at each step; continue with `/status` after the limit resets.
 
 ---
 
