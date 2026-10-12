@@ -1,0 +1,50 @@
+# Glossary (plain language)
+
+| Term | Meaning |
+|---|---|
+| **Role** | A job description for an agent (architect, reviewer, …) |
+| **Team** | A set of roles chosen for a kind of software (e.g. mobile, ai-product) |
+| **Sub-agent** | An agent that a main AI session can hand a task to, with its own separate context |
+| **Role hat** | Playing one role at a time in tools that have no sub-agents — reviewers in a fresh session |
+| **AGENTS.md** | A tool-neutral file where AI coding tools look for project instructions |
+| **Agent** | An AI assistant with a specific job description (e.g. reviewer) |
+| **Skill / slash command** | A saved workflow you start by typing `/name` |
+| **Repository (repo)** | The folder of your project's code and history, hosted on GitHub |
+| **Branch** | A parallel copy of the code where changes are made safely |
+| **`main`** | The branch holding the "official" version of the code |
+| **Branch protection** | GitHub rules that stop anyone changing `main` without review and passing checks |
+| **Pull request (PR)** | A proposal to merge a branch into `main`, with room for discussion |
+| **Merge** | Accepting a PR so its changes become part of `main` |
+| **Review / approve** | Reading a PR and giving a verdict |
+| **CI (continuous integration)** | Automated checks that run on every change |
+| **Lint** | Automatic style/mistake checker for code |
+| **Unit test** | Small automatic test of one piece of logic |
+| **Integration test** | Test that checks pieces working together (e.g. API + database) |
+| **Coverage** | How much of the code the tests run |
+| **Architecture** | The plan for how the system's parts fit together |
+| **ADR** | A short note recording a design decision and why it was made |
+| **Threat model** | A list of ways the system could be attacked and how we defend |
+| **API** | A defined way for programs to talk to each other |
+| **SCA** | Scanning the libraries you depend on for known vulnerabilities |
+| **SAST** | Scanning your own code for security mistakes without running it |
+| **Secret** | A password/API key; must never be in code |
+| **Dependency** | A library your code uses |
+| **Migration** | A change to the database structure |
+| **Rollback** | Undoing a release if it goes wrong |
+| **Walking skeleton** | The tiniest end-to-end version (app starts, one endpoint, CI green) built first |
+| **Idempotent** | Doing it twice has the same effect as once (important for payments/orders) |
+| **Release-ready** | Reviewed, tested, checked — only the human merge remains |
+| **Capability** | A common need (login, payments, email…) with a ready checklist the agents apply |
+| **SDLC** | Software development lifecycle: plan → design → build → test → review → release → maintain |
+| **Vibe coding** | Building software by describing what you want and letting AI write the code |
+| **LLM / RAG** | The AI model behind chatbots / giving it your documents to answer from |
+| **Webhook** | A message another service sends your system when something happens |
+| **Queue** | A waiting line for tasks so they're processed reliably, one by one |
+| **Terraform / IaC** | Describing cloud setup in files so it's repeatable and reviewable |
+| **Archetype** | A project-type profile (API, web app, mobile app, job, library) that tunes what the agents ask, test and check |
+| **E2E test** | Test that drives the whole app like a user (browser or phone) |
+| **Accessibility (a11y)** | Making the product usable by people with disabilities (screen readers, keyboard-only, contrast) |
+| **Staged rollout** | Releasing to a small % of users first, then more |
+| **Cron job** | A task that runs automatically on a schedule |
+| **Semver** | Version numbers (MAJOR.MINOR.PATCH) that signal whether an update breaks things |
+| **Autonomy level** | How often agents pause to ask you |

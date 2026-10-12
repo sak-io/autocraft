@@ -1,0 +1,25 @@
+run,agent_and_task,tokens_added,tool_uses,seconds
+1,requirements-analyst (draft spec),56414,5,36.6
+2,requirements-analyst (apply Maya's answers),4033,2,68.3
+3,architect (round 1),79052,8,146.7
+4,principal-engineer (review 1),91121,7,149.7
+5,architect (round 2),32081,4,174.7
+6,requirements-analyst (scope change),4392,3,19.9
+7,principal-engineer (review 2 - APPROVED),28593,5,86.6
+8,developer T1 (skeleton + kernel; 84 tests),123716,18,296.9
+9,pr-reviewer T1 (APPROVED round 1),106875,14,143.3
+10,developer T2 (web shell; 162 tests total),116424,15,267.7
+11,pr-reviewer T2 (APPROVED round 1),34488,11,133.3
+12,developer T3 (accounts; parallel),128497,24,343.1
+13,developer T4 (schedule+admin; parallel),131714,22,266.5
+14,developer T5 (booking; parallel),112153,18,230.2
+15,pr-reviewer T3 (APPROVED; parallel),97169,22,187.0
+16,pr-reviewer T4 (CHANGES REQUESTED; parallel),107421,18,245.0
+17,pr-reviewer T5 (APPROVED; 9 mutation probes; parallel),87319,13,198.7
+18,developer T5 integration fix (fixture vs bootstrap),4891,4,88.2
+19,developer T6 (confirmation emails),114519,17,212.0
+20,developer T4 (fix round 1; 5 findings),20417,18,359.3
+21,pr-reviewer T4 (round 2 APPROVED),10754,6,105.3
+22,pr-reviewer T6 (APPROVED; 10 mutation probes),24759,9,239.5
+23,"security-auditor (SCA+SAST+manual; 0 crit/high, 3 med, 7 low)",169590,27,292.4
+24,qa-engineer T7 (177 tests + 14 defect tests + 21 mutation probes + traceability),321457,65,1495.2

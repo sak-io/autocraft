@@ -1,0 +1,14 @@
+$ python3 ~/autocraft/bin/autocraft init . --tool claude-code --team starter --archetype fullstack-app --capability authentication,database,email-and-notifications --add-role architect,principal-engineer,qa-engineer,release-gatekeeper --experience beginner
+autocraft: team installed in /tmp/claude-0/-home-user-autocraft/4dc487e6-d297-5355-ab6e-8239135c933c/scratchpad/classbook
+  tools    : claude-code
+  roles    : requirements-analyst, developer, pr-reviewer, security-auditor, architect, principal-engineer, qa-engineer, release-gatekeeper
+  workflows: discover, explain, start, build-feature, review-pr, security-scan, status, design-architecture, release-check
+
+How to start:
+  [claude-code] Open this folder in Claude Code (`claude`), then type  /start  (new project)  or  /build-my-team  /status. Ask for a role by name: "use the architect subagent". In Claude Code on the web or the Claude app, select this repo for the session - the same files load.
+
+Customize any time:  python3 .autocraft/framework/bin/autocraft add-role <id> | remove-role <id> | new-role <id> | sync | doctor
+
+$ python3 .autocraft/framework/bin/autocraft doctor
+roles (8): requirements-analyst, developer, pr-reviewer, security-auditor, architect, principal-engineer, qa-engineer, release-gatekeeper
+doctor: OK

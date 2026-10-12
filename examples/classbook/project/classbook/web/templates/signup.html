@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Create an account{% endblock %}
+{% block content %}
+<h1>Create an account</h1>
+{% if errors.form %}<p class="flash error" role="alert">{{ errors.form }}</p>{% endif %}
+<form method="post" action="/signup">
+  {{ csrf_field() }}
+  <input type="hidden" name="next" value="{{ next }}">
+  <p><label for="name">Your name</label><br><input id="name" name="name" autocomplete="name" required maxlength="80" value="{{ values.name }}"{% if errors.name %} aria-describedby="name-err"{% endif %}>
+    {% if errors.name %}<br><span id="name-err" class="flash error">{{ errors.name }}</span>{% endif %}</p>
+  <p><label for="email">Email</label><br><input id="email" name="email" type="email" autocomplete="username" required maxlength="254" value="{{ values.email }}"{% if errors.email %} aria-describedby="email-err"{% endif %}>
+    {% if errors.email %}<br><span id="email-err" class="flash error">{{ errors.email }}</span>{% endif %}</p>
+  <p><label for="password">Password (10 to 128 characters)</label><br><input id="password" name="password" type="password" autocomplete="new-password" required minlength="10" maxlength="128"{% if errors.password %} aria-describedby="password-err"{% endif %}>
+    {% if errors.password %}<br><span id="password-err" class="flash error">{{ errors.password }}</span>{% endif %}</p>
+  <p><button type="submit">Create account</button></p>
+</form>
+<p>Already have an account? <a href="/login">Sign in</a></p>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ c.title }}{% endblock %}
+{% block content %}
+<h1>{{ c.title }}</h1>
+<p>{{ c.when }} &middot; {{ c.duration }} min &middot; with {{ c.instructor }}</p>
+<p>Capacity {{ c.capacity }} &middot; booked {{ c.booked }} &middot; spots left {{ c.left }}{% if c.state == "cancelled" %} &middot; <strong>Cancelled</strong>{% endif %}</p>
+<h2>Booked students</h2>
+{% if roster %}
+<ul>{% for s in roster %}<li>{{ s.name }} ({{ s.email }})</li>{% endfor %}</ul>
+{% else %}<p>Nobody is booked.</p>{% endif %}
+{% if c.state not in ("cancelled", "started") %}<p><a href="/admin/classes/{{ c.id }}/edit">Edit this class</a></p>{% endif %}
+{% if c.state not in ("cancelled", "started") %}
+<form method="post" action="/admin/classes/{{ c.id }}/cancel">
+  {{ csrf_field() }}
+  <button type="submit">Cancel this class</button>
+  <span class="muted">Booked students are marked cancelled; they are not emailed.</span>
+</form>
+{% endif %}
+<p><a href="/admin/classes">All classes</a> &middot; <a href="/classes/{{ c.id }}">Public page</a></p>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Manage classes{% endblock %}
+{% block content %}
+<h1>Manage classes</h1>
+{% if last_signin %}<p class="muted">Your previous sign-in: {{ last_signin }}</p>{% endif %}
+<p><a href="/admin/classes/new">Add a class</a></p>
+{% if not classes %}<p>No classes yet.</p>{% else %}
+<table>
+  <thead><tr><th scope="col">Class</th><th scope="col">When</th><th scope="col">Booked</th><th scope="col">Status</th></tr></thead>
+  <tbody>
+  {% for c in classes %}
+    <tr>
+      <th scope="row"><a href="/admin/classes/{{ c.id }}">{{ c.title }}</a></th>
+      <td>{{ c.when }}</td>
+      <td>{{ c.booked }} / {{ c.capacity }}</td>
+      <td>{{ {"cancelled": "Cancelled", "started": "Past", "opens_later": "Not open yet", "full": "Full", "bookable": "Open"}[c.state] }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}
