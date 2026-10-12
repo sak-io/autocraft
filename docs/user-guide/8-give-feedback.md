@@ -14,7 +14,8 @@ Thank you for testing. You are not being tested — **the guide is**. Anything t
 Tell us (anonymous is fine):
 - Your role (e.g. analyst, designer, ops, founder): ______
 - Experience with AI assistants (never / sometimes / daily): ______
-- Experience with software development (none / some scripting / used to code): ______
+- Experience with software development (none / some scripting / professional developer): ______
+- Which track will you follow? **New to software** (pages 1–5) / **Software professional** (pages 1, 2, 6, 5): ______
 - The tool you'll use (Claude Code terminal / Claude app / other): ______
 
 ## The test (about 60–90 minutes)
@@ -33,6 +34,7 @@ Do the tasks in order. **Think out loud** (or jot notes): say what you expected,
 | 8 | Ask `/explain` about something you didn't understand | You got a clearer answer | Was it clear? |
 | 9 | (Optional) change the team: add a role or a house rule | `autocraft doctor` says OK | Was it discoverable? |
 | 10 | Say what you'd need before sharing the result with real users | A list | |
+| 11 | *(software professionals)* Define your own small team (`.autocraft/custom/teams/…`), add one house rule in `team-rules.md`, give one role a different model, then `autocraft sync && autocraft doctor` | You can show the generated files changed accordingly | Was it discoverable? What did you expect to be able to do that you couldn't? |
 
 ## Questions (rate 1–5, 5 = best; add a sentence for any 1–3)
 
@@ -49,6 +51,13 @@ Do the tasks in order. **Think out loud** (or jot notes): say what you expected,
 8. The summaries and reviews were understandable. ___
 9. I felt in control (could say no, change direction). ___
 10. I would trust the output enough to show it to a real user. ___ — what would raise this? ______
+
+**If you're a software professional** (also answer these)
+- I could pick, remove and customize roles without reading the source. ___
+- The loop (independent reviewer, severity tags, round limits, file handoffs) matches how I'd want AI-assisted work to be controlled. ___
+- Which role would you replace or add first, and why? ______
+- What would stop you from using this on a real codebase (permissions, cost, trust, lock-in, missing integration)? ______
+- What is the first thing you'd automate or tighten with `team-rules.md`? ______
 
 **Overall**
 11. Would you use this for a real project? (yes / maybe / no) — why? ______

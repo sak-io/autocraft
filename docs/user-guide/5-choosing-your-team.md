@@ -80,4 +80,6 @@ In `.autocraft/config.yml`:
 
 **The fixed points** (can't be switched off): independent review, tests with every change, no secrets in code, **humans merge**. `autocraft doctor` warns you if your team has no reviewer or no builder.
 
-**Next:** [6. FAQ and troubleshooting →](6-faq-and-troubleshooting.md)
+**Engineer?** Page 6 covers defining your own team file, per-role models (`--role-model`), replacing roles, custom workflows and keeping generated files in sync from CI.
+
+**Next:** [6. For software engineers →](6-for-software-engineers.md) · or [7. FAQ and troubleshooting →](7-faq-and-troubleshooting.md)

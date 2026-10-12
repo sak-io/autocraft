@@ -12,6 +12,13 @@ autocraft gives you that team as plain files your AI tool already understands �
 >
 > **Never set up agents before?** Open your AI tool in an empty folder and paste the **[bootstrap prompt](docs/bootstrap-prompt.md)**. The Team Builder interviews you and does the rest.
 
+## Who it's for
+
+- **New to software** — founders, product people, analysts, designers, operators: describe what you want (or point at the documents you wrote); the team picks the right agents, makes and records the technical choices, explains everything in plain language, and asks only for decisions that are yours.
+- **Software professionals** — engineers, tech leads, platform teams building the AI-native way: pick roles à la carte or define your own team, set your conventions, models and strictness, override or write roles, and wire it into your repo, CI and PR flow. Or just use it as is.
+
+Same engine and quality bar for both — independent review, tests with every change, a human holding the merge — with different dials (`experience: beginner … expert`). The [User Guide](docs/user-guide/README.md) has a path for each.
+
 ## How it works
 
 ```

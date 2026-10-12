@@ -14,6 +14,24 @@
 
 **What does it cost?** autocraft is free; your AI tool's usage is what you pay for. More roles and review rounds use more. The worked example reports the number of agent runs for a small app so you can calibrate. Starting lean keeps usage down.
 
+## For software engineers
+
+**Can I use my own conventions, linters and architecture rules?** Yes — plain English in `.autocraft/custom/team-rules.md` (all roles) or `roles/<id>.append.md` (one role). Replace a role entirely if you need a different checklist or tool permissions. See [page 6](6-for-software-engineers.md).
+
+**Can I turn off the human gate?** You can lower how often agents ask (`autonomy_level: 3` = only merges/releases) but not remove the human merge: agents never merge to `main`. That is deliberate and not configurable.
+
+**Can I use only some agents — say, just review and security?** Yes: define a team file (`.autocraft/custom/teams/<id>.md`) or start from `starter` and `--remove-role` / `--add-role`. A reviewer-only setup is a normal use.
+
+**Can different roles use different models?** In Claude Code: `--role-model pr-reviewer=sonnet,architect=opus` (default: the session's model).
+
+**Does it work in a monorepo?** One `.autocraft/` at the repo root; list several archetypes; tasks are tagged by component. Per-directory teams are not supported yet.
+
+**How do I keep the generated files from drifting?** Edit config and `custom/`, never generated files; run `autocraft sync` and check `git status` is clean in CI, plus `autocraft doctor`.
+
+**How is this different from just writing a good prompt or a CLAUDE.md?** It gives you *separate* agents with separate contexts and permissions, an enforced author≠reviewer loop with round limits, file-based handoffs, domain checklists, and the same setup across tools — all as inspectable files.
+
+**What does it do to my repo?** Adds the generated team files, `.autocraft/` (config, protocol, profiles, a vendored framework copy ≈ 0.9 MB) and `.claude/settings.json`. Remove those paths to uninstall.
+
 ## Getting unstuck
 
 **Nothing happens when I type `/start`.** The team isn't installed in this folder/session. Run `autocraft doctor` (or ask: *"Is the autocraft team installed here? Fix it."*). In the Claude app, make sure you selected the right repository when you started the session, and that the setup was committed.
@@ -50,7 +68,7 @@
 
 ## Tools other than Claude
 
-**The rules aren't being applied in Cursor/Copilot/etc.** Run `autocraft doctor`, confirm the tool's files exist (see its page in [docs/tools](../tools/)), restart the tool, and check the vendor's current file-format docs — formats change. Tell us which tool and version (see [feedback](7-give-feedback.md)).
+**The rules aren't being applied in Cursor/Copilot/etc.** Run `autocraft doctor`, confirm the tool's files exist (see its page in [docs/tools](../tools/)), restart the tool, and check the vendor's current file-format docs — formats change. Tell us which tool and version (see [feedback](8-give-feedback.md)).
 
 **My tool has no slash commands.** Say the workflow by name: *"Run the start workflow."* Same effect.
 

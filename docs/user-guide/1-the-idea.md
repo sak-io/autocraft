@@ -9,7 +9,7 @@ Most people start by asking a single AI assistant to plan, build, test, and judg
 - **Nobody holds the quality bar.** Tests, security checks, and "is this really what was asked for?" are skipped when everything is moving fast.
 - **You can't see what happened.** There are no checkpoints, so you either trust everything or read everything.
 
-Professional software teams solved this decades ago with **roles and checkpoints**. autocraft gives you the same structure, as AI agents.
+Professional software teams solved this decades ago with **roles and checkpoints** — code review, QA, security review, release gates. autocraft gives you the same structure, as AI agents you can staff, swap and tune.
 
 ## What you get
 
@@ -31,6 +31,15 @@ Professional software teams solved this decades ago with **roles and checkpoints
 | "Looks fine to me" | Written findings with severities: must-fix vs. nice-to-have |
 | You find out at the end | You approve at checkpoints you choose |
 | Tests optional | Tests required with every change |
+
+## Who uses it, and how differently
+
+| If you're… | You mostly… |
+|---|---|
+| **new to software** | describe what you want, answer a few plain-language questions, read short summaries, and click merge. The team makes and records the technical choices. |
+| **a software professional** | choose which roles you want (or write your own), set your conventions and models, point the team at your repo and specs, and review the artifacts like you'd review a team's work. See [page 6](6-for-software-engineers.md). |
+
+Same engine, same quality bar; different dials.
 
 ## The four ingredients
 

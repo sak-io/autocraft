@@ -65,6 +65,22 @@ python3 "$tmp/p/.autocraft/framework/bin/autocraft" doctor "$tmp/p" >/dev/null |
 ( cd "$tmp/p" && find . -path ./.autocraft/framework -prune -o -type f -print0 | sort -z | xargs -0 sha256sum > "$tmp/h1"
   python3 .autocraft/framework/bin/autocraft sync >/dev/null
   find . -path ./.autocraft/framework -prune -o -type f -print0 | sort -z | xargs -0 sha256sum > "$tmp/h2" ); cmp -s "$tmp/h1" "$tmp/h2" || err "autocraft sync is not idempotent"
+# custom team + per-role model (engineer customization)
+mkdir -p "$tmp/p/.autocraft/custom/teams"
+cat > "$tmp/p/.autocraft/custom/teams/our-team.md" <<'TEAM'
+---
+id: our-team
+name: Our Team
+summary: Project-defined team
+roles: [developer, pr-reviewer]
+workflows: [build-feature, review-pr]
+---
+# Playbook
+Builder plus independent reviewer.
+TEAM
+python3 "$tmp/p/.autocraft/framework/bin/autocraft" init "$tmp/p" --team our-team --remove-role technical-writer --role-model pr-reviewer=sonnet >/dev/null || err "custom team / role-model init failed"
+[[ -f "$tmp/p/.claude/agents/pr-reviewer.md" && ! -f "$tmp/p/.claude/agents/architect.md" ]] || err "custom team roster not applied"
+grep -q "^model: sonnet" "$tmp/p/.claude/agents/pr-reviewer.md" || err "role model override not exported"
 python3 - "$tmp/p" <<'PY' || fail=1
 import sys, glob, os
 os.chdir(sys.argv[1]); bad = 0

@@ -4,6 +4,7 @@ team: [starter]            # one or more of: starter, web-product, api-backend, 
 roles_add: []              # extra roles on top of the team(s), e.g. [qa-engineer, technical-writer]
 roles_remove: []           # roles to drop, e.g. [ux-designer]
 sources: []                # owner documents the team treats as authoritative, e.g. [docs/product-concept.md, docs/technical-plan.md]
+role_models: []            # Claude Code only, per role: [pr-reviewer=sonnet, qa-engineer=haiku]; default is to inherit the session model
 git_mode: session-branch   # session-branch (commit on the session branch, local worktrees, no extra remote branches/PRs) | pr-per-task
 archetypes: []             # what you are building (see .autocraft/archetypes/README.md), e.g. [fullstack-app, ai-assistant]
 capabilities: []           # (secrets-and-config, deployment-hosting, analytics-observability are always on and implied)  extras: extra needs: authentication | payments | database | email-and-notifications | file-uploads | search | privacy-compliance

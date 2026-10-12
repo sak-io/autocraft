@@ -1,5 +1,7 @@
 # 3. Your first project, step by step
 
+> *Written step by step for people new to software. If you're a software professional, skim the gates and step 5, then read [page 6](6-for-software-engineers.md) — same journey, with the dials exposed.*
+
 This page walks the whole journey once. For a complete real run with every output, see the [ClassBook worked example](../../examples/classbook/README.md).
 
 **The journey in one picture**

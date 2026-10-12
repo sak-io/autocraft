@@ -145,8 +145,21 @@ def as_list(v):
 
 
 # ----------------------------------------------------------------------------- config
+def role_models(cfg):
+    """config `role_models: [pr-reviewer=sonnet, qa-engineer=haiku]` -> {role: model} (Claude Code only)"""
+    out = {}
+    for item in as_list(cfg.get("role_models")):
+        if "=" not in item:
+            raise SystemExit(f"error: role_models entries look like role=model, got '{item}'")
+        r, m = item.split("=", 1)
+        if not re.fullmatch(r"[A-Za-z0-9._:-]+", m.strip()):
+            raise SystemExit(f"error: invalid model name '{m}'")
+        out[r.strip()] = m.strip()
+    return out
+
+
 CONFIG_KEYS_ORDER = ["autonomy_level", "max_review_rounds", "max_parallel_developers", "default_branch", "tools", "team",
-                     "roles_add", "roles_remove", "archetypes", "capabilities", "experience", "language", "human_owner", "sources", "git_mode"]
+                     "roles_add", "roles_remove", "archetypes", "capabilities", "experience", "language", "human_owner", "sources", "git_mode", "role_models"]
 
 
 def config_path(proj):
@@ -288,8 +301,24 @@ def recommend(idea, fw=FW):
 
 
 # ----------------------------------------------------------------------------- roster
-def resolve_team_ids(cfg, fw=FW):
+def load_custom_teams(proj):
+    """teams defined by the project itself: .autocraft/custom/teams/<id>.md (same format as teams/*.md)"""
+    out = {}
+    d = Path(proj) / ".autocraft" / "custom" / "teams"
+    for f in sorted(d.glob("*.md")) if d.is_dir() else []:
+        meta, body = parse_md(f)
+        meta.setdefault("id", f.stem)
+        meta.setdefault("name", meta["id"])
+        meta.setdefault("summary", "Project-defined team")
+        meta["body"], meta["path"] = body, f
+        out[meta["id"]] = meta
+    return out
+
+
+def resolve_team_ids(cfg, fw=FW, proj=None):
     teams = load_dir("teams", fw)
+    if proj is not None:
+        teams.update(load_custom_teams(proj))
     ids = as_list(cfg.get("team")) or ["starter"]
     for t in ids:
         if t not in teams:
@@ -307,7 +336,7 @@ def resolve_roster(cfg, proj, fw=FW):
         meta.setdefault("id", f.stem)
         meta["body"], meta["path"], meta["custom"] = body, f, True
         roles[meta["id"]] = meta
-    team_ids, teams = resolve_team_ids(cfg, fw)
+    team_ids, teams = resolve_team_ids(cfg, fw, proj)
     ids = []
     for t in team_ids:
         for r in as_list(teams[t].get("roles")):
@@ -487,13 +516,14 @@ def export(tool, ctx):
         return f"{pre}\n\n{w['body'].strip()}\n"
 
     if tool == "claude-code":
+        models = role_models(cfg)
         for r in roster:
             ab = as_list(r.get("abilities"))
             tl = []
             for a in ab:
                 tl += {"read": ["Read"], "search": ["Grep", "Glob"], "write": ["Write"], "edit": ["Edit"], "shell": ["Bash"]}.get(a, [])
             files[f".claude/agents/{r['id']}.md"] = (f"---\nname: {r['id']}\ndescription: {yq(r.get('description', ''))}\n"
-                                                    f"tools: {', '.join(dict.fromkeys(tl))}\nmodel: inherit\n---\n{gen('roles/' + r['id'] + '.md')}\n\n{eff[r['id']]}")
+                                                    f"tools: {', '.join(dict.fromkeys(tl))}\nmodel: {models.get(r['id']) or r.get('model') or 'inherit'}\n---\n{gen('roles/' + r['id'] + '.md')}\n\n{eff[r['id']]}")
         for w in wfs:
             files[f".claude/skills/{w['id']}/SKILL.md"] = f"---\nname: {w['id']}\ndescription: {yq(w.get('description', ''))}\n---\n{gen('workflows/' + w['id'] + '.md')}\n\n{wf_body(w)}"
         blocks["CLAUDE.md"] = guide(lambda r: f"subagent `{r['id']}`", lambda w: f"`/{w['id']}`")
@@ -848,6 +878,8 @@ def cmd_init(a):
         upd["autonomy_level"] = a.autonomy
     if a.owner:
         upd["human_owner"] = a.owner
+    if a.role_model:
+        upd["role_models"] = list(dict.fromkeys(as_list(cfg.get("role_models")) + split(a.role_model)))
     if a.sources:
         upd["sources"] = split(a.sources)
     if a.git_mode:
@@ -964,6 +996,7 @@ id: {a.id}
 title: {a.id.replace('-', ' ').title()}
 category: build
 abilities: [read, search, write, edit, shell]
+# model: inherit        # optional (Claude Code): opus | sonnet | haiku | a full model id
 description: One sentence saying WHEN to use this role and what it produces.
 ---
 
@@ -1066,6 +1099,7 @@ def main():
     p.add_argument("--experience", choices=list(EXPERIENCE)); p.add_argument("--autonomy", type=int, choices=[1, 2, 3])
     p.add_argument("--sources", help="owner documents the team treats as authoritative inputs (comma-separated paths)")
     p.add_argument("--git-mode", choices=list(GIT_MODES), help="session-branch (default) or pr-per-task")
+    p.add_argument("--role-model", help="Claude Code only: per-role model, e.g. pr-reviewer=sonnet,qa-engineer=haiku (default: inherit the session's model)")
     p.add_argument("--owner", help="the owner's GitHub handle (notifications target, CODEOWNERS)")
     p.add_argument("--add-role"); p.add_argument("--remove-role"); p.add_argument("--lang", help="also install CI/security/GitHub files: " + ", ".join(LANGS))
     p.add_argument("--dry-run", action="store_true"); p.set_defaults(f=cmd_init)

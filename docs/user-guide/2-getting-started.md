@@ -13,6 +13,8 @@ Pick the path that matches how you work. If you're unsure, take **Path B (Claude
 
 ---
 
+> **Software engineer in a hurry?** Skip to [page 6](6-for-software-engineers.md): `autocraft init . --tool claude-code --team starter --add-role architect,qa-engineer --experience expert` in your repo, commit, done.
+
 ## What every path needs (once)
 
 - A **GitHub account** (free is fine) — except Path C.
