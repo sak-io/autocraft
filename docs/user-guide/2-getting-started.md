@@ -18,7 +18,7 @@ Pick the path that matches how you work. If you're unsure, take **Path B (Claude
 ## What every path needs (once)
 
 - A **GitHub account** (free is fine) — except Path C.
-- The `autocraft` repository (ask whoever shared this guide for access if it is private).
+- The `autocraft` repository: `https://github.com/sak-io/autocraft` (public; clone it, nothing else to request).
 - For terminal use: **Python 3.8+** and **git** (`python3 --version`, `git --version` should both print a version). Nothing else to install.
 
 ---
@@ -55,7 +55,7 @@ Pick the path that matches how you work. If you're unsure, take **Path B (Claude
 
 Claude's **Code** sessions run in the cloud against a GitHub repository, so you need no terminal. The same agents and `/commands` work, and sub-agents run in parallel.
 
-**One-time:** connect **GitHub** to Claude (Settings → connect, or claude.ai/connect-github) and allow access to your project repository **and** the `sak-io/autocraft` repository.
+**One-time:** connect **GitHub** to Claude (Settings → connect, or claude.ai/connect-github) and allow access to your project repository. (`sak-io/autocraft` is public; the session can clone it without special access.)
 
 **If you already have written documents** (a product concept, a technical plan) in your repo — the best case — follow **[Kick off a project from your own documents](../kickoff-existing-docs.md)**: add one small `CLAUDE.md` pointer to the repo, start a Code session on it, and type *"Kick off this project with autocraft."*
 
