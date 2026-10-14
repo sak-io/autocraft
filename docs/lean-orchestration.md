@@ -18,3 +18,12 @@ Origin: a real project (a 30-task mobile app built with a wide parallel team) ex
 - `board.py check` in CI (cheap) so BOARD.md and statuses cannot drift.
 - Docs/board-only commits skip the heavy CI (`paths-ignore: work/**`).
 - Record each CI pitfall in `work/LESSONS.md` the first time.
+
+## CI is part of the cost (lessons from the real project)
+- **A serial UI-test job does not scale.** The suite grew from 5 to 49 UI tests; one job per device took 25-35 minutes and every fix round paid it. Build once, then run the test classes in parallel shards from the built products; keep the class-to-shard map in one script with a `--check` that fails if a class is in no shard (so a new test can never silently stop running).
+- **Hosted runners have a concurrency cap** (about 5 macOS jobs at once). More shards than the cap only queue. Run the second device (iPad) only on the push you intend to merge (a marker in the commit message, `main`, or manual dispatch); beware that the marker text also matches a commit message that merely *describes* it.
+- **Make the audit tell you everything in one run.** The platform accessibility audit stops at the first issue by default; collect all issues (type, frame, description, element tree) and fail once. That turned "one finding per 30-minute cycle" into one cycle.
+- **Fix at the root, not by guessing.** Several rounds were spent on guessed causes; print the diagnostic first. When a finding cannot be root-caused without a human tool, an explicit owner waiver recorded as a non-strict expected failure (tracked, with the finding text) beats an endless loop - but only with the owner's say-so, and never silently.
+- **Stuck tests are often "off-screen is not in the accessibility tree".** Scroll before asserting; wait for the container, not a header.
+- **Check the container image**: the Linux Swift image had no Python, so a new Python-based lint failed there although it passed locally.
+- **Rerun only the failed job, once,** and only when it died before any test body ran (launch timeouts); otherwise it is a real failure.
