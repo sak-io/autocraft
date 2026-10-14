@@ -58,6 +58,11 @@ for l in $(python3 -c "import runpy,sys; m=runpy.run_path('bin/autocraft', run_n
   [[ -f "templates/github/workflows/ci-$l.yml" ]] || err "no CI template for language $l"; done
 for t in $(python3 -c "import runpy; m=runpy.run_path('bin/autocraft', run_name='x'); print(' '.join(m['TOOLS']))"); do
   [[ -f "docs/tools/$t.md" ]] || err "missing docs/tools/$t.md"; done
+# --- agent-agnostic task board
+[[ -f templates/board/board.py && -f templates/board/AGENTS.md ]] || err "templates/board incomplete"
+python3 -m py_compile templates/board/board.py || err "board.py does not compile"
+rm -rf templates/board/__pycache__
+BOARD_PY="$PWD/templates/board/board.py" bash templates/board/test-board.sh >/dev/null || err "board self-test failed"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 python3 bin/autocraft init "$tmp/p" --tool claude-code,claude-app,cursor,copilot,gemini-cli,windsurf,cline,agents-md,prompts \
   --team web-product,ai-product,mobile --archetype fullstack-app,ai-assistant --add-role technical-writer --lang node >/dev/null || err "autocraft init failed"
