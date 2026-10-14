@@ -942,6 +942,32 @@ def cmd_pointer(a):
     print(f"wrote the autocraft pointer into {proj / 'CLAUDE.md'} (replaced automatically by the full team guide after `autocraft init`)")
 
 
+def cmd_board(a):
+    """Install the agent-agnostic task board (work/, scripts/board.py, AGENTS.md), or run it."""
+    proj = Path(a.dir).resolve()
+    src = FW / "templates" / "board"
+    if a.action == "init":
+        (proj / "scripts").mkdir(parents=True, exist_ok=True)
+        (proj / "work" / "tasks").mkdir(parents=True, exist_ok=True)
+        (proj / "work" / "status").mkdir(parents=True, exist_ok=True)
+        copies = [("board.py", "scripts/board.py"), ("AGENTS.md", "AGENTS.md"), ("README.md", "work/README.md"),
+                  ("CONTEXT.md", "work/CONTEXT.md"), ("LESSONS.md", "work/LESSONS.md")]
+        for name, dest in copies:
+            d = proj / dest
+            if d.exists() and name not in ("board.py",):
+                print(f"kept existing {dest}")
+                continue
+            d.write_text((src / name).read_text())
+        (proj / "scripts" / "board.py").chmod(0o755)
+        cfg = proj / "work" / "config.json"
+        if not cfg.exists():
+            cfg.write_text(json.dumps({"integration_branch": a.branch, "lease_hours": 6}, indent=2) + "\n")
+        print(f"board installed in {proj}. Next: python3 scripts/board.py import-tasks <tasks.md>  (cards from '### T01 [kind] Title' headings), then `render`.")
+        return
+    import subprocess
+    raise SystemExit(subprocess.call([sys.executable, str(proj / "scripts" / "board.py"), *a.rest], cwd=proj))
+
+
 def cmd_sync(a):
     proj = Path(a.dir).resolve()
     if not config_path(proj).exists():
@@ -1103,6 +1129,8 @@ def main():
     p.add_argument("--owner", help="the owner's GitHub handle (notifications target, CODEOWNERS)")
     p.add_argument("--add-role"); p.add_argument("--remove-role"); p.add_argument("--lang", help="also install CI/security/GitHub files: " + ", ".join(LANGS))
     p.add_argument("--dry-run", action="store_true"); p.set_defaults(f=cmd_init)
+    p = sp.add_parser("board", help="agent-agnostic task board: `board init [dir]` installs it; other args pass through to scripts/board.py")
+    p.add_argument("action", choices=["init", "run"]); p.add_argument("dir", nargs="?", default="."); p.add_argument("--branch", default="main"); p.add_argument("rest", nargs="*"); p.set_defaults(f=cmd_board)
     p = sp.add_parser("sync"); p.add_argument("dir", nargs="?", default="."); p.set_defaults(f=cmd_sync)
     for name, add in (("add-role", True), ("remove-role", False)):
         p = sp.add_parser(name); p.add_argument("id"); p.add_argument("dir", nargs="?", default="."); p.set_defaults(f=lambda a, add=add: cmd_role(a, add))
