@@ -14,7 +14,7 @@ You are the team lead (main session). The owner has already written down *what* 
 
 ## 1. Spec (ingest) — `requirements-analyst`
 Delegate in **ingest mode**: produce `docs/specs/<name>.md` with citations to the source sections, assumptions, and a **Gaps, ambiguities and contradictions** list with recommended defaults. Show the owner the 5-line summary + the gaps list. 
-**Gate:** the owner answers/accepts defaults and confirms the spec ("AGREED"). Phones: ask at most 5 questions at a time, each with a default.
+**Gate:** the owner answers/accepts defaults and confirms the spec ("AGREED"). Phones: ask at most 4 questions per ask (tool limit), each with a default, each with a default.
 
 ## 2. Plan (adopt & validate) — `architect` ⇄ `principal-engineer` (if installed; otherwise the builder writes `docs/architecture/plan.md`)
 Delegate to the architect in **adopt mode**: the owner's technical choices become ADRs "given by owner"; validate against the spec; fill the missing parts; produce the work breakdown (small tasks, dependency graph, which can run in parallel, required tests per task). The principal-engineer reviews; loop ≤ `max_review_rounds`. 
