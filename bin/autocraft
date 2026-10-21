@@ -158,6 +158,8 @@ def role_models(cfg):
     return out
 
 
+TOKEN_SAVER_MID_TIER_ROLES = ["pr-reviewer", "qa-engineer", "security-auditor", "requirements-analyst"]
+
 CONFIG_KEYS_ORDER = ["autonomy_level", "max_review_rounds", "max_parallel_developers", "default_branch", "tools", "team",
                      "roles_add", "roles_remove", "archetypes", "capabilities", "experience", "language", "human_owner", "sources", "git_mode", "role_models"]
 
@@ -273,8 +275,14 @@ def recommend(idea, fw=FW):
     arch, caps = catalog(fw)
     teams = load_dir("teams", fw)
     scores = {a: count_hits(text, kw.split(",")) for a, kw in ARCH_KEYWORDS.items() if a in arch}
-    chosen = [a for a, s in sorted(scores.items(), key=lambda x: -x[1]) if s > 0][:3]
-    cap_hits = [c for c, v in caps.items() if count_hits(text, v["triggers"]) > 0 and c not in ALWAYS_ON_CAPS]
+    # One incidental keyword ("store" in "vector store") must not outvote real evidence: when the best archetype has
+    # several hits, require at least half of them. A text with a single hit overall is still honoured.
+    top = max(scores.values(), default=0)
+    floor = max(1, (top + 1) // 2)
+    chosen = [a for a, s in sorted(scores.items(), key=lambda x: -x[1]) if s >= floor][:3]
+    # A one-line idea needs one trigger word; a multi-page document mentions many things in passing, so it needs two.
+    need = 2 if len(text.split()) > 300 else 1
+    cap_hits = [c for c, v in caps.items() if count_hits(text, v["triggers"]) >= need and c not in ALWAYS_ON_CAPS]
     # sensible implications
     if "mobile-app" in chosen and ({"authentication", "database", "payments", "email-and-notifications", "file-uploads", "search"} & set(cap_hits) or "fullstack-app" in chosen) and "api-service" not in chosen:
         chosen.append("api-service")
@@ -876,9 +884,14 @@ def cmd_init(a):
         upd["experience"] = a.experience
     if a.autonomy:
         upd["autonomy_level"] = a.autonomy
+    if a.token_saver:  # measured on a real 30-task run, see docs/lean-orchestration.md
+        upd.setdefault("max_review_rounds", 2)
+        upd.setdefault("max_parallel_developers", 2)
+        saver = [f"{r}=sonnet" for r in TOKEN_SAVER_MID_TIER_ROLES]
+        upd["role_models"] = list(dict.fromkeys(saver + as_list(cfg.get("role_models")) + (split(a.role_model) or [])))
     if a.owner:
         upd["human_owner"] = a.owner
-    if a.role_model:
+    if a.role_model and not a.token_saver:
         upd["role_models"] = list(dict.fromkeys(as_list(cfg.get("role_models")) + split(a.role_model)))
     if a.sources:
         upd["sources"] = split(a.sources)
@@ -1126,6 +1139,7 @@ def main():
     p.add_argument("--sources", help="owner documents the team treats as authoritative inputs (comma-separated paths)")
     p.add_argument("--git-mode", choices=list(GIT_MODES), help="session-branch (default) or pr-per-task")
     p.add_argument("--role-model", help="Claude Code only: per-role model, e.g. pr-reviewer=sonnet,qa-engineer=haiku (default: inherit the session's model)")
+    p.add_argument("--token-saver", action="store_true", help="spend fewer tokens: reviewers/QA/auditor/analyst on a mid-tier model, 2 review rounds, 2 parallel developers (explicit --role-model entries still win)")
     p.add_argument("--owner", help="the owner's GitHub handle (notifications target, CODEOWNERS)")
     p.add_argument("--add-role"); p.add_argument("--remove-role"); p.add_argument("--lang", help="also install CI/security/GitHub files: " + ", ".join(LANGS))
     p.add_argument("--dry-run", action="store_true"); p.set_defaults(f=cmd_init)
