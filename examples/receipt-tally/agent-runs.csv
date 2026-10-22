@@ -1,0 +1,5 @@
+run,agent_and_task,tokens_added,tool_uses,seconds
+1,requirements-analyst (spec + design + tasks; sonnet),58770,5,36
+2,developer T1+T2 in one pass (sonnet),73176,7,116
+3,pr-reviewer (risk-tiered probing + 3 mutations; sonnet),70433,7,71
+4,developer review fixes (fresh run with a fix brief; sonnet),68049,8,56

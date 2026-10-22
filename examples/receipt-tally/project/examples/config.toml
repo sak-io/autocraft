@@ -1,0 +1,20 @@
+# Sample for bank_layout_a.csv (one signed Amount column, dates like 31/12/2026).
+[columns]
+date = "Date"
+date_format = "%d/%m/%Y"
+description = "Description"
+amount = "Amount"
+# For bank_layout_b.csv (separate Debit/Credit columns, dates like 2026-12-31) use:
+#   date_format = "%Y-%m-%d"
+#   debit = "Debit"
+#   credit = "Credit"
+# and remove the 'amount' line.
+
+[rules]
+# One rule per line: text to look for = Category. First match wins.
+list = [
+  "tesco = Groceries",
+  "supermarket = Groceries",
+  "shell = Transport",
+  "salary = Income",
+]
