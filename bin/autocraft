@@ -161,7 +161,7 @@ def role_models(cfg):
 TOKEN_SAVER_MID_TIER_ROLES = ["pr-reviewer", "qa-engineer", "security-auditor", "requirements-analyst"]
 
 CONFIG_KEYS_ORDER = ["autonomy_level", "max_review_rounds", "max_parallel_developers", "default_branch", "tools", "team",
-                     "roles_add", "roles_remove", "archetypes", "capabilities", "experience", "language", "human_owner", "sources", "git_mode", "role_models"]
+                     "roles_add", "roles_remove", "archetypes", "capabilities", "experience", "language", "human_owner", "sources", "git_mode", "role_models", "token_mode"]
 
 
 def config_path(proj):
@@ -402,6 +402,7 @@ def effective_body(role, cfg, proj, roster, archetypes, capabilities, team_names
     append = read_custom(proj, f"roles/{role['id']}.append.md")
     team_rules = read_custom(proj, "team-rules.md")
     sources = as_list(cfg.get("sources"))
+    token_mode = cfg.get("token_mode") or "standard"
     git_mode = cfg.get("git_mode") or "session-branch"
     colleagues = "\n".join(f"  - `{r['id']}`: {first_sentence(r.get('description', ''), 110)}" for r in roster if r["id"] != role["id"])
     ctx = [
@@ -421,6 +422,13 @@ def effective_body(role, cfg, proj, roster, archetypes, capabilities, team_names
         "- **GitHub operations:** use the `gh` CLI if it is installed. If it is not (for example in Claude app / cloud sessions), use the session's "
         "GitHub tools instead; the operation-by-operation mapping is in `.autocraft/protocol.md` section 13.",
     ]
+    if token_mode == "lean":
+        ctx.append("- **Token mode `lean`:** spend as few tokens as the task safely allows. Work from the brief you were given and read only the files it points to "
+                   "(and what those lead to); do not re-read whole documents or re-explore the repo. Run automated checks first and report summaries (counts, failing "
+                   "test names), never full logs. Stay within the stated tool-call/token budget; if you would exceed it, stop and report what remains. Keep your final "
+                   "report short (<= 25 lines; link files instead of repeating them) and do not widen scope: extra findings get one line each. Reviewers: match depth "
+                   "to risk (full probing for security, concurrency, money and data-loss paths; tests + diff review for low-risk changes). Quality gates (tests with "
+                   "every change, independent review, human merge) are unchanged. See protocol section 15.")
     if sources:
         ctx.insert(2, "- **Owner's source documents (authoritative inputs; read them before anything else):** " + ", ".join(f"`{x}`" for x in sources)
                    + ". They express the owner's intent. Do not silently contradict or embellish them: record gaps, ambiguities and contradictions as numbered "
@@ -887,8 +895,11 @@ def cmd_init(a):
     if a.token_saver:  # measured on a real 30-task run, see docs/lean-orchestration.md
         upd.setdefault("max_review_rounds", 2)
         upd.setdefault("max_parallel_developers", 2)
+        upd.setdefault("token_mode", "lean")
         saver = [f"{r}=sonnet" for r in TOKEN_SAVER_MID_TIER_ROLES]
         upd["role_models"] = list(dict.fromkeys(saver + as_list(cfg.get("role_models")) + (split(a.role_model) or [])))
+    if a.token_mode:
+        upd["token_mode"] = a.token_mode
     if a.owner:
         upd["human_owner"] = a.owner
     if a.role_model and not a.token_saver:
@@ -1140,6 +1151,7 @@ def main():
     p.add_argument("--git-mode", choices=list(GIT_MODES), help="session-branch (default) or pr-per-task")
     p.add_argument("--role-model", help="Claude Code only: per-role model, e.g. pr-reviewer=sonnet,qa-engineer=haiku (default: inherit the session's model)")
     p.add_argument("--token-saver", action="store_true", help="spend fewer tokens: reviewers/QA/auditor/analyst on a mid-tier model, 2 review rounds, 2 parallel developers (explicit --role-model entries still win)")
+    p.add_argument("--token-mode", choices=["standard", "lean"], help="lean = agents work from briefs, stay within a budget and keep reports short (protocol section 15)")
     p.add_argument("--owner", help="the owner's GitHub handle (notifications target, CODEOWNERS)")
     p.add_argument("--add-role"); p.add_argument("--remove-role"); p.add_argument("--lang", help="also install CI/security/GitHub files: " + ", ".join(LANGS))
     p.add_argument("--dry-run", action="store_true"); p.set_defaults(f=cmd_init)

@@ -8,6 +8,7 @@ role_models: []            # Claude Code only, per role: [pr-reviewer=sonnet, qa
 git_mode: session-branch   # session-branch (commit on the session branch, local worktrees, no extra remote branches/PRs) | pr-per-task
 archetypes: []             # what you are building (see .autocraft/archetypes/README.md), e.g. [fullstack-app, ai-assistant]
 capabilities: []           # (secrets-and-config, deployment-hosting, analytics-observability are always on and implied)  extras: extra needs: authentication | payments | database | email-and-notifications | file-uploads | search | privacy-compliance
+token_mode: standard      # standard | lean  (lean: agents work from briefs, stay within a token budget, keep reports short; see protocol section 15)
 experience: beginner       # beginner | intermediate | expert  (how agents explain and decide)
 autonomy_level: 2          # 1 = approve every phase, 2 = approve architecture + merges, 3 = approve merges only
 max_review_rounds: 3       # review loops before escalating to a human
