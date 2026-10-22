@@ -8,7 +8,7 @@ from ..mail.outbox import send_confirmation
 from ..services import bookings as svc
 from ..services.bookings import Outcome
 from ..web import flash, render
-from ..web.deps import User, get_clock, get_mailer, get_settings, require_student
+from ..web.deps import User, booking_id_param, class_id_param, get_clock, get_mailer, get_settings, require_student
 
 router = APIRouter()
 O = Outcome
@@ -49,8 +49,8 @@ def _done(request: Request, text: str, level: str = "success"):
 
 
 @router.post("/classes/{class_id}/book")
-def book(class_id: int, request: Request, tasks: BackgroundTasks, user: User = Depends(require_student),
-         settings=Depends(get_settings), clock=Depends(get_clock),
+def book(request: Request, tasks: BackgroundTasks, user: User = Depends(require_student),
+         class_id: int = Depends(class_id_param), settings=Depends(get_settings), clock=Depends(get_clock),
          mailer=Depends(get_mailer)):
     result = svc.book(settings.database_path, clock, user.id, class_id)
     if result.outcome is O.NOT_FOUND:
@@ -76,8 +76,8 @@ def my_bookings(request: Request, user: User = Depends(require_student),
 
 
 @router.post("/bookings/{booking_id}/cancel")
-def cancel(booking_id: int, request: Request, tasks: BackgroundTasks, user: User = Depends(require_student),
-           settings=Depends(get_settings), clock=Depends(get_clock), mailer=Depends(get_mailer)):
+def cancel(request: Request, tasks: BackgroundTasks, user: User = Depends(require_student),
+           booking_id: int = Depends(booking_id_param), settings=Depends(get_settings), clock=Depends(get_clock), mailer=Depends(get_mailer)):
     result = svc.cancel(settings.database_path, clock, user.id, booking_id)
     if result.outcome is O.NOT_FOUND:
         raise HTTPException(404)

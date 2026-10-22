@@ -1,5 +1,6 @@
 :root { --fg:#1d2327; --bg:#fff; --muted:#5b6770; --accent:#1f5f8b; --line:#d5dbe0; --err:#9b1c1c; --ok:#1d6b3a; }
 @media (prefers-color-scheme: dark) { :root { --fg:#e8ecef; --bg:#14181b; --muted:#a2adb5; --accent:#7fb8e0; --line:#33404a; --err:#f3a3a3; --ok:#8fd6a8; } }
+body { overflow-wrap: anywhere; }
 body { font: 1rem/1.5 system-ui, sans-serif; color: var(--fg); background: var(--bg); margin: 0; }
 main, nav, .flashes { max-width: 42rem; margin: 0 auto; padding: 1rem; }
 nav { display: flex; flex-wrap: wrap; gap: .75rem 1rem; align-items: center; border-bottom: 1px solid var(--line); }

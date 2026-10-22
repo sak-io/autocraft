@@ -69,3 +69,21 @@ def get_clock(request: Request) -> Clock:
 
 def get_mailer(request: Request) -> Mailer:
     return request.app.state.mailer
+
+
+MAX_ID = 2**63 - 1  # SQLite INTEGER PRIMARY KEY upper bound; anything larger cannot exist
+
+
+def _parse_id(raw: str) -> int:
+    """The one place a path id is checked: digits only and within SQLite's range, else the site's 404 page."""
+    if not (raw.isascii() and raw.isdigit()) or len(raw) > 19 or int(raw) > MAX_ID:
+        raise HTTPException(404)
+    return int(raw)
+
+
+def class_id_param(class_id: str) -> int:
+    return _parse_id(class_id)
+
+
+def booking_id_param(booking_id: str) -> int:
+    return _parse_id(booking_id)

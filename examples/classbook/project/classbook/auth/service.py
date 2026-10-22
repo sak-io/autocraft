@@ -13,6 +13,8 @@ LOGIN_WINDOW = timedelta(minutes=15)
 EMAIL_FAIL_CAP, IP_FAIL_CAP = 10, 20
 SIGNUP_WINDOW, SIGNUP_CAP = timedelta(hours=1), 10
 KEEP_FAILURES = timedelta(days=1)
+KEEP_ACTIONS = timedelta(days=1)  # the booking cap counts the last hour only
+KEEP_MESSAGES = timedelta(days=90)
 _TOKEN = re.compile(r"^[A-Za-z0-9_-]{43}$")  # token_urlsafe(32)
 
 
@@ -83,6 +85,8 @@ def session_user(conn, token: str | None, now: datetime):
 def purge_expired(conn, now: datetime) -> None:
     conn.execute("DELETE FROM sessions WHERE expires_at <= ?", (to_text(now),))
     conn.execute("DELETE FROM login_failures WHERE at <= ?", (to_text(now - KEEP_FAILURES),))
+    conn.execute("DELETE FROM user_actions WHERE at <= ?", (to_text(now - KEEP_ACTIONS),))
+    conn.execute("DELETE FROM messages WHERE created_at <= ?", (to_text(now - KEEP_MESSAGES),))
 
 
 def last_sign_in(conn, user_id: int) -> dict:

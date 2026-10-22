@@ -10,11 +10,13 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from .auth.bootstrap import BootstrapError, bootstrap_admin
+from .auth.passwords import dummy_hash
 from .auth.service import purge_expired
 from .config import Settings, load_or_exit
 from .kernel import db
 from .kernel.timeutil import Clock
 from . import web
+from .web.middleware import bare_page
 from .logging_setup import configure_logging, log
 from .mail import build_mailer
 from .routes import ROUTERS
@@ -23,6 +25,7 @@ from .routes import ROUTERS
 def create_app(settings: Settings | None = None, clock: Clock | None = None) -> FastAPI:
     configure_logging()
     settings = settings or load_or_exit()
+    os.umask(0o077)  # L-7: DB + WAL files owner-only (process-wide: log/temp files too)
     parent = Path(settings.database_path).resolve().parent
     parent.mkdir(parents=True, exist_ok=True)
     applied = db.migrate(settings.database_path)
@@ -30,6 +33,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
         log(logging.INFO, "migrations applied", versions=applied)
 
     clock = clock or Clock()
+    dummy_hash()  # D-4: pay the one-time scrypt cost now, not on the first unknown-email sign-in
     try:
         bootstrap_admin(settings, clock)  # admin cases a-c; refusals stop the start (F25)
     except BootstrapError as exc:
@@ -46,14 +50,9 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
 
     @app.exception_handler(db.DatabaseBusy)
     async def busy(request: Request, exc: db.DatabaseBusy):
-        return HTMLResponse(
-            "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Busy</title></head>"
-            "<body><h1>We are busy right now</h1><p>Please try again in a few seconds.</p></body></html>",
-            status_code=503,
-            headers={"Retry-After": "5"},
-        )
+        return bare_page(503, "We are busy right now", "Please try again in a few seconds.", {"Retry-After": "5"})
 
-    @app.get("/health")
+    @app.api_route("/health", methods=["GET", "HEAD"])
     def health():
         try:
             with db.read_conn(settings.database_path) as conn:

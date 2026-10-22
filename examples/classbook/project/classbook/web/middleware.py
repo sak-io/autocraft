@@ -14,8 +14,8 @@ from .cookies import cookie_name, set_cookie_header
 
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
-CSP = "default-src 'self'"
-HSTS = "max-age=31536000"
+CSP = "default-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
+HSTS = "max-age=31536000; includeSubDomains"
 HEADERS = [
     (b"content-security-policy", CSP.encode()),
     (b"x-content-type-options", b"nosniff"),
@@ -24,10 +24,13 @@ HEADERS = [
 ]
 
 
-def _page(status: int, title: str, text: str) -> HTMLResponse:
-    html = (f'<!doctype html><html lang="en"><head><meta charset="utf-8"><title>{title}</title></head>'
+def bare_page(status: int, title: str, text: str, headers: dict | None = None) -> HTMLResponse:
+    """Chrome-free page for errors raised before templates are usable (busy, csrf, too large)."""
+    html = (f'<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            f'<meta name="viewport" content="width=device-width, initial-scale=1">'
+            f'<link rel="stylesheet" href="/static/style.css"><title>{title}</title></head>'
             f"<body><h1>{title}</h1><p>{text}</p></body></html>")
-    return HTMLResponse(html, status_code=status, headers={"Cache-Control": "no-store"})
+    return HTMLResponse(html, status_code=status, headers={"Cache-Control": "no-store", **(headers or {})})
 
 
 class SecurityHeadersMiddleware:
@@ -111,7 +114,7 @@ class BodyLimitMiddleware:
 
     @staticmethod
     async def _refuse(scope, receive, send):
-        resp = _page(413, "That was too much to send", "Please send less text and try again.")
+        resp = bare_page(413, "That was too much to send", "Please send less text and try again.")
         await resp(scope, receive, send)
 
 
@@ -142,7 +145,7 @@ class CsrfMiddleware:
             if not csrf.matches(cookie, csrf.token_from_body(ctype, body)):
                 reason = "no cookie" if not have_valid else "mismatch"
                 log(logging.WARNING, "csrf rejected", reason=reason, path=scope["path"])
-                resp = _page(403, "This form has expired", "Please go back, reload the page and try again.")
+                resp = bare_page(403, "This form has expired", "Please go back, reload the page and try again.")
                 return await resp(scope, receive, send)
             receive = _replay(body, receive)
 

@@ -85,7 +85,7 @@ The team **never merges to `main` and never opens a pull request unless you ask.
 
 ## What it costs you (honestly)
 
-The [ClassBook example](../examples/classbook/README.md) — a small app — used 24 agent runs and ≈2 million tokens, mostly in review and QA, for about 30–40 minutes of the owner's attention. Your project's size decides yours. Start lean; add QA and security when the product is real.
+The [ClassBook example](../examples/classbook/README.md) — a small app — used 26 agent runs and ≈2.2 million tokens, mostly in review and QA (its last round, run with `token_mode: lean`, took only ≈190 thousand), for about 30–40 minutes of the owner's attention. Your project's size decides yours. Start lean; add QA and security when the product is real.
 
 ## Troubleshooting
 

@@ -59,7 +59,7 @@ Exactly one `agent:*` state label on a PR at a time. Whoever moves the PR forwar
 | Commit to feature branches, open PRs | ✅ developer | ✅ |
 | Review, label, comment | ✅ reviewer, gatekeeper | ✅ |
 | Approve architecture | ✅ principal-engineer (+ human at L1/L2) | ✅ |
-| **Approve & merge PRs into `main`** | ❌ never | ✅ always |
+| **Approve & merge PRs into `main`** | ❌ never | ✅ always (in `session-branch` mode: the owner merges the session branch's pull request; inside the session branch the team lead integrates reviewer-approved task branches) |
 | Change branch protection / visibility / delete repo | ❌ never without explicit ask | ✅ |
 | Create the repo | ✅ after human confirmation | ✅ |
 
@@ -103,3 +103,41 @@ The protocol works with any surface:
 - **GitHub (preferred):** pull requests, review comments, `agent:*` labels (sections 3-4).
 - **No GitHub / no remote:** use files. For task `T3`, keep `.autocraft/work/T3/` containing `handoff-N.md` (the handoff block), `review-N.md` (reviewer findings with the same severity tags and a `VERDICT:` line), and `response-N.md` (author's answers: `Fixed in <commit>` / `Not changing because …`). State lives in the files, so any tool or session can continue. The human "merge" is then the human's own commit/merge of the branch.
 - **Tools without sub-agents:** run roles as hats, one role per session; reviewers always in a **fresh session** that sees only the spec, the diff and the protocol.
+
+## 13. GitHub operations: `gh` or the session's GitHub tools
+Use `gh` if it is installed. Cloud sessions (Claude app, Claude Code on the web) usually have no `gh`; they have GitHub tools instead. Same operations, different handles:
+
+| Operation | `gh` | GitHub tools (names as in Claude cloud sessions) |
+|---|---|---|
+| Read a PR: details, diff, changed files, check status | `gh pr view / diff / checks` | `pull_request_read` (choose the method for details, diff, files or status) |
+| Post a review with line comments | `gh pr review`, `gh api` | `pull_request_review_write` (create pending) -> `add_comment_to_pending_review` -> `pull_request_review_write` (submit) |
+| Reply on a review thread | `gh api` | `add_reply_to_pull_request_comment` |
+| Comment on a PR / issue | `gh pr comment` | `add_issue_comment` |
+| Add/remove a label, edit an issue | `gh pr edit --add-label`, `gh issue edit` | `issue_write` (a PR is an issue for labels) |
+| Create a PR (only when the owner asked in `session-branch` mode) | `gh pr create` | `create_pull_request` |
+| CI results and failing logs | `gh run view`, `gh pr checks` | `pull_request_read` (status), `actions_get`, `get_job_logs` |
+| Read a file from another repo/branch | `gh api` | `get_file_contents` |
+| Create a repository (only after the owner confirms) | `gh repo create` | `create_repository` |
+| **Merge a PR** | never | **never** |
+
+If a needed operation has no tool in your session, say so plainly and fall back to files (section 12); do not improvise with credentials.
+
+## 14. Git modes (`git_mode` in `.autocraft/config.yml`)
+- **`session-branch` (default):** everything happens on the branch the session started on. Parallel work uses *local* git worktrees (`feat/<task>`, never pushed) that the team lead merges into the session branch (`--no-ff`) once the reviewer approved. Handoffs and reviews are files in `.autocraft/work/<task>/` committed on the session branch. No extra remote branches, no pull requests unless the owner asks; push the session branch regularly so work survives the session. The owner's merge gate is the pull request from the session branch into `main`.
+- **`pr-per-task`:** one pushed branch and pull request per task with `agent:*` labels (sections 3-4); the owner merges each.
+
+## 15. Token efficiency (`token_mode: lean`)
+Multi-agent work is token-hungry; most of the cost is agents re-reading and re-exploring, long logs, and over-deep review of low-risk changes. `token_mode: lean` (config; `autocraft init --token-mode lean`) tells every role to spend only what the task safely needs. **Quality gates never change**: tests with every change, independent review, human merge.
+
+| Lever | Rule |
+|---|---|
+| **Brief, don't re-explore** | The team lead gives each agent a short *brief*: the task, the acceptance criteria that apply, file/line pointers from earlier findings, the exact commands to run. Agents read only what the brief points to (and what that leads to). |
+| **Automated checks first** | Run tests, linters and scanners (cheap) before spending model time; paste only summaries, never full logs. |
+| **Batch related work** | One builder for a set of related fixes; one reviewer for related changes. Fewer agent runs means fewer cold starts. |
+| **Depth follows risk** | Security, money, concurrency, data-loss paths get full probing (mutation checks, hostile input). Docs, copy, tests-only and mechanical changes get tests + diff review. |
+| **Bounded runs** | State a tool-call/token budget in the brief; the agent stops and reports what remains instead of exceeding it. |
+| **Short reports** | Final reports <= 25 lines; link files instead of repeating them; extra findings are one line each; no scope creep. |
+| **Fresh with a brief beats resumed with a long history** | When an agent's prior context is large, start a new agent with a brief. Resume only for small follow-ups. |
+| **Tier the models** | `role_models` (Claude Code): a cheaper model for mechanical/checklist roles, the stronger one where judgement is costly to get wrong. |
+| **Lead hygiene** | Don't poll agents; don't read artifacts you don't need; update `docs/STATUS.md` instead of re-deriving state. |
+| **Measure** | Log tokens/tool-calls/time per run (e.g. `agent-runs.csv`) against a stated budget, and report it. |

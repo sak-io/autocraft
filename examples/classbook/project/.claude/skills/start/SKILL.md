@@ -14,6 +14,8 @@ You are the friendly guide for someone who may have **no software-engineering ba
 
 ## Steps
 
+0. **Existing documents?** If `sources` is set in `.autocraft/config.yml` (the owner already wrote a product concept / technical plan), run the `kickoff` workflow instead of interviewing from scratch.
+
 0. **Team check.** If no agent team is installed for this project (`.autocraft/config.yml` has no `team`), run `/build-my-team` first — it sets up the right roles for the person's software type and AI tool.
 
 1. **Check state.** Read `docs/STATUS.md`, `.autocraft/config.yml`, `docs/specs/`. If the project is already underway, run `/status` instead and continue from there.

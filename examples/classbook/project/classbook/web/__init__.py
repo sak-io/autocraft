@@ -32,6 +32,14 @@ def install(app: FastAPI, settings: Settings) -> None:
 
     @app.exception_handler(StarletteHTTPException)
     async def http_error(request: Request, exc: StarletteHTTPException):
+        if not hasattr(request.state, "user"):  # unguarded routes (404/405) never looked the user up
+            from .deps import current_user
+            try:
+                request.state.user = current_user(request)
+            except Exception:  # an error page must still render
+                request.state.user = None
+            if request.state.user is not None:
+                request.state.no_store = True
         heading, message = _MESSAGES.get(exc.status_code, ("Something went wrong", "Please try again."))
         resp = render(request, "error.html", {"heading": heading, "message": message}, status=exc.status_code)
         resp.headers.update(exc.headers or {})

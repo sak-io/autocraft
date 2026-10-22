@@ -1,3 +1,6 @@
+from classbook.web.middleware import CSP
+
+CSP_LITERAL = "default-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
 import re
 
 import pytest
@@ -154,7 +157,7 @@ def test_every_page_with_a_csrf_token_is_no_store(client):
 
 
 # ---- headers ----
-HDRS = {"content-security-policy": "default-src 'self'", "x-content-type-options": "nosniff",
+HDRS = {"content-security-policy": CSP, "x-content-type-options": "nosniff",
         "x-frame-options": "DENY", "referrer-policy": "same-origin"}
 
 
@@ -172,7 +175,7 @@ def test_headers_also_on_403_413_and_500(client, app):
     def boom(): raise ValueError("x")
     for r in (client.post("/t/post"), client.post("/t/post", content=b"x" * 20000),
               TestClient(app, raise_server_exceptions=False).get("/t/boom")):
-        assert r.headers["x-frame-options"] == "DENY" and r.headers["content-security-policy"] == "default-src 'self'"
+        assert r.headers["x-frame-options"] == "DENY" and r.headers["content-security-policy"] == CSP_LITERAL
 
 
 def test_production_has_hsts_host_prefixed_secure_cookie(env):
