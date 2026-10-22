@@ -192,4 +192,4 @@ The owner in both examples is simulated; the agents' outputs are real.
 
 Add a role, team, workflow, archetype, capability, language CI template or tool exporter by following the patterns in [customizing](docs/customizing.md#extend-the-framework-itself-contribute). `bash scripts/validate.sh` checks structure and cross-references, generates all nine tool exports into a temp project, verifies the YAML/TOML parse, exercises custom teams and per-role models, and confirms `sync` is idempotent; the same runs in CI on every pull request.
 
-**License:** none has been chosen yet. Add a `LICENSE` file before sharing the repository publicly.
+**License:** [Apache-2.0](LICENSE).
