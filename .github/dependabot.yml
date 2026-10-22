@@ -1,0 +1,12 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  # the ClassBook example's Python dependencies
+  - package-ecosystem: pip
+    directory: /examples/classbook/project
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
