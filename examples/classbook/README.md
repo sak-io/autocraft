@@ -186,6 +186,8 @@ In parallel with QA, the `security-auditor` ran real scanners and a hostile read
 
 These are in [`project/docs/STATUS.md`](project/docs/STATUS.md) — that file is how any future session (or person) would pick up exactly here with `/status`.
 
+*Compared with a lean build of a small tool: [lean vs thorough](../../docs/lean-vs-thorough.md).*
+
 ## Token budget (lean mode)
 
 A stated non-functional goal for the finishing round: **get to release-ready with limited tokens, without dropping any quality gate** (tests with every fix, independent review, human merge). The project was switched to `token_mode: lean` (see [protocol section 15](../../docs/protocol.md)).

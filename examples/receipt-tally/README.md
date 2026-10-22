@@ -15,6 +15,8 @@ The budget was set **before** starting: at most 5 agent runs and about 250k toke
 | Agent time | | ≈ 5 minutes |
 | Result | | 274-line stdlib-only package, **36 tests pass**, 17 acceptance criteria, code scan clean, independent review found 2 MAJOR + 4 MINOR issues, all fixed and re-verified |
 
+See the side-by-side [lean vs thorough comparison](../../docs/lean-vs-thorough.md).
+
 That is about **one eighth of ClassBook's tokens** (the app is far smaller, so this is not a like-for-like claim; the point is where the tokens went and what was *not* spent).
 
 ## How it was done (about 10 lines of commands)
