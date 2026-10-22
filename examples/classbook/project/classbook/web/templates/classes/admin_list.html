@@ -2,7 +2,7 @@
 {% block title %}Manage classes{% endblock %}
 {% block content %}
 <h1>Manage classes</h1>
-{% if last_signin %}<p class="muted">Your previous sign-in: {{ last_signin }}</p>{% endif %}
+{% if last_signin %}<p class="muted">Your previous sign-in: {{ last_signin }}. {{ failures }} failed sign-in {{ 'attempt' if failures == 1 else 'attempts' }} on your account since then.</p>{% endif %}
 <p><a href="/admin/classes/new">Add a class</a></p>
 {% if not classes %}<p>No classes yet.</p>{% else %}
 <table>

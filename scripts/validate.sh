@@ -93,6 +93,8 @@ grep -q 'max_parallel_developers: 2' "$tmp/ts/.autocraft/config.yml" || err "--t
 grep -q 'pr-reviewer=sonnet' "$tmp/ts/.autocraft/config.yml" || err "--token-saver did not set mid-tier reviewer"
 [[ -f "$tmp/p/.claude/agents/pr-reviewer.md" && ! -f "$tmp/p/.claude/agents/architect.md" ]] || err "custom team roster not applied"
 grep -q "^model: sonnet" "$tmp/p/.claude/agents/pr-reviewer.md" || err "role model override not exported"
+python3 "$tmp/p/.autocraft/framework/bin/autocraft" init "$tmp/p" --token-mode lean >/dev/null || err "token-mode init failed"
+grep -q "Token mode \`lean\`" "$tmp/p/.claude/agents/pr-reviewer.md" || err "lean token mode not exported to roles"
 python3 - "$tmp/p" <<'PY' || fail=1
 import sys, glob, os
 os.chdir(sys.argv[1]); bad = 0

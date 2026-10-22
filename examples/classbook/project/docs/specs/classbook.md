@@ -88,6 +88,7 @@ Lotus Yoga is a small studio run by Maya. Students cannot easily see which class
 | Correctness | spots left is never negative and never out of sync with bookings | required |
 | Time zone | all times shown and compared in Europe/London | answered (Q6) |
 | Budget | free or very low-cost hosting tier | yes |
+| Token efficiency | the team builds and maintains ClassBook within a stated token budget (token_mode: lean) | process |
 
 ## 6. Assumptions & open questions
 Maya could not be asked in this run; each default below was used. Please answer "yes, default" or correct it.

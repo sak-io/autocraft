@@ -9,12 +9,13 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 
+from ..auth.service import last_sign_in
 from ..config import Settings
 from ..kernel import db, rules, validators as v
 from ..kernel.timeutil import (Clock, NonexistentLocalTime, format_london, from_text, parse_london_input,
                                to_london, to_text)
 from ..web import flash, render
-from ..web.deps import User, get_clock, get_settings, optional_user, require_admin
+from ..web.deps import User, class_id_param, get_clock, get_settings, optional_user, require_admin
 
 router = APIRouter()
 
@@ -73,7 +74,7 @@ def schedule(request: Request, user: User | None = Depends(optional_user), setti
 
 
 @router.get("/classes/{class_id}")
-def class_page(class_id: int, request: Request, user: User | None = Depends(optional_user),
+def class_page(request: Request, class_id: int = Depends(class_id_param), user: User | None = Depends(optional_user),
                settings: Settings = Depends(get_settings), clock: Clock = Depends(get_clock)):
     now = clock.now()
     with db.read_conn(settings.database_path) as conn:
@@ -124,9 +125,10 @@ def admin_list(request: Request, user: User = Depends(require_admin), settings: 
     now = clock.now()
     with db.read_conn(settings.database_path) as conn:
         rows = conn.execute(SELECT + " ORDER BY c.starts_at DESC, c.id DESC").fetchall()
-        prev = conn.execute("SELECT prev_login_at FROM users WHERE id = ?", (user.id,)).fetchone()
-    last = format_london(from_text(prev[0])) if prev and prev[0] else None
-    return render(request, "classes/admin_list.html", {"classes": [view(r, now) for r in rows], "last_signin": last})
+        info = last_sign_in(conn, user.id)
+    last = format_london(from_text(info["previous"])) if info["previous"] else None
+    return render(request, "classes/admin_list.html", {"classes": [view(r, now) for r in rows], "last_signin": last,
+                                                       "failures": info["failures_since"]})
 
 
 @router.get("/admin/classes/new")
@@ -156,7 +158,7 @@ def admin_create(request: Request, form: dict = Depends(class_form), user: User 
 
 
 @router.get("/admin/classes/{class_id}")
-def admin_detail(class_id: int, request: Request, user: User = Depends(require_admin),
+def admin_detail(request: Request, class_id: int = Depends(class_id_param), user: User = Depends(require_admin),
                  settings: Settings = Depends(get_settings), clock: Clock = Depends(get_clock)):
     now = clock.now()
     with db.read_conn(settings.database_path) as conn:
@@ -174,7 +176,7 @@ def edit_values(row) -> dict:
 
 
 @router.get("/admin/classes/{class_id}/edit")
-def admin_edit(class_id: int, request: Request, user: User = Depends(require_admin),
+def admin_edit(request: Request, class_id: int = Depends(class_id_param), user: User = Depends(require_admin),
                settings: Settings = Depends(get_settings), clock: Clock = Depends(get_clock)):
     with db.read_conn(settings.database_path) as conn:
         row = get_class(conn, class_id)
@@ -184,7 +186,7 @@ def admin_edit(class_id: int, request: Request, user: User = Depends(require_adm
 
 
 @router.post("/admin/classes/{class_id}")
-def admin_update(class_id: int, request: Request, form: dict = Depends(class_form),
+def admin_update(request: Request, class_id: int = Depends(class_id_param), form: dict = Depends(class_form),
                  user: User = Depends(require_admin), settings: Settings = Depends(get_settings),
                  clock: Clock = Depends(get_clock)):
     clean, errors = parse_form(form)
@@ -213,7 +215,7 @@ def admin_update(class_id: int, request: Request, form: dict = Depends(class_for
 
 
 @router.post("/admin/classes/{class_id}/cancel")
-def admin_cancel(class_id: int, request: Request, user: User = Depends(require_admin),
+def admin_cancel(request: Request, class_id: int = Depends(class_id_param), user: User = Depends(require_admin),
                  settings: Settings = Depends(get_settings), clock: Clock = Depends(get_clock)):
     started = False
     with db.write_tx(settings.database_path) as conn:  # class and its bookings change together or not at all

@@ -23,3 +23,5 @@ run,agent_and_task,tokens_added,tool_uses,seconds
 22,pr-reviewer T6 (APPROVED; 10 mutation probes),24759,9,239.5
 23,"security-auditor (SCA+SAST+manual; 0 crit/high, 3 med, 7 low)",169590,27,292.4
 24,qa-engineer T7 (177 tests + 14 defect tests + 21 mutation probes + traceability),321457,65,1495.2
+25,developer H1 (lean; D-1..D-9 + security M-2/L-3/L-5/L-7),106846,21,277
+26,pr-reviewer H1+T7 combined (lean; risk-tiered probing),80700,10,154

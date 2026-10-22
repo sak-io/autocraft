@@ -25,10 +25,17 @@ Software type: fullstack-app - Capabilities: secrets-and-config, deployment-host
 - `/security-scan` - Runs the security-auditor to collect and triage SCA, SAST and secret-scan results, write an audit report, and file prioritized is…
 - `/status` - Shows where the project is in the lifecycle, what is in flight, what is blocked and what the human needs to do next, in plain lan…
 - `/design-architecture` - Runs the architect and principal-engineer in a review loop until the architecture is approved (max 3 rounds, then escalate to the…
+- `/kickoff` - Starts a project from documents the owner already wrote (a product concept and/or technical plan in the repo).
 - `/release-check` - Final pre-release gate on an approved PR.
 
 ## How to run the team in this tool
-Roles run as separate agents with their own context. A role cannot call another role; the main session coordinates the loops (author -> reviewer -> author) and enforces the round limit.
+Roles are Claude Code subagents with their own context. **You, the main session, are the team lead.**
+- Delegate with the Agent tool using `subagent_type` = the role id (e.g. `architect`). If a role is not listed as an agent type yet (its file was created this session), start a `general-purpose` agent and tell it to read `.claude/agents/<role>.md` first and follow it.
+- Subagents cannot call subagents: run the loops yourself (author -> reviewer -> author) and enforce the round limit.
+- Run independent tasks **in parallel** (background agents, each in its own `git worktree`); reviewers are always a **fresh agent** that never sees the author's reasoning and must run the tests itself.
+- Do not poll agents; wait for their completion notifications. After every step update `docs/STATUS.md` and commit.
+- When you need the owner (a gate, a decision, a deadlock, release-ready) say exactly what you need, with a recommended default, at the end of your message; if a push-notification tool is available, send one.
+- The owner asking you to use this team is authorization to spawn these agents. Keep a lean start: do not spawn roles a task does not need.
 
 # Playbook: Starter Team
 

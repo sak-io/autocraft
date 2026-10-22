@@ -9,16 +9,16 @@ A real project, built by following the [User Guide](../../docs/user-guide/README
 - **The owner is simulated.** "Maya" is a fictional non-technical studio owner. I (an AI) played her, answering the agents' questions as a real owner might — including two changes of mind that alter scope. Everything the **agents** produced is real, unedited output.
 - **The agents were real and separate.** Each role ran as its own agent with fresh context, reading its generated role file (`project/.claude/agents/<role>.md`). Reviewers did not see the builders' reasoning, and they ran the tests and probed the app for themselves.
 - **No GitHub here.** The collaboration used the file-based surface of the protocol (`.autocraft/work/<task>/handoff-N.md` and `review-N.md`) and local branches instead of pull requests. With GitHub, the same exchanges happen as PR comments and labels.
-- **Status: release candidate, hardening pending.** Tasks T1–T6 are built, reviewed and merged. QA (T7) and a security audit have reported and their findings are written up, but the **fix round for those findings and the final release check were interrupted by a usage limit** and are not done. Deployment (T8) is intentionally blocked on Maya signing up for a host. Details in [What is left](#what-is-left).
+- **Status: release-ready for merge; go-live gated by T8.** All of T1–T7 and the hardening round H1 are built, independently reviewed and merged; **539 tests pass**. Deployment (T8) is intentionally blocked on Maya signing up for a host. Details in [What is left](#what-is-left). The finishing round was also a **token-efficiency exercise**: see [Token budget](#token-budget-lean-mode).
 
 ## Results at a glance
 
 | | |
 |---|---|
 | What was built | A web app: visitors see the class schedule; students sign up, book, cancel; Maya adds, edits and cancels classes and sees who is booked; confirmation emails are recorded |
-| Code / tests | ≈2,360 lines of application code, ≈2,880 lines of tests; **344 tests pass** on the merged app (+177 passing and 14 defect-reproducing tests on the unmerged QA branch) |
+| Code / tests | ≈2,360 lines of application code, ≈2,880 lines of tests; **539 tests pass** on the merged app (344 from the build tasks + 177 QA tests + 18 regression tests for the defects found + new security tests) |
 | Documents | spec, architecture, API contract, threat model, **5 decision records (ADRs)**, task list, 2 architecture reviews, 15 task handoff/review files, QA summary + traceability matrix, security audit |
-| Agent runs | **24** (tracked in [`agent-runs.csv`](agent-runs.csv)); ≈**2.0 million tokens**; ≈**96 agent-minutes** (less wall-clock time: three builders and three reviewers ran in parallel) |
+| Agent runs | **26** (tracked in [`agent-runs.csv`](agent-runs.csv)); ≈**2.2 million tokens**; ≈**104 agent-minutes** (less wall-clock time: three builders and three reviewers ran in parallel) |
 | Review rounds | architecture: 2 (6 MAJOR findings in round 1, approved round 2); tasks: 5 of 6 approved first time, 1 needed a fix round |
 | Things reviewers caught that builders missed | 21 architecture findings; a major test gap in the roster; a crash on huge IDs; a contrast failure; weak email tests; and — only after merging — a clash between two correct branches |
 | The owner's effort | ≈11 touchpoints, each seconds to a few minutes (listed [below](#everything-the-owner-did)) |
@@ -177,13 +177,34 @@ In parallel with QA, the `security-auditor` ran real scanners and a hostile read
 
 | Item | Why it isn't done | Next step |
 |---|---|---|
-| **Hardening round H1** — fix QA defects D-1…D-9 and security items (disk-fill, huge IDs, CSP, `HEAD /health`, …) | The developer and reviewer agents were interrupted by a **usage limit** mid-task | Resume: the developer converts each known-defect test into a passing regression test; reviewer re-checks each |
-| Review of the QA work itself (T7) | same interruption | A `pr-reviewer` reviews the new tests (as for every task), then the owner merges |
-| **Release check** (`release-gatekeeper`) | needs the hardening merged first | `/release-check` → "release-ready" with risk + rollback plan |
+| ~~Hardening round H1~~ | **Done** with `token_mode: lean`: 1 developer run fixed D-1…D-9, the disk-fill risk, CSP/HSTS, retention and umask; every known-defect test became a regression test | — |
+| ~~Review of the QA work + fixes~~ | **Done**: one combined independent review, probed the risky fixes, APPROVE with 2 minor follow-ups (applied) | — |
+| ~~Release check~~ | **Done**: *release-ready for merge*; dependency scan clean, code scan unchanged (4 known false positives), no secrets | — |
 | **T8 — hosting, backups, runbook** | **Blocked on a human**: Maya must sign up for the host (steps are in [ADR-0005](project/docs/adr/0005-single-instance-hosting-with-volume-and-backups.md)) | After sign-up: first deploy, backup/restore rehearsal, uptime monitor |
 | Decision D-8 (spots left on greyed rows) | — | **Decided**: Maya said leave it out; the spec was amended |
+| Still deferred (security) | Backups (M-1), proxy-hop check (M-3), scrypt upgrade (L-2), supply-chain pins (L-4/L-6) | Part of T8 / first deploy. Also confirm with Maya: sent-email records are purged after 90 days |
 
 These are in [`project/docs/STATUS.md`](project/docs/STATUS.md) — that file is how any future session (or person) would pick up exactly here with `/status`.
+
+## Token budget (lean mode)
+
+A stated non-functional goal for the finishing round: **get to release-ready with limited tokens, without dropping any quality gate** (tests with every fix, independent review, human merge). The project was switched to `token_mode: lean` (see [protocol section 15](../../docs/protocol.md)).
+
+| | Without a budget (build phase, T1–T7) | Finishing round with lean mode (H1 + review + release check) |
+|---|---|---|
+| Agent runs | 24 | **2** (+ the lead's own checks) |
+| Tokens | ≈2.0 million | **≈190 thousand** (developer 107k, reviewer 81k) vs a planned cap of 450k |
+| Work done | 6 tasks + QA + audit | 9 defects + 4 security items fixed, ~18 regression tests, review, release check |
+
+What made the difference, in order of effect:
+1. **A precise brief instead of exploration.** The developer got one file (`.autocraft/work/H1/brief.md`) listing each defect, the expected behaviour, and what *not* to touch; it read only the files it edited (21 tool calls).
+2. **Defects were already failing tests**, so "done" was mechanical (suite green) rather than argued.
+3. **One combined reviewer** instead of a review per fix, with *risk-tiered depth*: full probing only where the failure would hurt (sign-up flood, odd IDs, the admin count, headers); diff-and-tests for the rest. It still found a test that could never fail.
+4. **Scanners run by the lead for free** (dependency, code, secret scans cost no model tokens).
+5. **The release check was a short checklist over the evidence already in git**, not another agent exploring the code.
+6. **Short reports** (the agents were limited to 10–30 lines) kept the lead's own context small.
+
+Honest limits: the finishing round is cheaper partly because the earlier phase had already produced the specs, tests and QA matrix; lean mode cannot create that foundation for free. The release check here was run by the lead from the evidence pack rather than by a separate `release-gatekeeper` agent, which saves tokens but is less independent; for a real product, use the gatekeeper.
 
 ## Everything the owner did
 
@@ -197,7 +218,7 @@ These are in [`project/docs/STATUS.md`](project/docs/STATUS.md) — that file is
 | 6–11 | Each task | Merged after review (T1, T2, T3, T5, T4, T6); decided one rule (started classes can't be cancelled); checked one 16-line fix | ≈1–2 min each |
 | 12 | QA/security | Read two plain-language summaries; decided D-8 | 5 min |
 
-Total owner effort ≈ 30–40 minutes (an estimate — the owner was simulated) for a working, reviewed, tested booking app with 24 agent runs behind it. **You never had to say which database, framework or test library to use.**
+Total owner effort ≈ 30–40 minutes (an estimate — the owner was simulated) for a working, reviewed, tested booking app with 26 agent runs behind it. **You never had to say which database, framework or test library to use.**
 
 ## What went wrong, and what we changed because of it
 
@@ -217,7 +238,7 @@ An example that only shows successes isn't trustworthy. In running this one we f
 cd examples/classbook/project
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt -r requirements-dev.txt
-pytest -o addopts=""                     # 344 tests pass
+pytest -o addopts=""                     # 539 tests pass
 cp .env.example .env                     # then edit ADMIN_PASSWORD (14+ characters)
 set -a; . ./.env; set +a
 uvicorn --factory classbook.app:create_app --port 8000 --workers 1

@@ -12,3 +12,4 @@ max_parallel_developers: 3 # builder agents at once (independent tasks only)
 default_branch: main
 language: ""               # set when GitHub CI is installed (autocraft github --lang ...)
 human_owner: ""            # GitHub handle to notify when something is release-ready
+token_mode: lean

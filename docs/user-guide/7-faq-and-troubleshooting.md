@@ -32,6 +32,8 @@
 
 **What does it do to my repo?** Adds the generated team files, `.autocraft/` (config, protocol, profiles, a vendored framework copy ≈ 0.9 MB) and `.claude/settings.json`. Remove those paths to uninstall.
 
+**How do I keep token use down?** Set `token_mode: lean` (or `autocraft init . --token-mode lean`): agents work from short briefs, run cheap automated checks first, stay within a stated budget, and keep reports short, while the quality gates stay the same. Also start with the lean team, batch related work into one builder and one reviewer, and use `--role-model` to put cheaper models on mechanical roles. The ClassBook example reports its finishing phase against an explicit token budget. See [protocol §15](../protocol.md).
+
 ## Getting unstuck
 
 **Nothing happens when I type `/start`.** The team isn't installed in this folder/session. Run `autocraft doctor` (or ask: *"Is the autocraft team installed here? Fix it."*). In the Claude app, make sure you selected the right repository when you started the session, and that the setup was committed.

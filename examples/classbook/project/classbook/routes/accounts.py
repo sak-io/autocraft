@@ -84,8 +84,9 @@ def signup(request: Request, name: str = Form(""), email: str = Form(""), passwo
     s, now, ip = request.app.state, request.app.state.clock.now(), client_ip(request)
     path = s.settings.database_path
     with db.write_tx(path) as conn:  # count every attempt, then check (10 per hour per IP)
-        service.record(conn, [service.signup_key(ip)], now)
-        throttled = service.count_since(conn, service.signup_key(ip), now - service.SIGNUP_WINDOW) > service.SIGNUP_CAP
+        throttled = service.signup_throttled(conn, ip, now)
+        if not throttled:  # once throttled, further attempts write nothing (M-2: the disk cannot be filled)
+            service.record(conn, [service.signup_key(ip)], now)
     if throttled:
         log(logging.WARNING, "signup throttled")
         raise HTTPException(429, headers={"Retry-After": "3600"})

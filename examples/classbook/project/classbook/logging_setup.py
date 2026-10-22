@@ -49,7 +49,9 @@ def log(level: int, msg: str, **fields) -> None:
 
 
 _ERROR_PAGE = (
-    b"<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Something went wrong</title></head>"
+    b"<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
+    b"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+    b"<link rel=\"stylesheet\" href=\"/static/style.css\"><title>Something went wrong</title></head>"
     b"<body><h1>Something went wrong</h1><p>Please try again in a moment. Reference: %s</p></body></html>"
 )
 

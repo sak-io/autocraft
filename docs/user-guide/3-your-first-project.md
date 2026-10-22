@@ -95,9 +95,9 @@ The [ClassBook example](../../examples/classbook/README.md) — a booking app fo
 
 | | ClassBook |
 |---|---|
-| Agent runs | 24 (several in parallel) |
-| Tokens used | ≈ 2 million (the independent QA pass alone was ≈ 320 thousand) |
-| Agent time | ≈ 96 minutes in total (less on the clock: builders and reviewers ran in parallel) |
+| Agent runs | 26 (several in parallel) |
+| Tokens used | ≈ 2.2 million (the independent QA pass alone was ≈ 320 thousand; the final fix-and-review round, in lean mode, ≈ 190 thousand) |
+| Agent time | ≈ 104 minutes in total (less on the clock: builders and reviewers ran in parallel) |
 | Your effort (estimated) | ≈ 30–40 minutes, in short moments |
 | Review rounds | architecture 2; tasks: 5 of 6 approved first time, 1 needed a fix round |
 | What reviewers caught that builders missed | a design that broke "sign in, then return to the class"; a lock-out that would have hit the owner; a test that couldn't fail; a crash on huge IDs; and two correct branches that only broke when merged |

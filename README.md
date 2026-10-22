@@ -174,7 +174,7 @@ examples/                         worked examples (below)
 
 | Example | What it shows | Status |
 |---|---|---|
-| [**ClassBook**](examples/classbook/README.md) | A yoga-studio booking app built end to end with real, separate agents: spec → architecture (2 review rounds) → six tasks (three built in parallel) → QA → security audit. 24 agent runs, ≈2 M tokens, 344 tests passing on the merged app. Includes what went wrong. | Release candidate: QA/security findings written up; the fix round, release check and deployment are open |
+| [**ClassBook**](examples/classbook/README.md) | A yoga-studio booking app built end to end with real, separate agents: spec → architecture (2 review rounds) → six tasks (three built in parallel) → QA → security audit. 26 agent runs, ≈2.2 M tokens (the last, lean-mode round took ≈190 k), 539 tests passing. Includes what went wrong. | Release-ready for merge; deployment (host sign-up) is the only open item |
 | [**Pantry Pal kickoff**](examples/pantry-pal-kickoff/README.md) | The documents-first flow: a product concept + technical plan with planted contradictions → the team found all of them (22 gaps) | Rehearsal of the first steps |
 | [Order API walkthrough](docs/example-order-service.md) | A conceptual, narrated walkthrough on an order-management API | Illustrative |
 

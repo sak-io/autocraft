@@ -125,3 +125,19 @@ If a needed operation has no tool in your session, say so plainly and fall back 
 ## 14. Git modes (`git_mode` in `.autocraft/config.yml`)
 - **`session-branch` (default):** everything happens on the branch the session started on. Parallel work uses *local* git worktrees (`feat/<task>`, never pushed) that the team lead merges into the session branch (`--no-ff`) once the reviewer approved. Handoffs and reviews are files in `.autocraft/work/<task>/` committed on the session branch. No extra remote branches, no pull requests unless the owner asks; push the session branch regularly so work survives the session. The owner's merge gate is the pull request from the session branch into `main`.
 - **`pr-per-task`:** one pushed branch and pull request per task with `agent:*` labels (sections 3-4); the owner merges each.
+
+## 15. Token efficiency (`token_mode: lean`)
+Multi-agent work is token-hungry; most of the cost is agents re-reading and re-exploring, long logs, and over-deep review of low-risk changes. `token_mode: lean` (config; `autocraft init --token-mode lean`) tells every role to spend only what the task safely needs. **Quality gates never change**: tests with every change, independent review, human merge.
+
+| Lever | Rule |
+|---|---|
+| **Brief, don't re-explore** | The team lead gives each agent a short *brief*: the task, the acceptance criteria that apply, file/line pointers from earlier findings, the exact commands to run. Agents read only what the brief points to (and what that leads to). |
+| **Automated checks first** | Run tests, linters and scanners (cheap) before spending model time; paste only summaries, never full logs. |
+| **Batch related work** | One builder for a set of related fixes; one reviewer for related changes. Fewer agent runs means fewer cold starts. |
+| **Depth follows risk** | Security, money, concurrency, data-loss paths get full probing (mutation checks, hostile input). Docs, copy, tests-only and mechanical changes get tests + diff review. |
+| **Bounded runs** | State a tool-call/token budget in the brief; the agent stops and reports what remains instead of exceeding it. |
+| **Short reports** | Final reports <= 25 lines; link files instead of repeating them; extra findings are one line each; no scope creep. |
+| **Fresh with a brief beats resumed with a long history** | When an agent's prior context is large, start a new agent with a brief. Resume only for small follow-ups. |
+| **Tier the models** | `role_models` (Claude Code): a cheaper model for mechanical/checklist roles, the stronger one where judgement is costly to get wrong. |
+| **Lead hygiene** | Don't poll agents; don't read artifacts you don't need; update `docs/STATUS.md` instead of re-deriving state. |
+| **Measure** | Log tokens/tool-calls/time per run (e.g. `agent-runs.csv`) against a stated budget, and report it. |
