@@ -35,7 +35,7 @@ GitHub collapses `linguist-generated` files in pull request diffs and excludes t
 - **Never** listed: files that merely contain a managed *block* inside a file you edit (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`), `.autocraft/config.yml`, `.autocraft/custom/**`, `.claude/settings.json`, your own files in shared directories (`.github/agents/mine.agent.md`).
 - Everything outside the block is preserved byte for byte; a second run changes nothing (the file is not even rewritten); removing a tool removes its entries on the next sync.
 - Opt out with `autocraft init --no-gitattributes` (stored as `generated_markers: false` in `.autocraft/config.yml`; sync then leaves `.gitattributes` alone).
-- `autocraft doctor` warns (exit code stays 0) if the block is missing or stale.
+- `autocraft doctor` warns (exit code stays 0) if the block is missing or stale. If your own `.gitattributes` has a rule that switches `linguist-generated` off (`-linguist-generated`, `=false`) for a path in the block, `sync` and `doctor` print a warning naming the line and who wins: git uses the **last** matching line, so autocraft's block wins when it comes after your rule and yours wins when it comes after the block.
 
 ## 2. The install is its own commit (`--commit`)
 
@@ -50,7 +50,7 @@ One commit containing only autocraft-owned paths: the manifest files, the manage
 - Staged with explicit pathspecs (never `git add -A`) and committed *with a pathspec*, so unrelated staged or unstaged changes of yours stay exactly as they were.
 - If `CLAUDE.md` or `.gitattributes` has uncommitted edits of yours outside the managed block, it is left out of the commit and the output says so. Ignored paths are skipped with a note.
 - Hooks run (never `--no-verify`). If the commit fails, git's message is shown, the exit code is non-zero and what autocraft staged is unstaged again (the files stay on disk).
-- Nothing to commit: refuses with a clear message, exit 1. It never pushes.
+- Nothing to commit: says so and commits nothing; exit code 0 for both `init` and `sync` (re-running on an up-to-date repository is not an error). It never pushes. The success line names the branch (or the detached HEAD) it committed on.
 
 **Why:** the bootstrap is generated, large and not worth reviewing; keeping it in its own commit (before any product work) lets reviewers filter it. If the owner wants human review of a PR, open the bootstrap commit as a small separate PR first, or rely on the generated markers to collapse it.
 
@@ -67,13 +67,13 @@ Deterministic, read-only, zero model tokens. `DIR` is the repository (default `.
 | class | rules |
 |---|---|
 | generated | paths in `.autocraft/manifest.json`; `linguist-generated` entries of `.gitattributes`; the configured tools' generated globs; `.autocraft/framework/**`; lockfiles (`*.lock`, `package-lock.json`, `pnpm-lock.yaml`, `go.sum`, ...); `*.min.*`; `dist/` `build/` `vendor/` `node_modules/` `*.egg-info/` |
-| tests | `tests/` `test/` `__tests__/` `spec/`; `test_*.*` `*_test.*` `*.test.*` `*.spec.*`; `conftest.py` |
+| tests | `tests/` `test/` `__tests__/` `spec/` `test_helpers/` `testing/` `fixtures/` `testdata/` `__fixtures__/`; `test_*.*` `*_test.*` `*.test.*` `*.spec.*`; `conftest.py` |
 | docs | `docs/`; `*.md` `*.rst` `*.txt` `*.adoc`; `LICENSE`, `CHANGELOG`, ... (outside tests) |
 | ci_config | `.github/`; `requirements*.txt`; `*.toml` `*.yml` `*.yaml` `*.json` `*.ini` `*.cfg`; `Dockerfile`, `Makefile`, `.gitignore`, `.gitattributes`, `MANIFEST.in`, ... |
 | product | every other code file (known code extensions, or an extension-less script) |
 | other | everything else (images, data, binaries, dotfiles) |
 
-Pattern syntax: `dir/` = that directory anywhere in the path; `name` / `*.ext` = the file name at any depth; `a/b/**` = anchored at the repository root. Extend from `.autocraft/config.yml`: `review_map_extra_generated: [globs]`, `review_map_extra_tests: [globs]`. The manifest, tools and `.gitattributes` are read from the **head commit**, not the working tree, so an old range is classified as it was then. Same rules in `autocraft review-map --help`.
+Known heuristics: a root-level `test_utils.py` counts as tests (name-based); a product package whose directory is literally called `testing/` or `fixtures/` would also count as tests (add it to a config glob or rename it); JSON fixtures under `data/` stay `ci_config` (`*.json`), which is acceptable because they are not product code. Pattern syntax: `dir/` = that directory anywhere in the path; `name` / `*.ext` = the file name at any depth; `a/b/**` = anchored at the repository root. Extend from `.autocraft/config.yml`: `review_map_extra_generated: [globs]`, `review_map_extra_tests: [globs]`. The manifest, tools and `.gitattributes` are read from the **head commit**, not the working tree, so an old range is classified as it was then. Same rules in `autocraft review-map --help`.
 
 Output: a table (class, files, added, deleted, share of files and of added lines), the product files by added lines (top `--top`, default 15), a summary line (`284 files / 22739 added: 24 product files (5751 lines), 55 test files (8542 lines), ...`), a warning when generated files exceed 30% of the files, and the guide recommendation. `--json` has the same data plus every file with its class, `guide_recommended`, `guide_reason`, `split_recommended` and `split_reason`.
 
@@ -90,7 +90,19 @@ review_guide_min_product_lines: 1500
 
 ### `--verify-guide FILE`
 
-Checks a markdown guide against the tree at `--head`. It reads references of the forms `path/to/file.ext:123`, `path/to/file.ext:123-140`, `file.ext:symbol` and `` `path/to/file.ext` `` (also inside tables) and **skips fenced code blocks**. A path resolves exactly, else by unique suffix (`client.py` finds `engram/client.py`); several matches are reported as `AMBIGUOUS` (not a failure by themselves). Checks: the file exists; a line number is within the file; a symbol occurs in the file. A symbol is *defined* when it follows `def`/`class`/`function`/`const`/`type`/`struct`/`fn`/`func`/`let`/`var`/`interface`/`enum`/`impl`/`trait` or starts an assignment (case-sensitive word match); *mentioned only* is reported as a weaker `ok`. It prints a status per reference and a summary, and exits 1 if any reference is STALE (missing file, line out of range, symbol absent). Limits: only repository paths with known extensions are recognised; a guide that mentions a file the *product creates at runtime* will report it as missing (reword it or drop the backticks).
+Checks a markdown guide against the tree at `--head`. References recognised (outside fenced code blocks, which are skipped and counted): `path/to/file.ext:123`, `:123-140`, `path#L3` / `#L3-L9` (GitHub style), `file.ext:symbol`, `` `path/to/file.ext` ``, markdown link targets (the path of an ordinary markdown link; http(s)/mailto/anchors ignored; resolved from the repo root, then from the guide's own directory), bare paths in text (a token with a `/` and a known extension), and Windows paths (`lib\mod.py:3` is normalised); also inside tables. A leading `./` is stripped.
+
+- **Paths:** a reference with a directory must be the **exact** path in the tree (`lib/deleted.py` does not match `vendor/lib/deleted.py`). Only a bare file name may resolve by suffix: exactly one match prints `ok (resolved by suffix -> path)`, several print `AMBIGUOUS` (exit 1), none is `STALE`.
+- **Lines:** the number must be within the file (`STALE` otherwise).
+- **Symbols** (case-sensitive whole word): `STALE` if absent from the file, `NOT DEFINED` (exit 1) if it occurs only in a comment, a string literal or a plain use, `ok` if defined. "Defined" means it follows `def`/`async def`/`class`/`function`/`const`/`let`/`var`/`interface`/`type`/`enum`/`struct`/`fn`/`func`/`impl`/`trait`/`module`/`package`, starts an assignment or declaration (`NAME = ...`, `NAME: T = ...`, `NAME := ...`, with `export`/`pub`/`static`... prefixes), is a `NAME:` key at the start of a line (YAML/markdown front matter), a shell function (`NAME()`), a method declared with modifiers (`public ... NAME(`), or a heading in a markdown file. Before looking for definitions, comment-only lines (`#` `//` `--` `;` `*` `/*`) and one-line string literals are blanked, and trailing `#`/`//` comments removed. This is best effort and language-agnostic: multi-line strings or docstrings and unusual definition syntaxes are not understood. `--allow-mentioned` downgrades `NOT DEFINED` to `mentioned (allowed)` (exit 0).
+- **Runtime artifacts:** a guide may legitimately cite something the product creates at runtime. Declare it on the same line or the line before with `<!-- verify-guide: runtime -->` (alias `ignore`), or list a glob in `verify_guide_ignore: [...]` in the config. These are shown as `declared (runtime)` and counted separately, never silently dropped.
+- Every run ends with `checked N references (K declared); skipped F fenced-code lines; U unparsed candidates` (also in `--json` `summary`): the last number counts path-looking link targets and code spans that were not accepted as references, so you can see what was not checked.
+
+Exit 1 if any reference is `STALE`, `AMBIGUOUS` or `NOT DEFINED`.
+
+### Is there already a guide? (`guide_status`)
+
+`review-map --json` (and the text output) report `guide_status` for the configured `review_guide_path` (default `docs/review-guide.md`): `missing`, `current` or `stale`. The guide's **first line** is `<!-- review-guide: base=<sha> head=<sha> -->` (the template has it; the workflow fills in `merge_base` and `head` from `review-map --json`). `current` = that head is the one being described, or only documentation changed since; anything else is `stale`; no valid marker is `stale`. The workflows skip regeneration when it is `current`.
 
 ### `--slices` and `--emit-split-script`
 

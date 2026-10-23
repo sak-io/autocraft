@@ -1,4 +1,7 @@
+<!-- review-guide: base=<sha> head=<sha> -->
 # Reviewer's guide to <PR / branch>
+
+<!-- First line: fill base and head with `merge_base` and `head` from `autocraft review-map --json` (full commit ids). `review-map --json` compares it with HEAD to report guide_status: current (or only docs changed since) / stale / missing, so nobody writes a second guide. A reference to a file the product creates at runtime goes on the same line as, or the line after, `<!-- verify-guide: runtime -->` (or list a glob in `verify_guide_ignore`); it is then reported as declared, never dropped. -->
 
 > Written by a fresh `pr-reviewer` that did not build this change (workflow `/review-guide`). Numbers in section 1 are computed by `autocraft review-map`, not typed. Every `path:line` and `path:symbol` below is checked by `autocraft review-map --verify-guide docs/review-guide.md`. Line numbers drift; symbol names are the stable handle. Delete this note's instructions when you fill the template; keep the guide readable in one sitting.
 
