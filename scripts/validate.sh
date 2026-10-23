@@ -88,6 +88,9 @@ python3 "$tmp/p/.autocraft/framework/bin/autocraft" init "$tmp/p" --team our-tea
 # --- recommend must not let one incidental keyword outvote the document (regression: "vector store" -> fullstack-app)
 rec="$(python3 bin/autocraft recommend 'a stdlib python daemon with a sqlite store, an mcp server and a command line tool for coding agents; a vector store of memories; the agent calls the api; library of functions; sdk package' 2>&1)"
 echo "$rec" | grep -q '^  \* fullstack-app' && err "recommend: a single 'store' keyword picked fullstack-app"
+# --- recommend must classify a plain "small script" idea (regression: Receipt Tally idea was "couldn't tell")
+rec="$(python3 bin/autocraft recommend 'a small tool that reads the CSV files my bank lets me download, sorts each transaction into categories using rules I write in a text file, and prints a monthly spending summary; I will run it once a month' 2>&1)"
+echo "$rec" | grep -q '^  \* script-automation' || err "recommend: a CSV-to-summary script idea was not classified as script-automation"
 python3 bin/autocraft init "$tmp/ts" --tool claude-code --team starter --token-saver >/dev/null 2>&1 || err "init --token-saver failed"
 grep -q 'max_parallel_developers: 2' "$tmp/ts/.autocraft/config.yml" || err "--token-saver did not set max_parallel_developers: 2"
 grep -q 'pr-reviewer=sonnet' "$tmp/ts/.autocraft/config.yml" || err "--token-saver did not set mid-tier reviewer"
