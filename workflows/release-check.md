@@ -20,4 +20,6 @@ On success, tell the human, in plain language:
 - **What ships** (one sentence), **risk** (low/med/high and why), **rollback plan**.
 - **Your move:** open the PR, read the checklist comment, and if you're happy, approve and merge it. (Branch protection requires your approval.)
 
+**Last step, before telling the human to merge: map the diff.** Run `python3 .autocraft/framework/bin/autocraft review-map` (free; no model tokens). If `guide_recommended` is true and `guide_status` is not `current` (skip regeneration when it is `current`) in `--json`, run `/review-guide` (a fresh `pr-reviewer` writes `docs/review-guide.md`; every reference is script-verified) and link it at the top of the pull request description. If `split_recommended` is true (the diff exceeds twice the thresholds), also **offer** the owner the stacked-PR split (`review-map --slices`) and do it only after an explicit yes. See `docs/reviewing-large-prs.md`.
+
 If the loop limit is hit, label `needs-human` and explain what is unresolved.

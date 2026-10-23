@@ -18,6 +18,7 @@ description: Implements a work item end to end - developer writes code plus unit
                                       round += 1; if round > max_review_rounds -> label needs-human, escalate
    ```
 4. **Hand-off.** When approved, tell the human which PRs are approved and proceed to `/release-check` for each.
+5. **If this was the last task** (nothing else in the work breakdown is open), before telling the owner to merge: run `python3 .autocraft/framework/bin/autocraft review-map` (free; no model tokens). If `guide_recommended` is true and `guide_status` is not `current` (skip regeneration when it is `current`), run `/review-guide` and link `docs/review-guide.md` at the top of the PR description. If `split_recommended` is true (more than twice the thresholds), also offer the owner the stacked-PR split (`review-map --slices`); do it only after an explicit yes. See `docs/reviewing-large-prs.md`.
 
 For multi-component projects, tasks are tagged by component; run the contract task first, then components in parallel (they only conflict on the contract).
 

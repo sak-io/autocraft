@@ -5,7 +5,7 @@ summary: For pipelines, analytics and machine-learning models: data quality, rep
 fits: [data-pipeline, ml-service]
 roles: [requirements-analyst, architect, principal-engineer, data-engineer, ml-engineer, qa-engineer, pr-reviewer, security-auditor, release-gatekeeper, delivery-lead]
 optional: [backend-developer, devops-engineer, technical-writer]
-workflows: [discover, explain, start, design-architecture, build-feature, review-pr, release-check, security-scan, status]
+workflows: [discover, explain, start, design-architecture, build-feature, review-pr, review-guide, release-check, security-scan, status]
 ---
 
 # Playbook: Data & ML Team

@@ -5,7 +5,7 @@ summary: For LLM-powered features: chatbots, assistants, document Q&A, agents, b
 fits: [ai-assistant, chat-bot]
 roles: [requirements-analyst, architect, principal-engineer, ai-engineer, backend-developer, frontend-developer, qa-engineer, pr-reviewer, security-auditor, release-gatekeeper, delivery-lead]
 optional: [ux-designer, devops-engineer, ml-engineer, technical-writer]
-workflows: [discover, explain, start, design-architecture, build-feature, review-pr, release-check, security-scan, status]
+workflows: [discover, explain, start, design-architecture, build-feature, review-pr, review-guide, release-check, security-scan, status]
 ---
 
 # Playbook: AI Product Team
