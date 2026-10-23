@@ -19,6 +19,13 @@ Origin: a real project (a 30-task mobile app built with a wide parallel team) ex
 - Docs/board-only commits skip the heavy CI (`paths-ignore: work/**`).
 - Record each CI pitfall in `work/LESSONS.md` the first time.
 
+## Making a big result reviewable costs almost nothing
+
+The diff of a finished run can look unreviewable (the Engram run: 283 files, ~22,600 added lines, of which 20 files / ~5,600 lines were product code). Two steps keep that cheap:
+- `autocraft review-map` is **free**: plain `git` plus a classifier, no model tokens. It computes the counts, the product list, whether a guide is recommended, a split proposal and a stale-reference check.
+- The guide itself (`/review-guide`) is **one reviewer-role run** (a fresh `pr-reviewer`, mid-tier model is fine with `role_models`), and only when `review-map` recommends it. The counts in it are pasted from the script, not typed by the model, which also removes the most error-prone part of the hand-written draft.
+See [reviewing large PRs](reviewing-large-prs.md).
+
 ## Lessons from a 31-task Claude Code run (cloud session, lead + worktree agents)
 Origin: Engram (a stdlib-only Python daemon + MCP server), built from two owner documents with `kickoff`: lean team + architect + QA, tiered review, at most 2 parallel developers. Roughly 1.2 M subagent tokens for 21 core tasks. Concrete, repeatable findings:
 

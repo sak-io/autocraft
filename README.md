@@ -65,7 +65,7 @@ cd ~/code/yoga && claude          # then type:  /start
 |---|---|---|
 | **Roles** (22) | Job descriptions for agents: requirements-analyst, architect, principal-engineer, ux-designer, developer (and backend/frontend/mobile/data/ML/AI/DevOps/embedded/game variants), pr-reviewer, qa-engineer, security-auditor, release-gatekeeper, technical-writer, delivery-lead, repo-onboarder, team-builder | [`roles/`](roles/) |
 | **Teams** (10) | A roster plus a playbook for a kind of software, from the lean `starter` to full teams | [`teams/`](teams/) |
-| **Workflows** (14) | Procedures you start with a command: `/discover`, `/kickoff`, `/start`, `/design-architecture`, `/build-feature`, `/lean-build` (low-token, tool-agnostic task board; [guide](docs/lean-orchestration.md)), `/review-pr`, `/release-check`, `/security-scan`, `/status`, `/explain`, … They switch on automatically when their roles are present. | [`workflows/`](workflows/) |
+| **Workflows** (15) | Procedures you start with a command: `/discover`, `/kickoff`, `/start`, `/design-architecture`, `/build-feature`, `/lean-build` (low-token, tool-agnostic task board; [guide](docs/lean-orchestration.md)), `/review-pr`, `/review-guide` (a reviewer's guide for big diffs, [guide](docs/reviewing-large-prs.md)), `/release-check`, `/security-scan`, `/status`, `/explain`, … They switch on automatically when their roles are present. | [`workflows/`](workflows/) |
 | **Archetypes** (20) | Software-type profiles (API, web app, mobile app, AI assistant, data pipeline, game, infrastructure, …): the questions to ask, what the architecture must cover, how to test, what to scan, what to check before release. Includes a recipes table ("online store", "SaaS", "Slack bot"). | [`archetypes/`](archetypes/README.md) |
 | **Capabilities** (10) | Cross-cutting needs with safe defaults and must-test lists: authentication, payments, database, email, uploads, search, observability, secrets, hosting, privacy | [`capabilities/`](capabilities/README.md) |
 | **Protocol** | The contract between roles: handoff blocks, severity-tagged reviews, round limits, human gates, git modes, `gh` vs GitHub tools | [`docs/protocol.md`](docs/protocol.md) |
@@ -145,7 +145,9 @@ Levels, from light to heavy: config knobs → team rules → per-role rules → 
 | `autocraft add-role\|remove-role <id>` · `add-tool\|remove-tool <id>` · `new-role <id>` | edit the roster and tools |
 | `autocraft pointer [DIR] --sources …` | write the `CLAUDE.md` pointer for a documents-first kickoff |
 | `autocraft github [DIR] --lang …` | add CI, security scanning and GitHub templates |
-| `autocraft doctor [DIR]` | check config, manifest, drift, sources |
+| `autocraft doctor [DIR]` | check config, manifest, drift, sources, the `.gitattributes` generated-file block |
+| `autocraft init\|sync … --commit` | commit the autocraft-owned files as ONE dedicated commit (`init --no-gitattributes` opts out of the generated-file markers) |
+| `autocraft review-map [DIR] [--base REF] [--head REF] [--json] [--slices] [--emit-split-script] [--verify-guide FILE]` | what is in this diff (product / tests / docs / config / generated), whether a reviewer's guide is recommended, a stacked-PR split proposal, and a check that every `path:line` in a guide still exists; deterministic, no model tokens ([details](docs/reviewing-large-prs.md)) |
 
 ## Repository layout
 
@@ -168,6 +170,7 @@ examples/                         worked examples (below)
 | New to software | [Beginner guide](docs/vibe-coders.md) · [Glossary](docs/glossary.md) |
 | Engineers | [For software engineers](docs/user-guide/6-for-software-engineers.md) · [Protocol](docs/protocol.md) · [Orchestration patterns](docs/orchestration-patterns.md) · [Customizing](docs/customizing.md) |
 | Claude app users | [Kick off from your own documents](docs/kickoff-existing-docs.md) · [Claude app](docs/tools/claude-app.md) · [Bootstrap prompt](docs/bootstrap-prompt.md) |
+| Big pull requests | [Reviewing large PRs](docs/reviewing-large-prs.md) — generated-file markers, the separate install commit, `review-map`, the reviewer's guide, the split offer |
 | Concepts | [Lifecycle](docs/lifecycle.md) · [Archetypes & recipes](archetypes/README.md) · [Capabilities](capabilities/README.md) |
 
 ## Examples

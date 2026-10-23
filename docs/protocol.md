@@ -141,3 +141,7 @@ Multi-agent work is token-hungry; most of the cost is agents re-reading and re-e
 | **Tier the models** | `role_models` (Claude Code): a cheaper model for mechanical/checklist roles, the stronger one where judgement is costly to get wrong. |
 | **Lead hygiene** | Don't poll agents; don't read artifacts you don't need; update `docs/STATUS.md` instead of re-deriving state. |
 | **Measure** | Log tokens/tool-calls/time per run (e.g. `agent-runs.csv`) against a stated budget, and report it. |
+
+## 16. Reviewing large changes
+- The framework install is its own commit (`autocraft init --commit`, later `sync --commit`), made before product work; generated files are marked `linguist-generated` in `.gitattributes` so GitHub collapses them.
+- Before telling the owner to merge, run `autocraft review-map` (deterministic, no model tokens). If `guide_recommended`, a **fresh** `pr-reviewer` writes `docs/review-guide.md` (workflow `review-guide`): counts pasted from the script, every `path:symbol` checked with `review-map --verify-guide`, and a mandatory "what has NOT been independently verified" section that says who reviewed the code. If `split_recommended`, **offer** the stacked-PR split and do it only after an explicit yes. See `docs/reviewing-large-prs.md` in the autocraft repository.
