@@ -3,6 +3,8 @@
 verify-guide) and the review-guide config. Stdlib only; every test builds its own throw-away git repository. Run: python3 scripts/test_cli.py"""
 import json
 import os
+import re
+import runpy
 import shutil
 import subprocess
 import sys
@@ -151,6 +153,25 @@ class GitattributesTests(TempCase):
         cli(repo, "sync", ".", check=True)
         self.assertNotIn("warning", cli(repo, "doctor", ".").out)
 
+    def test_conflicting_user_rule_is_reported_with_the_winner(self):
+        repo = new_repo(self.tmp)
+        (repo / ".gitattributes").write_text(".claude/agents/** -linguist-generated\n*.png binary\n")
+        r = cli(repo, "init", ".", "--tool", "claude-code", "--team", "starter")
+        self.assertEqual(r.returncode, 0, r.err)
+        self.assertIn("conflicts with autocraft's entry '.claude/agents/**'", r.out)
+        self.assertIn("autocraft's block wins", r.out)
+        d = cli(repo, "doctor", ".")
+        self.assertIn("warning: .gitattributes line 1", d.out)
+        self.assertEqual(d.returncode, 0)
+        # the user's rule AFTER the block wins instead, and the warning says so
+        text = (repo / ".gitattributes").read_text().replace(".claude/agents/** -linguist-generated\n", "")
+        (repo / ".gitattributes").write_text(text + "linguist-generated=false\n".replace("linguist", ".claude/skills/** linguist", 1))
+        r = cli(repo, "sync", ".")
+        self.assertIn("your rule wins", r.out)
+        clean = new_repo(self.tmp / "other")
+        r = cli(clean, "init", ".", "--tool", "claude-code", "--team", "starter")
+        self.assertNotIn("conflicts", r.out)
+
     def test_doctor_rejects_bad_review_settings(self):
         repo = new_repo(self.tmp)
         cli(repo, "init", ".", "--tool", "claude-code", "--team", "starter", check=True)
@@ -159,7 +180,6 @@ class GitattributesTests(TempCase):
                          ("review_guide_min_files: many", "review_guide_min_files")):
             key = bad.split(":")[0]
             original = cfg.read_text()
-            import re
             cfg.write_text(re.sub(rf"^{key}:.*$", bad, original, flags=re.M))
             d = cli(repo, "doctor", ".")
             self.assertEqual(d.returncode, 1, bad)
@@ -216,9 +236,12 @@ class InstallCommitTests(TempCase):
         self.assertEqual((repo / "app.py").read_text(), "print(2)\n")
         # a second sync with nothing new refuses with a clear message and exit code != 0
         r = cli(repo, "sync", ".", "--commit")
-        self.assertNotEqual(r.returncode, 0)
+        self.assertEqual(r.returncode, 0, "re-running on an up-to-date repository is not an error")
         self.assertIn("nothing to commit", r.out + r.err)
         self.assertEqual(git(repo, "rev-list", "--count", "HEAD").out.strip(), "2")
+        r = cli(repo, "init", ".", "--tool", "claude-code", "--team", "starter", "--commit")
+        self.assertEqual(r.returncode, 0, r.out + r.err)
+        self.assertIn("nothing to commit", r.out)
 
     def test_sync_commit_message_and_scope(self):
         repo = new_repo(self.tmp)
@@ -254,6 +277,69 @@ class InstallCommitTests(TempCase):
         self.assertNotEqual(git(repo, "rev-parse", "--verify", "-q", "HEAD", check=False).returncode, 0, "no commit may exist")
         self.assertTrue((repo / ".autocraft" / "config.yml").exists(), "the files stay on disk")
 
+    def test_rewriting_pre_commit_hook(self):
+        repo = new_repo(self.tmp)
+        write(repo, "base.txt", "b\n")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", "base")
+        write(repo, "s.txt", "staged by the user\n")
+        git(repo, "add", "s.txt")
+        write(repo, "wip.txt", "mine\n")
+        hook = repo / ".git" / "hooks" / "pre-commit"
+        hook.write_text("#!/bin/sh\n# a formatter: rewrites an autocraft file and re-adds it\necho '' >> CLAUDE.md\ngit add CLAUDE.md\n")
+        hook.chmod(0o755)
+        r = cli(repo, "init", ".", "--tool", "claude-code", "--team", "starter", "--commit")
+        self.assertEqual(r.returncode, 0, r.out + r.err)
+        self.assertEqual(git(repo, "rev-list", "--count", "HEAD").out.strip(), "2")
+        self.assertEqual(git(repo, "diff", "--cached", "--name-only").out.split(), ["s.txt"], "only the user's own staged file may remain staged")
+        self.assertNotIn("s.txt", self.owned_only(repo))
+        self.assertEqual((repo / "wip.txt").read_text(), "mine\n")
+        left = git(repo, "status", "--short", "--", ".autocraft", ".claude", "CLAUDE.md", ".gitattributes").out
+        self.assertEqual(left.strip(), "", "the hook's rewrite of an owned file is part of the commit, not left behind")
+
+    def test_linked_worktree_and_detached_head(self):
+        repo = new_repo(self.tmp / "main")
+        write(repo, "a.txt", "a\n")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", "first")
+        wt = self.tmp / "wt"
+        git(repo, "worktree", "add", "-q", "-b", "wtb", str(wt))
+        r = cli(wt, "init", ".", "--tool", "claude-code", "--team", "starter", "--commit")
+        self.assertEqual(r.returncode, 0, r.out + r.err)
+        self.assertIn("on branch wtb", r.out)
+        self.assertEqual(git(repo, "rev-list", "--count", "main").out.strip(), "1", "the other work tree's branch is untouched")
+        self.assertEqual(git(repo, "rev-list", "--count", "wtb").out.strip(), "2")
+        self.assertFalse((repo / ".autocraft").exists())
+        git(wt, "checkout", "-q", "--detach")
+        cli(wt, "add-role", "qa-engineer", ".", check=True)
+        r = cli(wt, "sync", ".", "--commit")
+        self.assertEqual(r.returncode, 0, r.out + r.err)
+        self.assertIn("detached HEAD", r.out)
+
+    def test_submodule_and_subdirectory_projects(self):
+        sub = new_repo(self.tmp / "subsrc")
+        write(sub, "lib.txt", "x\n")
+        git(sub, "add", "-A")
+        git(sub, "commit", "-q", "-m", "sub first")
+        parent = new_repo(self.tmp / "parent")
+        write(parent, "p.txt", "p\n")
+        git(parent, "add", "-A")
+        git(parent, "commit", "-q", "-m", "parent first")
+        git(parent, "-c", "protocol.file.allow=always", "submodule", "add", "-q", "file://" + str(sub), "libs")
+        git(parent, "commit", "-q", "-m", "add submodule")
+        git(parent / "libs", "config", "user.email", "t@t")
+        git(parent / "libs", "config", "user.name", "t")
+        r = cli(parent, "init", "libs", "--tool", "claude-code", "--team", "starter", "--commit")  # DIR is the submodule's root
+        self.assertEqual(r.returncode, 0, r.out + r.err)
+        self.assertEqual(git(parent / "libs", "rev-list", "--count", "HEAD").out.strip(), "2")
+        self.assertEqual(git(parent, "rev-list", "--count", "HEAD").out.strip(), "2", "the superproject gets no commit")
+        self.assertIn("libs", git(parent, "status", "--short").out)  # it only sees the submodule moved
+        # a project in a plain sub-directory: paths are relative to it, nothing outside it is touched
+        r = cli(parent, "init", "apps/web", "--tool", "claude-code", "--team", "starter", "--commit")
+        self.assertEqual(r.returncode, 0, r.out + r.err)
+        files = self.owned_only(parent)
+        self.assertTrue(files and all(f.startswith("apps/web/") for f in files), files)
+
     def test_user_edited_gitattributes_is_not_committed_for_them(self):
         repo = new_repo(self.tmp)
         write(repo, ".gitattributes", "*.png binary\n")
@@ -285,13 +371,15 @@ def build_review_repo(base):
     write(repo, "src/dead.py", lines(6))
     write(repo, "pkg1/dup.py", "x = 1\n")
     write(repo, "pkg2/dup.py", "x = 2\n")
+    write(repo, "vendor/lib/deleted.py", lines(8))  # exists only under vendor/: a guide citing lib/deleted.py must NOT resolve to it
+    write(repo, "src/test_helpers/h.py", "def helper_h():\n    pass\n")
     git(repo, "add", "-A")
     git(repo, "commit", "-q", "-m", "base")
     git(repo, "checkout", "-q", "-b", "feature")
     for rel, n in FEATURE_FILES.items():
         write(repo, rel, lines(n, rel))  # distinct contents, or git would pair them with the deleted files as renames
     write(repo, "src/alpha.py", "".join(["x = 1\n", "y = 2\n", "def helper(x):\n", "class Alpha:\n", "LIMIT = 3\n"]) + lines(45))
-    write(repo, "src/beta.py", lines(29) + "# TODO frobnicate\n")
+    write(repo, "src/beta.py", lines(28) + "# TODO frobnicate\nnote = \"def string_sym\"\n")
     write(repo, "tests/test_misc.py", "import gamma\n" + "gamma.run()\n" + lines(13))  # mentions 'gamma' twice: pairs with src/gamma.py
     write(repo, ".gitattributes", "gen/** linguist-generated=true\n")
     write(repo, "assets/logo.png", b"\x89PNG\0\0\0binary\xff\xfe" * 20)
@@ -305,7 +393,7 @@ def build_review_repo(base):
     return repo
 
 
-class ReviewMapTests(TempCase):
+class RepoBase(TempCase):
     @classmethod
     def setUpClass(cls):
         cls._shared = tempfile.mkdtemp(prefix="autocraft-rm-")
@@ -333,6 +421,22 @@ class ReviewMapTests(TempCase):
         self.assertEqual(r.returncode, 0, r.err)
         return json.loads(r.out)
 
+    # --- slices and the split script
+    # --- verify-guide
+    def guide(self, text):
+        p = self.tmp / "guide.md"
+        p.write_text(text, encoding="utf-8")
+        return str(p)
+
+    # --- verify-guide strictness (review round 1)
+    def vg(self, text, *args):
+        r = self.rm("--verify-guide", self.guide(text), "--json", *args)
+        self.assertIn(r.returncode, (0, 1), r.err)
+        d = json.loads(r.out)
+        return r.returncode, {x["ref"]: x for x in d["references"]}, d["summary"]
+
+
+class ReviewMapTests(RepoBase):
     def test_exact_counts_per_class_and_json_shape(self):
         d = self.data()
         c = d["classes"]
@@ -446,7 +550,6 @@ class ReviewMapTests(TempCase):
         self.assertEqual(r.returncode, 2)
         self.assertIn("review_guide", r.err)
 
-    # --- slices and the split script
     def test_slices_respect_target_and_keep_tests_with_their_module(self):
         d = self.data("--slices", "--target-lines", "100")
         s = d["slices"]
@@ -459,6 +562,11 @@ class ReviewMapTests(TempCase):
             seen += sl["paths"]
         seen += s["bootstrap"]["paths"]
         self.assertEqual(sorted(seen), sorted(f["path"] for f in d["files"]), "every changed file lands in exactly one slice")
+        from collections import Counter
+        self.assertEqual(set(Counter(seen).values()), {1}, "no file appears in two slices")
+        non_generated = [f["path"] for f in d["files"] if f["class"] != "generated"]
+        in_slices = [p for sl in s["slices"] for p in sl["paths"]]
+        self.assertEqual(sorted(in_slices), sorted(non_generated), "each non-generated file is in exactly one (non-bootstrap) slice")
         where = {p: sl["n"] for sl in s["slices"] for p in sl["paths"]}
         self.assertEqual(where["tests/test_alpha.py"], where["src/alpha.py"])
         self.assertEqual(where["tests/test_beta.py"], where["src/beta.py"])
@@ -517,12 +625,46 @@ class ReviewMapTests(TempCase):
             self.assertEqual(git(repo, "diff", "--stat", f"slice-{n}", "feature").out.strip(), "")
             self.assertEqual(git(repo, "merge-base", "--is-ancestor", "slice-0-bootstrap", "slice-1", check=False).returncode, 0)
 
-    # --- verify-guide
-    def guide(self, text):
-        p = self.tmp / "guide.md"
-        p.write_text(text, encoding="utf-8")
-        return str(p)
+    def test_test_directories_count_as_tests(self):
+        mod = runpy.run_path(CLI, run_name="x")
+        rules = {"manifest": set(), "generated": [], "tests": list(mod["RM_TESTS"])}
+        cls = lambda path: mod["rm_class"](path, False, rules)
+        for path in ("src/test_helpers/h.py", "testing/util.py", "fixtures/a.json", "app/testdata/x.csv", "web/__fixtures__/m.js", "test_utils.py"):
+            self.assertEqual(cls(path), "tests", path)
+        self.assertEqual(cls("data/sample.json"), "ci_config")  # documented: JSON fixtures outside test dirs stay config
+        self.assertEqual(cls("src/contest.py"), "product")
 
+    def test_output_piped_to_a_closed_reader_is_quiet(self):
+        rfd, wfd = os.pipe()
+        os.close(rfd)  # the reader (think `| head`) is already gone
+        r = subprocess.run([sys.executable, CLI, "review-map", str(self.repo), "--json"], stdout=wfd, stderr=subprocess.PIPE, env=ENV)
+        os.close(wfd)
+        self.assertEqual(r.stderr.decode(), "")
+
+    def test_shallow_base_not_a_commit_gets_the_deepen_hint(self):
+        with tempfile.TemporaryDirectory() as td:
+            clone = Path(td) / "shallow"
+            git(td, "clone", "-q", "--depth", "1", "--no-single-branch", "file://" + str(self.repo), str(clone))
+            git(clone, "checkout", "-q", "feature")
+            r = cli(clone, "review-map", "--base", "HEAD~3")
+            self.assertEqual(r.returncode, 2)
+            self.assertIn("shallow", r.err)
+            self.assertIn("--unshallow", r.err)
+            r = cli(self.repo, "review-map", "--base", "HEAD~30")  # not shallow: no hint, still a clear error
+            self.assertEqual(r.returncode, 2)
+            self.assertNotIn("shallow", r.err)
+
+    def test_review_map_never_writes_to_the_repository(self):
+        before = git(self.repo, "status", "--porcelain", "--ignored").out
+        mtimes = sorted((p.name, p.stat().st_mtime_ns) for p in (self.repo / ".git").iterdir() if p.is_file())
+        self.rm("--slices")
+        self.rm("--emit-split-script")
+        self.rm("--verify-guide", self.guide("src/alpha.py:1\n"))
+        self.assertEqual(git(self.repo, "status", "--porcelain", "--ignored").out, before)
+        self.assertEqual(sorted((p.name, p.stat().st_mtime_ns) for p in (self.repo / ".git").iterdir() if p.is_file()), mtimes)
+
+
+class VerifyGuideTests(RepoBase):
     def test_verify_guide_good(self):
         g = self.guide("""# Guide
 Entry points: `src/alpha.py`, src/alpha.py:10 and src/alpha.py:5-20 (the helper is src/alpha.py:helper).
@@ -530,7 +672,7 @@ Entry points: `src/alpha.py`, src/alpha.py:10 and src/alpha.py:5-20 (the helper 
 | Property | Enforced in |
 | - | - |
 | P1 | `Alpha` (src/alpha.py:Alpha), LIMIT in src/alpha.py:LIMIT and gamma.py:12 |
-| P2 | beta.py (frobnicate is only noted: src/beta.py:frobnicate) |
+| P2 | beta.py (unique bare name) |
 
 ```
 this is a fenced block: nope/missing.py:999 and src/alpha.py:nonexistent_symbol are ignored
@@ -544,13 +686,14 @@ Times like 12:30 and example.com:443 are not references.
         self.assertEqual(r.returncode, 0, r.out + r.err)
         self.assertIn("0 STALE", r.out)
         self.assertIn("src/gamma.py", r.out)  # unique suffix match resolved
-        self.assertIn("mentioned but not defined", r.out)
+        self.assertIn("ok (resolved by suffix -> src/gamma.py)", r.out)
+        self.assertIn("checked ", r.out)
         d = json.loads(self.rm("--verify-guide", g, "--json").out)
         st = {x["ref"]: x for x in d["references"]}
         self.assertEqual(st["src/alpha.py:helper"]["detail"], "defined")
         self.assertEqual(st["src/alpha.py:Alpha"]["status"], "ok")
         self.assertEqual(st["src/alpha.py:LIMIT"]["status"], "ok")
-        self.assertEqual(st["src/beta.py:frobnicate"]["status"], "ok (mentioned only)")
+        self.assertEqual(st["gamma.py:12"]["status"], "ok (resolved by suffix -> src/gamma.py)")
         self.assertEqual(d["summary"]["stale"], 0)
         self.assertNotIn("nope/missing.py:999", st)
         self.assertNotIn("src/also_missing.py:1", st)
@@ -577,22 +720,147 @@ Also `src/alpha.py` (fine) and src/alpha.py:40-60 (range ends past line 50) and 
         self.assertEqual(d["summary"]["stale"], 6)
         self.assertEqual(d["summary"]["ambiguous"], 1)
 
-    def test_verify_guide_ambiguous_alone_is_not_a_failure_and_missing_guide_is_usage_error(self):
+    def test_verify_guide_ambiguous_fails_and_missing_guide_is_usage_error(self):
         g = self.guide("Look at dup.py:1 please.\n")
         r = self.rm("--verify-guide", g)
-        self.assertEqual(r.returncode, 0)
+        self.assertEqual(r.returncode, 1)
         self.assertIn("AMBIGUOUS", r.out)
         r = self.rm("--verify-guide", str(self.tmp / "nope.md"))
         self.assertEqual(r.returncode, 2)
 
-    def test_review_map_never_writes_to_the_repository(self):
-        before = git(self.repo, "status", "--porcelain", "--ignored").out
-        mtimes = sorted((p.name, p.stat().st_mtime_ns) for p in (self.repo / ".git").iterdir() if p.is_file())
-        self.rm("--slices")
-        self.rm("--emit-split-script")
-        self.rm("--verify-guide", self.guide("src/alpha.py:1\n"))
-        self.assertEqual(git(self.repo, "status", "--porcelain", "--ignored").out, before)
-        self.assertEqual(sorted((p.name, p.stat().st_mtime_ns) for p in (self.repo / ".git").iterdir() if p.is_file()), mtimes)
+    def test_verify_guide_dir_paths_never_resolve_by_suffix(self):
+        rc, by, _ = self.vg("Cited: lib/deleted.py and lib/deleted.py:4 and deleted.py:1 and h.py:1 and ./src/alpha.py and src\\alpha.py:5.\n")
+        self.assertEqual(rc, 1)
+        self.assertEqual(by["lib/deleted.py"]["status"], "STALE")  # only vendor/lib/deleted.py exists
+        self.assertEqual(by["lib/deleted.py:4"]["status"], "STALE")
+        # a bare file name may resolve by suffix, but never silently
+        self.assertEqual(by["deleted.py:1"]["status"], "ok (resolved by suffix -> vendor/lib/deleted.py)")
+        self.assertEqual(by["h.py:1"]["status"], "ok (resolved by suffix -> src/test_helpers/h.py)")
+        self.assertEqual(by["./src/alpha.py"]["status"], "ok")  # './' stripped
+        self.assertEqual(by["src/alpha.py:5"]["status"], "ok")  # backslashes normalised (not mis-parsed as alpha.py:5)
+
+    def test_verify_guide_symbol_must_be_defined_not_just_mentioned(self):
+        g = "In src/beta.py:frobnicate (comment only) and src/beta.py:string_sym (inside a string) and src/alpha.py:helper (real)."
+        rc, by, summ = self.vg(g)
+        self.assertEqual(rc, 1)
+        self.assertEqual(by["src/beta.py:frobnicate"]["status"], "NOT DEFINED")
+        self.assertEqual(by["src/beta.py:string_sym"]["status"], "NOT DEFINED")
+        self.assertEqual(by["src/alpha.py:helper"]["status"], "ok")
+        self.assertEqual(summ["not_defined"], 2)
+        rc, by, summ = self.vg(g, "--allow-mentioned")
+        self.assertEqual(rc, 0)
+        self.assertEqual(by["src/beta.py:frobnicate"]["status"], "mentioned (allowed)")
+        self.assertEqual(summ["mentioned_allowed"], 2)
+
+    def test_symbol_definition_patterns(self):
+        state = runpy.run_path(CLI, run_name="x")["gv_symbol_state"]
+        defined = [("def run():\n  pass\n", "run", "py"), ("class Foo:\n  pass\n", "Foo", "py"), ("async def go(x):\n  pass\n", "go", "py"),
+                   ("MAX_N = 3\n", "MAX_N", "py"), ("MAX_N: int = 3\n", "MAX_N", "py"), ("class A:\n    def method(self):\n        pass\n", "A.method", "py"),
+                   ("name: build\njobs:\n  test:\n", "jobs", "yml"), ("build() {\n  echo\n}\n", "build", "sh"), ("function deploy {\n}\n", "deploy", "sh"),
+                   ("func (s *Server) Handle(w int) {}\n", "Handle", "go"), ("x := 1\n", "x", "go"), ("type Config struct {\n}\n", "Config", "go"),
+                   ("pub fn run() {}\n", "run", "rs"), ("impl Foo {\n}\n", "Foo", "rs"), ("export const API = 1;\n", "API", "ts"),
+                   ("export interface Opts {}\n", "Opts", "ts"), ("export default function main() {}\n", "main", "js"),
+                   ("# Design\n## The Cache layer\n", "Cache", "md"), ("  public static void main(String[] a) {\n", "main", "java")]
+        for text, sym, ext in defined:
+            self.assertEqual(state(text, sym, ext), "defined", (text, sym))
+        not_defined = [("# def hidden():\n", "hidden", "py"), ("// func Hidden() {}\n", "Hidden", "go"), ("x = \"class Baz\"\n", "Baz", "py"),
+                       ("y = call(Qux)\n", "Qux", "py"), ("def Run():\n  pass\n", "run", "py"), ("print(\"def s\")  # def t\n", "t", "py"),
+                       ("/* function inBlock() {} */\n", "inBlock", "js"), ("-- func in_sql\n", "in_sql", "sql")]
+        for text, sym, ext in not_defined:
+            self.assertEqual(state(text, sym, ext), "mentioned" if text.lower().count(sym.lower()) and sym in text else "absent", (text, sym))
+        self.assertEqual(state("def Run():\n", "run", "py"), "absent")  # case-sensitive
+
+    def test_verify_guide_declared_runtime_references(self):
+        g = """Same line: `.claude/engram_learned.md` is written at runtime <!-- verify-guide: runtime -->
+<!-- verify-guide: ignore -->
+Previous line marker covers `runtime/cache.json`.
+But not `docs/gone.md` on the line after that.
+Config glob: `out/report.json` and `out/deep/x.json`, while `src/alpha.py:1` is checked normally.
+"""
+        r = self.with_config("verify_guide_ignore: [out/**]\n", "--verify-guide", self.guide(g), "--json", as_json=False)
+        self.assertEqual(r.returncode, 1)
+        d = json.loads(r.out)
+        by = {x["ref"]: x for x in d["references"]}
+        for ref in (".claude/engram_learned.md", "runtime/cache.json", "out/report.json", "out/deep/x.json"):
+            self.assertEqual(by[ref]["status"], "declared (runtime)", ref)
+        self.assertEqual(by["docs/gone.md"]["status"], "STALE")  # the marker covers only its own and the next line
+        self.assertEqual(d["summary"]["declared"], 4)
+        self.assertEqual(d["summary"]["stale"], 1)
+        ok = self.with_config("verify_guide_ignore: [out/**]\n", "--verify-guide", self.guide(g.replace("But not `docs/gone.md` on the line after that.\n", "")),
+                              as_json=False)
+        self.assertEqual(ok.returncode, 0, ok.out)
+        self.assertIn("declared (runtime)", ok.out)
+        self.assertIn("4 declared (runtime)", ok.out)
+        self.assertIn("(4 declared)", ok.out)
+
+    def test_verify_guide_no_silent_skips_and_footer(self):
+        g = """[broken](lib/nofile.py) and [good](src/alpha.py) and [web](https://example.com/x/y.py) and [here](#anchor) and [m](mailto:a@b.c)
+GitHub style: src/alpha.py#L3 and src/alpha.py#L3-L9 and src/alpha.py#L60 and bare src/missing_bare.py in prose and `weird/file.zzz`.
+Windows: src\\alpha.py:60 end.
+```
+fenced src/hidden.py:1
+two
+```
+"""
+        rc, by, summ = self.vg(g)
+        self.assertEqual(rc, 1)
+        self.assertEqual(by["lib/nofile.py"]["status"], "STALE")
+        self.assertEqual(by["src/alpha.py"]["status"], "ok")
+        self.assertNotIn("https://example.com/x/y.py", by)
+        self.assertEqual(by["src/alpha.py#L3"]["status"], "ok")
+        self.assertEqual(by["src/alpha.py#L3-L9"]["status"], "ok")
+        self.assertEqual(by["src/alpha.py#L60"]["status"], "STALE")
+        self.assertEqual(by["src/missing_bare.py"]["status"], "STALE")
+        self.assertEqual(by["src/alpha.py:60"]["status"], "STALE")
+        self.assertEqual(summ["skipped_fenced_lines"], 2)
+        self.assertEqual(summ["unparsed_candidates"], 1)  # `weird/file.zzz` looks like a path but has an unknown extension
+        self.assertIn("checked ", summ["footer"])
+        text = self.rm("--verify-guide", self.guide(g)).out
+        self.assertIn("skipped 2 fenced-code lines; 1 unparsed candidates", text)
+
+    def test_verify_guide_relative_link_from_a_guide_inside_the_repo(self):
+        guide = self.repo / "docs" / "g.md"
+        write(self.repo, "docs/g.md", "[up](../src/alpha.py) and [bad](../src/nope.py)\n")
+        try:
+            r = self.rm("--verify-guide", str(guide), "--json")
+        finally:
+            shutil.rmtree(self.repo / "docs", True) if not (self.repo / "docs" / "guide.md").exists() else guide.unlink()
+        by = {x["ref"]: x for x in json.loads(r.out)["references"]}
+        self.assertEqual(by["../src/alpha.py"]["status"], "ok")
+        self.assertEqual(by["../src/nope.py"]["status"], "STALE")
+
+    def test_guide_status_missing_current_stale(self):
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td) / "r"
+            shutil.copytree(self.repo, repo)
+            status = lambda: json.loads(cli(repo, "review-map", "--json").out)
+            self.assertEqual(status()["guide_status"], "missing")
+            head = git(repo, "rev-parse", "HEAD").out.strip()
+            base = git(repo, "rev-parse", "main").out.strip()
+            write(repo, "docs/review-guide.md", "<!-- review-guide: base=<sha> head=<sha> -->\n# guide\n")
+            self.assertEqual(status()["guide_status"], "stale")  # placeholder marker
+            write(repo, "docs/review-guide.md", f"<!-- review-guide: base={base} head={head} -->\n# guide\n")
+            d = status()
+            self.assertEqual(d["guide_status"], "current")
+            self.assertIn("written for this head", d["guide_status_reason"])
+            git(repo, "add", "-A")
+            git(repo, "commit", "-q", "-m", "guide")
+            self.assertEqual(status()["guide_status"], "current", "only the guide (docs) changed since")
+            write(repo, "README.md", "more docs\n")
+            git(repo, "commit", "-q", "-am", "docs only")
+            self.assertEqual(status()["guide_status"], "current")
+            write(repo, "src/new_code.py", "x = 1\n")
+            git(repo, "add", "-A")
+            git(repo, "commit", "-q", "-m", "code")
+            d = status()
+            self.assertEqual(d["guide_status"], "stale")
+            self.assertIn("code, tests or config changed", d["guide_status_reason"])
+            text = cli(repo, "review-map").out
+            self.assertIn("guide file docs/review-guide.md: stale", text)
+            write(repo, "docs/other.md", f"<!-- review-guide: base={base} head={git(repo, 'rev-parse', 'HEAD').out.strip()} -->\n")
+            write(repo, ".autocraft/config.yml", "review_guide_path: docs/other.md\n")
+            self.assertEqual(status()["guide_status"], "current")  # configurable path
+            self.assertEqual(status()["guide_path"], "docs/other.md")
 
 
 if __name__ == "__main__":

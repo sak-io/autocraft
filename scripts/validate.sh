@@ -65,7 +65,7 @@ rm -rf templates/board/__pycache__
 BOARD_PY="$PWD/templates/board/board.py" bash templates/board/test-board.sh >/dev/null || err "board self-test failed"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 # git-facing CLI tests (generated-file markers, install commit, review-map, verify-guide): run alongside the rest, collected at the end
-cli_pids=""; for c in GitattributesTests InstallCommitTests ReviewMapTests; do
+cli_pids=""; for c in GitattributesTests InstallCommitTests ReviewMapTests VerifyGuideTests; do
   python3 -I scripts/test_cli.py "$c" >"$tmp/cli-$c.log" 2>&1 & cli_pids="$cli_pids $!"; done
 python3 bin/autocraft init "$tmp/p" --tool claude-code,claude-app,cursor,copilot,gemini-cli,windsurf,cline,agents-md,prompts \
   --team web-product,ai-product,mobile --archetype fullstack-app,ai-assistant --add-role technical-writer --lang node >/dev/null || err "autocraft init failed"

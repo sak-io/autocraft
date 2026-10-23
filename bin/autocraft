@@ -21,9 +21,11 @@ import argparse
 import hashlib
 import json
 import os
+import posixpath
 import re
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -785,6 +787,29 @@ def update_gitattributes(proj, globs):
     return False
 
 
+def ga_conflicts(text, globs):
+    """user rules that switch linguist-generated off for a path our block marks: git uses the LAST matching line, so say who wins"""
+    out, in_block, block_end = [], False, None
+    lines = text.splitlines()
+    for i, ln in enumerate(lines, 1):
+        if ln.strip() == GA_BEGIN:
+            in_block = True
+        elif in_block:
+            if ln.startswith(GA_END):
+                in_block, block_end = False, i
+    for i, ln in enumerate(lines, 1):
+        parts = ln.split()
+        if len(parts) < 2 or parts[0].startswith("#"):
+            continue
+        if not any(x in ("-linguist-generated", "!linguist-generated", "linguist-generated=false") for x in parts[1:]):
+            continue
+        hit = [g for g in globs if g == parts[0] or match_glob(parts[0], g) or match_glob(g, parts[0])]
+        if hit:
+            wins = "your rule wins (it comes later)" if block_end is not None and i > block_end else "autocraft's block wins (it comes later)"
+            out.append(f".gitattributes line {i} ('{ln.strip()}') conflicts with autocraft's entry '{hit[0]}': {wins}; git uses the last matching line")
+    return out
+
+
 def read_ga_block(proj):
     """globs listed in the managed block of proj/.gitattributes, or None when there is no block"""
     p = proj / ".gitattributes"
@@ -899,8 +924,10 @@ def build(proj, dry=False):
     mpath.write_text(json.dumps(manifest, indent=1, sort_keys=True))
     owned = set(files) | set(blocks) | set(removed) | set(created) | {".autocraft/manifest.json", ".autocraft/config.yml", ".autocraft/framework", ".autocraft/templates"}
     if markers_enabled(cfg):
-        update_gitattributes(proj, generated_globs(tools, manifest))
+        gl = generated_globs(tools, manifest)
+        update_gitattributes(proj, gl)
         owned.add(".gitattributes")
+        warnings += [m for m in ga_conflicts((proj / ".gitattributes").read_text(errors="replace"), gl)]
     summary["warnings"] = warnings
     summary["owned"] = sorted(owned)
     summary["block_files"] = sorted(blocks)
@@ -973,13 +1000,15 @@ def install_commit(proj, summary, pre, kind):
     for n in notes:
         print(f"note: {n}")
     if not paths:
-        raise SystemExit("autocraft: nothing to commit (no autocraft-owned paths to stage)")
+        print("autocraft: nothing to commit (no autocraft-owned paths to stage)")
+        return
     rc, out, err = git_run(proj, "add", "--", *paths)
     if rc != 0:
         raise SystemExit(f"autocraft: git add failed, nothing committed:\n{err.strip()}")
     ours = [x for x in git_nul(proj, "diff", "--cached", "--name-only", "-z", "--relative", "--", *paths)]
-    if not ours:
-        raise SystemExit("autocraft: nothing to commit: the autocraft-owned files are already committed and unchanged")
+    if not ours:  # exit 0: re-running init/sync on an up-to-date repo is not an error
+        print("autocraft: nothing to commit: the autocraft-owned files are already committed and unchanged")
+        return
     rc, out, err = git_run(proj, "commit", "-m", COMMIT_MSG[kind], "--", *paths)
     if rc != 0:
         mine = [x for x in ours if x not in pre["staged"]]  # unstage only what we staged
@@ -987,7 +1016,11 @@ def install_commit(proj, summary, pre, kind):
             git_run(proj, "reset", "-q", "--", *mine)
         sys.stderr.write((out + err).strip() + "\n")
         raise SystemExit("autocraft: git commit failed (hooks are honoured, never bypassed); the generated files are on disk, nothing is left staged by autocraft")
-    print(f"committed {len(ours)} autocraft-owned files: {COMMIT_MSG[kind]}")
+    ref = git_run(proj, "symbolic-ref", "-q", "--short", "HEAD")[1].strip()
+    sha = git_run(proj, "rev-parse", "--short", "HEAD")[1].strip()
+    where = f"branch {ref}" if ref else f"detached HEAD (now at {sha}; not on any branch)"
+    git_run(proj, "reset", "-q", "--", *ours)  # a hook that rewrote and re-added files leaves a stale index entry under --only: sync it to HEAD
+    print(f"committed {len(ours)} autocraft-owned files on {where}: {COMMIT_MSG[kind]}")
     print((out.strip().splitlines() or [""])[0])
 
 
@@ -1045,7 +1078,7 @@ def install_github(proj, lang):
 RM_GENERATED = ["package-lock.json", "yarn.lock", "pnpm-lock.yaml", "poetry.lock", "Cargo.lock", "Gemfile.lock", "go.sum",
                 "composer.lock", "uv.lock", "Pipfile.lock", "bun.lockb", "*.lock", "*.min.*", "dist/", "build/", "vendor/",
                 "node_modules/", "*.egg-info/", ".autocraft/framework/**"]
-RM_TESTS = ["tests/", "test/", "__tests__/", "spec/", "test_*.*", "*_test.*", "*.test.*", "*.spec.*", "conftest.py"]
+RM_TESTS = ["tests/", "test/", "__tests__/", "spec/", "test_helpers/", "testing/", "fixtures/", "testdata/", "__fixtures__/", "test_*.*", "*_test.*", "*.test.*", "*.spec.*", "conftest.py"]
 RM_CI_EARLY = [".github/", "requirements*.txt", "constraints*.txt", "CMakeLists.txt"]  # would otherwise be caught by docs rules
 RM_DOCS = ["docs/", "*.md", "*.rst", "*.txt", "*.adoc", "LICENSE", "LICENSE.*", "NOTICE", "AUTHORS", "CHANGELOG", "CHANGELOG.*"]
 RM_CI_CONFIG = [".github/", "*.toml", "*.yml", "*.yaml", "*.json", "*.ini", "*.cfg", "Dockerfile", "Dockerfile.*", "Makefile", "makefile",
@@ -1073,8 +1106,9 @@ def review_settings(cfg):
             st[k] = int(v)
         else:
             problems.append(f"{k}: '{v}' is not a non-negative integer")
-    for k in ("review_map_extra_generated", "review_map_extra_tests"):
+    for k in ("review_map_extra_generated", "review_map_extra_tests", "verify_guide_ignore"):
         st[k] = as_list(cfg.get(k))
+    st["review_guide_path"] = str(cfg.get("review_guide_path") or "docs/review-guide.md")
     return st, problems
 
 
@@ -1144,7 +1178,9 @@ def rm_resolve_base(root, cfg, head, base, out_err):
         if not base:
             out_err(f"error: no base to compare with: neither origin/{d} nor {d} exists here. Pass --base <ref> (a branch, tag or commit).")
     elif git_run(root, "rev-parse", "--verify", "-q", f"{base}^{{commit}}")[0] != 0:
-        out_err(f"error: base '{base}' is not a commit in this repository (typo, or not fetched yet).")
+        hint = (" This is a shallow clone, so older commits (like HEAD~N) may simply not be there: deepen it (`git fetch --unshallow`, or "
+                "`git fetch --deepen=200`) or pass a ref that exists.") if git_run(root, "rev-parse", "--is-shallow-repository")[1].strip() == "true" else ""
+        out_err(f"error: base '{base}' is not a commit in this repository (typo, or not fetched yet).{hint}")
     rc, out, _ = git_run(root, "merge-base", base, head)
     if rc != 0 or not out.strip():
         shallow = git_run(root, "rev-parse", "--is-shallow-repository")[1].strip() == "true"
@@ -1378,120 +1414,242 @@ def rm_split_script(plan, mb, head, files):
 
 
 # --- verify-guide
-GV_EXT = set(RM_CODE_EXT) | set("md rst txt json yml yaml toml ini cfg lock in mdc env xml csv svg".split())
+GV_EXT = set(RM_CODE_EXT) | set("md rst txt adoc json yml yaml toml ini cfg lock in mdc env xml csv svg".split())
 GV_PATH = r"[A-Za-z0-9_@+.\-/]+"
-GV_DEF = r"(?:def|class|function\*?|const|let|var|type|struct|fn|func|interface|enum|trait|object|record|namespace)"
+GV_DOC_EXT = {"md", "rst", "txt", "adoc"}
+GV_HASH_EXT = {"py", "sh", "bash", "zsh", "rb", "yml", "yaml", "toml", "pl", "r", "ini", "cfg", "tf", "mk", "jl", "ex", "exs", "env"}
+GV_NOT_HASH_COMMENT = {"c", "h", "cc", "cpp", "cxx", "hpp", "hh", "cs", "m", "mm"}  # '#' starts a preprocessor line there
+GV_MARK = re.compile(r"<!--\s*verify-guide:\s*(?:runtime|ignore)\s*-->")
+GV_NB = r"(?<![A-Za-z0-9_])"
+GV_NA = r"(?![A-Za-z0-9_])"
+GV_FAIL = ("STALE", "AMBIGUOUS", "NOT DEFINED")
+
+
+def gv_norm(p):
+    p = p.replace("\\", "/")
+    while p.startswith("./"):
+        p = p[2:]
+    return p
 
 
 def gv_path_ok(p, allow_noext=False):
     """does this look like a repo file path?  A known extension is required, except extension-less scripts in a directory (path:LINE)."""
-    if p.startswith("/") or ".." in p.split("/") or p.endswith("/") or "//" in p:
+    if not p or p.startswith("/") or ".." in p.split("/") or p.endswith("/") or "//" in p:
         return False
     base = p.rsplit("/", 1)[-1]
     ext = base.rsplit(".", 1)[-1].lower() if "." in base.lstrip(".") else ""
     return ext in GV_EXT or (allow_noext and "/" in p and not ext)
 
 
-def gv_extract(text):
-    """-> list of {line, kind, path, text, ...}; fenced code blocks are skipped"""
-    refs, seen, fence = [], set(), None
-    pat_line = re.compile(r"(?<![A-Za-z0-9_@+.\-/:])(" + GV_PATH + r"):(\d+)(?:-(\d+))?(?![\w])")
-    pat_sym = re.compile(r"(?<![A-Za-z0-9_@+.\-/:])(" + GV_PATH + r"):([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)(?![\w])")
+def gv_extract(text, guide_dir=""):
+    """-> (refs, stats). refs: {line, kind: line|symbol|file, path, text, declared, alts, ...}. Fenced code blocks are skipped (counted)."""
+    refs, seen, fence, prev = [], set(), None, ""
+    stats = {"skipped_fenced_lines": 0, "unparsed_candidates": 0}
+    P = GV_PATH
+    pat_line = re.compile(r"(?<![A-Za-z0-9_@+.\-/:])(" + P + r"):(\d+)(?:-(\d+))?(?![\w])")
+    pat_hash = re.compile(r"(?<![A-Za-z0-9_@+.\-/:])(" + P + r")#L(\d+)(?:-L?(\d+))?(?![\w])")
+    pat_sym = re.compile(r"(?<![A-Za-z0-9_@+.\-/:])(" + P + r"):([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)(?![\w])")
+    pat_bare = re.compile(r"(?<![\w/.\-@+:])((?:[\w.\-@+]+/)+[\w.\-@+]*\w)(?![\w/]|:[\w]|#L\d)")
+    pat_link = re.compile(r"\[[^\]\n]*\]\(\s*<?([^)\s>]+)>?[^)]*\)")
     pat_tick = re.compile(r"`([^`\n]+)`")
-    for ln, line in enumerate(text.splitlines(), 1):
-        m = re.match(r"^\s*(`{3,}|~{3,})", line)
+    pathish = re.compile(r"^[\w.\-/@+]+/[\w.\-@+]+\.[A-Za-z0-9]+$")
+    for ln, raw in enumerate(text.splitlines(), 1):
+        m = re.match(r"^\s*(`{3,}|~{3,})", raw)
         if m:
             if fence is None:
                 fence = m.group(1)[0] * 3
-            elif line.strip().startswith(fence):
+            elif raw.strip().startswith(fence):
                 fence = None
             continue
         if fence:
+            stats["skipped_fenced_lines"] += 1
             continue
+        line = re.sub(r"(?<![\\\w])([\w.\-@+]+(?:\\[\w.\-@+]+)+)", lambda mm: mm.group(1).replace("\\", "/"), raw)  # Windows paths
+        declared = bool(GV_MARK.search(raw) or GV_MARK.search(prev))
+        prev = raw
+        ok_here = set()
 
-        def add(kind, path, shown, **kw):
-            key = (kind, shown)
+        def add(kind, path, shown, alts=(), **kw):
+            path = gv_norm(path)
+            key = (kind, shown, declared)
+            if gv_path_ok(path, kind == "line"):
+                ok_here.add(shown)
             if gv_path_ok(path, kind == "line") and key not in seen:
                 seen.add(key)
-                refs.append(dict(line=ln, kind=kind, path=path, text=shown, **kw))
+                refs.append(dict(line=ln, kind=kind, path=path, text=shown, declared=declared, alts=list(alts), **kw))
 
+        for m in pat_link.finditer(line):
+            tgt = m.group(1)
+            if tgt.startswith("#") or re.match(r"^[A-Za-z][A-Za-z0-9+.\-]*:", tgt):
+                continue
+            path, _, frag = tgt.partition("#")
+            path = gv_norm(path).lstrip("/") if path.startswith("/") else gv_norm(path)
+            alts = []
+            if guide_dir is not None:
+                j = posixpath.normpath(posixpath.join(guide_dir, path)) if path else ""
+                if j and not j.startswith(".."):
+                    alts.append(j)
+                    if ".." in path.split("/"):
+                        path = j  # '../src/x.py' from docs/guide.md is src/x.py
+            mm = re.fullmatch(r"L(\d+)(?:-L?(\d+))?", frag) if frag else None
+            if mm:
+                add("line", path, tgt, alts, start=int(mm.group(1)), end=int(mm.group(2)) if mm.group(2) else None)
+            else:
+                add("file", path, tgt, alts)
+            if tgt not in ok_here and "/" in path and pathish.match(path):
+                stats["unparsed_candidates"] += 1
         for m in pat_line.finditer(line):
-            a = int(m.group(2))
-            b = int(m.group(3)) if m.group(3) else None
-            add("line", m.group(1), m.group(0), start=a, end=b)
+            add("line", m.group(1), m.group(0), start=int(m.group(2)), end=int(m.group(3)) if m.group(3) else None)
+        for m in pat_hash.finditer(line):
+            add("line", m.group(1), m.group(0), start=int(m.group(2)), end=int(m.group(3)) if m.group(3) else None)
         for m in pat_sym.finditer(line):
             add("symbol", m.group(1), m.group(0), symbol=m.group(2))
         for m in pat_tick.finditer(line):
             c = m.group(1).strip()
-            if re.fullmatch(GV_PATH, c) and "." in c.rsplit("/", 1)[-1]:
+            if re.fullmatch(P, c) and "." in c.rsplit("/", 1)[-1]:
                 add("file", c, c)
-    return refs
+            if "/" in c and pathish.match(c) and c not in ok_here and gv_norm(c) not in ok_here:
+                stats["unparsed_candidates"] += 1
+        for m in pat_bare.finditer(line):
+            add("file", m.group(1), m.group(1))
+    return refs, stats
 
 
-def gv_symbol_state(content, sym):
+def gv_code_view(content, ext):
+    """best effort, language-agnostic: drop comment-only lines, simple one-line string literals and trailing comments"""
+    if ext in GV_DOC_EXT:
+        return content
+    out = []
+    strip_hash = ext not in GV_NOT_HASH_COMMENT
+    for ln in content.splitlines():
+        s = ln.lstrip()
+        if s.startswith(("//", "--", ";", "*", "/*")) or (strip_hash and s.startswith("#")):
+            out.append("")
+            continue
+        ln = re.sub(r'"(?:[^"\\\n]|\\.)*"|\'(?:[^\'\\\n]|\\.)*\'', '""', ln)
+        if ext in GV_HASH_EXT:
+            ln = re.sub(r"\s#.*$", "", ln)
+        else:
+            ln = re.sub(r"\s//.*$", "", ln)
+        out.append(ln)
+    return "\n".join(out)
+
+
+def gv_symbol_state(content, sym, ext=""):
+    """'defined' | 'mentioned' (occurs, but only in comments/strings/uses) | 'absent'. Case-sensitive whole-word matches."""
     name = sym.split(".")[-1]
     w = re.escape(name)
-    if not re.search(r"(?<![A-Za-z0-9_])" + w + r"(?![A-Za-z0-9_])", content):
+    if not re.search(GV_NB + w + GV_NA, content):
         return "absent"
-    pats = [r"(?<![A-Za-z0-9_])" + GV_DEF + r"\s*(?:\([^)\n]*\)\s*)?" + w + r"(?![A-Za-z0-9_])",
-            r"(?<![A-Za-z0-9_])impl(?:<[^>\n]*>)?\s+(?:[\w:<>]+\s+for\s+)?" + w + r"(?![A-Za-z0-9_])",
-            r"^[ \t]*(?:pub\s+)?(?:static\s+)?" + w + r"[ \t]*(?::[^=\n]+)?=(?!=)"]
-    return "defined" if any(re.search(p, content, re.M) for p in pats) else "mentioned"
+    view = gv_code_view(content, ext)
+    kw = (r"(?:async\s+def|def|class|function\*?|const|let|var|interface|type|enum|struct|fn|func|trait|module|package|object|record|"
+          r"namespace|protocol|actor|extension|mixin|macro_rules!?|macro|sub|proc)")
+    mods = r"(?:export|pub|pub\([a-z]+\)|static|final|readonly|public|private|protected|const|let|var|declare|local|my|our|val|mut)"
+    pats = [GV_NB + kw + r"[ \t]+(?:\([^)\n]*\)[ \t]*)?(?:[A-Za-z_]\w*\.)*" + w + GV_NA,
+            GV_NB + r"impl(?:<[^>\n]*>)?[ \t]+(?:[\w:<>]+[ \t]+for[ \t]+)?" + w + GV_NA,
+            r"^[ \t]*(?:" + mods + r"[ \t]+)*" + w + r"[ \t]*(?::[^=\n]+?)?(?::=|=)(?!=)",
+            r"^[ \t]*(?:-[ \t]+)?" + w + r"[ \t]*:(?!:)",
+            r"^[ \t]*" + w + r"[ \t]*\([ \t]*\)",
+            r"^[ \t]*(?:(?:public|private|protected|static|async|override|virtual|final|abstract|internal|open|suspend|inline|unsafe|extern|pub|get|set)[ \t]+)+"
+            r"(?:[\w<>\[\],.*&?:]+[ \t]+)*" + w + r"[ \t]*[(<]"]
+    if ext in GV_DOC_EXT:
+        pats.append(r"^[ \t]*#{1,6}[ \t]+.*" + GV_NB + w + GV_NA)
+    return "defined" if any(re.search(p, view, re.M) for p in pats) else "mentioned"
 
 
-def rm_verify_guide(root, head, guide_path):
+def rm_verify_guide(root, head, guide_path, ignore=(), allow_mentioned=False):
+    """-> (results, stats). Every reference gets a status; declared runtime references are listed, never dropped."""
     rc, tree, err = git_run(root, "ls-tree", "-r", "-z", "--name-only", head)
     if rc != 0:
         raise SystemExit(f"error: cannot list the tree of {head}: {err.strip()}")
     paths = [x for x in tree.split("\0") if x]
+    pset = set(paths)
     cache = {}
+    try:
+        guide_dir = posixpath.dirname(Path(guide_path).resolve().relative_to(Path(root).resolve()).as_posix())
+    except ValueError:
+        guide_dir = None
 
     def content(p):
         if p not in cache:
             cache[p] = git_run(root, "show", f"{head}:./{p}")[1]
         return cache[p]
 
-    def resolve(ref):
-        if ref in paths:
-            return [ref]
-        return [p for p in paths if p.endswith("/" + ref)]
+    def resolve(r):
+        exact = [p for p in [r["path"]] + r["alts"] if p in pset]
+        if exact:
+            return exact[:1], "exact"
+        if "/" not in r["path"]:
+            return [p for p in paths if p.endswith("/" + r["path"])], "suffix"
+        return [], "exact"
 
+    refs, stats = gv_extract(Path(guide_path).read_text(errors="replace"), guide_dir)
     results = []
-    for r in gv_extract(Path(guide_path).read_text(errors="replace")):
-        cands = resolve(r["path"])
-        res = {"guide_line": r["line"], "kind": r["kind"], "ref": r["text"], "resolved": cands[:5], "status": "ok", "detail": ""}
+    for r in refs:
+        res = {"guide_line": r["line"], "kind": r["kind"], "ref": r["text"], "resolved": [], "status": "ok", "detail": ""}
+        results.append(res)
+        if r["declared"] or any(match_glob(g, r["path"]) for g in ignore):
+            res.update(status="declared (runtime)", detail="declared as created at runtime; not checked")
+            continue
+        cands, how = resolve(r)
+        res["resolved"] = cands[:5]
         if not cands:
             res.update(status="STALE", detail="file not found at " + head[:12])
-        else:
-            def check(p):
-                c = content(p)
-                if r["kind"] == "line":
-                    n = len(c.splitlines())
-                    hi = r["end"] if r["end"] is not None else r["start"]
-                    if r["start"] < 1 or (r["end"] is not None and r["end"] < r["start"]):
-                        return "STALE", "invalid line range"
-                    if hi > n:
-                        return "STALE", f"line {hi} > file has {n} lines"
-                    return "ok", ""
-                if r["kind"] == "symbol":
-                    s = gv_symbol_state(c, r["symbol"])
-                    return {"absent": ("STALE", f"symbol '{r['symbol']}' not in file"),
-                            "mentioned": ("ok", f"'{r['symbol']}' is mentioned, not defined here"),
-                            "defined": ("ok", "defined")}[s]
-                return "ok", ""
+            continue
+        if how == "suffix" and len(cands) > 1:
+            res.update(status="AMBIGUOUS", detail=f"{len(cands)} files are named {r['path']}: {', '.join(cands[:4])}; cite the full path")
+            continue
+        p = cands[0]
+        c = content(p)
+        if r["kind"] == "line":
+            n = len(c.splitlines())
+            hi = r["end"] if r["end"] is not None else r["start"]
+            if r["start"] < 1 or (r["end"] is not None and r["end"] < r["start"]):
+                res.update(status="STALE", detail="invalid line range")
+            elif hi > n:
+                res.update(status="STALE", detail=f"line {hi} > file has {n} lines")
+        elif r["kind"] == "symbol":
+            ext = p.rsplit(".", 1)[-1].lower() if "." in p.rsplit("/", 1)[-1] else ""
+            s = gv_symbol_state(c, r["symbol"], ext)
+            if s == "absent":
+                res.update(status="STALE", detail=f"symbol '{r['symbol']}' not in file")
+            elif s == "mentioned":
+                if allow_mentioned:
+                    res.update(status="mentioned (allowed)", detail=f"'{r['symbol']}' occurs but is not defined here")
+                else:
+                    res.update(status="NOT DEFINED", detail=f"'{r['symbol']}' occurs in {p} only in a comment, string or use; cite its definition (or --allow-mentioned)")
+            else:
+                res["detail"] = "defined"
+        if res["status"] == "ok" and how == "suffix":
+            res["status"] = f"ok (resolved by suffix -> {p})"
+    stats = dict(stats, checked=len(results), declared=sum(1 for x in results if x["status"].startswith("declared")))
+    return results, stats
 
-            outs = [check(p) for p in cands]
-            good = [o for o in outs if o[0] == "ok"]
-            pick = good[0] if good else outs[0]
-            res["status"], res["detail"] = pick
-            if len(cands) > 1:
-                res["detail"] = (res["detail"] + "; " if res["detail"] else "") + f"{len(cands)} files end with that path: {', '.join(cands[:3])}"
-                if res["status"] == "ok":
-                    res["status"] = "AMBIGUOUS"
-            if res["status"] == "ok" and res["detail"].startswith("'") and "mentioned" in res["detail"]:
-                res["status"] = "ok (mentioned only)"
-        results.append(res)
-    return results
+
+GUIDE_MARK = re.compile(r"^<!--\s*review-guide:\s*base=(\S+)\s+head=([0-9a-f]{7,40})\s*-->")
+
+
+def rm_guide_status(root, st, head_sha, rules):
+    """-> (missing|current|stale, reason) for the configured guide file.  The first line of the guide is a machine-readable marker
+    `<!-- review-guide: base=<sha> head=<sha> -->`.  Current = written for this head, or only documentation changed since."""
+    p = root / st["review_guide_path"]
+    if not p.is_file():
+        return "missing", f"{st['review_guide_path']} does not exist"
+    first = (p.read_text(errors="replace").splitlines() or [""])[0]
+    m = GUIDE_MARK.match(first)
+    if not m:
+        return "stale", "the first line is not a `<!-- review-guide: base=<sha> head=<sha> -->` marker with real commit ids"
+    rc, full, _ = git_run(root, "rev-parse", "--verify", "-q", m.group(2) + "^{commit}")
+    if rc != 0:
+        return "stale", f"the marker's head {m.group(2)[:10]} is not a commit in this repository"
+    full = full.strip()
+    if full == head_sha:
+        return "current", f"written for this head ({head_sha[:10]})"
+    rc, out, _ = git_run(root, "diff", "--name-only", "-z", "--relative", full, head_sha)
+    changed = [x for x in out.split("\0") if x]
+    if rc == 0 and all(rm_class(c, False, rules) == "docs" for c in changed):
+        return "current", f"written for {full[:10]}; only documentation changed since ({len(changed)} files)"
+    return "stale", f"written for {full[:10]}; code, tests or config changed since"
 
 
 def rm_pct(a, b):
@@ -1526,6 +1684,8 @@ def cmd_review_map(a):
         sys.stdout.reconfigure(errors="replace")
     except Exception:
         pass
+    if hasattr(signal, "SIGPIPE"):
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
     root = Path(a.dir).resolve()
     if not root.is_dir():
         fail(f"error: {root} is not a directory")
@@ -1543,12 +1703,16 @@ def cmd_review_map(a):
         gp = Path(a.verify_guide)
         if not gp.is_file():
             fail(f"error: guide file not found: {a.verify_guide}")
-        res = rm_verify_guide(root, head, gp)
-        bad = [r for r in res if r["status"] == "STALE"]
-        amb = [r for r in res if r["status"] == "AMBIGUOUS"]
-        mention = [r for r in res if r["status"].startswith("ok (")]
-        summary = {"references": len(res), "ok": len(res) - len(bad) - len(amb), "stale": len(bad), "ambiguous": len(amb),
-                   "mentioned_only": len(mention), "head": head_sha}
+        res, vst = rm_verify_guide(root, head, gp, st["verify_guide_ignore"], a.allow_mentioned)
+        cnt = lambda pred: sum(1 for r in res if pred(r["status"]))
+        bad = [r for r in res if r["status"] in GV_FAIL]
+        summary = {"references": len(res), "ok": cnt(lambda x: x.startswith("ok")), "declared": vst["declared"],
+                   "stale": cnt(lambda x: x == "STALE"), "ambiguous": cnt(lambda x: x == "AMBIGUOUS"),
+                   "not_defined": cnt(lambda x: x == "NOT DEFINED"), "mentioned_allowed": cnt(lambda x: x == "mentioned (allowed)"),
+                   "skipped_fenced_lines": vst["skipped_fenced_lines"], "unparsed_candidates": vst["unparsed_candidates"], "head": head_sha}
+        footer = (f"checked {len(res)} references ({vst['declared']} declared); skipped {vst['skipped_fenced_lines']} fenced-code lines; "
+                  f"{vst['unparsed_candidates']} unparsed candidates")
+        summary["footer"] = footer
         if a.json:
             print(json.dumps({"summary": summary, "references": res}, indent=1))
         else:
@@ -1556,10 +1720,9 @@ def cmd_review_map(a):
             for r in res:
                 where = r["resolved"][0] if len(r["resolved"]) == 1 else (f"({len(r['resolved'])} matches)" if r["resolved"] else "-")
                 print(f"  L{r['guide_line']:<4} {r['status']:<20} {r['ref']:<48} -> {where}" + (f"  [{r['detail']}]" if r["detail"] else ""))
-            print(f"\n{summary['references']} references: {summary['ok']} ok ({summary['mentioned_only']} symbol(s) mentioned but not defined), "
-                  f"{summary['ambiguous']} ambiguous, {summary['stale']} STALE")
-            if not res:
-                print("note: no path:line, file:symbol or `path` references found (nothing to verify)")
+            print(f"\n{summary['references']} references: {summary['ok']} ok, {summary['declared']} declared (runtime), {summary['mentioned_allowed']} mentioned (allowed), "
+                  f"{summary['ambiguous']} AMBIGUOUS, {summary['not_defined']} NOT DEFINED, {summary['stale']} STALE")
+            print(footer)
         sys.exit(1 if bad else 0)
     base, mb = rm_resolve_base(root, cfg, head, a.base, fail)
     rules = rm_rules(root, head, cfg, st)
@@ -1582,6 +1745,7 @@ def cmd_review_map(a):
         warns.append(f"{by['generated']['files']} of {tf} changed files ({by['generated']['pct_files']}%) are generated: mark them "
                      f"linguist-generated (`autocraft sync` maintains .gitattributes) and keep them in their own commit (`init --commit`).")
     rec, why, srec, swhy = rm_guide(st, tf, by["product"]["added"])
+    gstat, greason = rm_guide_status(root, st, head_sha, rules)
     summ = rm_summary(by, tf, ta)
     plan = rm_slices(files, a.target_lines, lambda p: git_run(root, "show", f"{head_sha}:./{p}")[1]) if (a.slices or a.emit_split_script) else None
     if a.emit_split_script:
@@ -1596,6 +1760,7 @@ def cmd_review_map(a):
                            "deleted": f["deleted"], "binary": f["binary"], "class": f["cls"]} for f in files],
                 "summary": summ, "warnings": warns, "guide_recommended": rec, "guide_reason": why,
                 "split_recommended": srec, "split_reason": swhy,
+                "guide_path": st["review_guide_path"], "guide_status": gstat, "guide_status_reason": greason,
                 "thresholds": {k: st[k] for k in ("human_review", "review_guide", "review_guide_min_files", "review_guide_min_product_lines")}}
         if plan:
             data["slices"] = {k: ({kk: vv for kk, vv in v.items() if kk != "entries"} if isinstance(v, dict) else
@@ -1621,6 +1786,7 @@ def cmd_review_map(a):
     for w in warns:
         print(f"warning: {w}")
     print(f"reviewer's guide: {'RECOMMENDED' if rec else 'not needed'} ({why})" + ("  -> run the /review-guide workflow" if rec else ""))
+    print(f"guide file {st['review_guide_path']}: {gstat} ({greason})" + ("  -> skip regeneration" if gstat == "current" else ""))
     if srec:
         print(f"split: this diff is large ({swhy}); offer the owner a stacked-PR split: autocraft review-map --slices")
     if plan:
@@ -1986,7 +2152,9 @@ def cmd_doctor(a):
             want, have = expected_generated_globs(proj, cfg), read_ga_block(proj)
             if have is None:
                 warnings.append("no autocraft block in .gitattributes: generated files are not marked linguist-generated, so GitHub will not collapse them in PRs (run autocraft sync)")
-            elif have != want:
+            else:
+                warnings += ga_conflicts((proj / ".gitattributes").read_text(errors="replace"), want)
+            if have is not None and have != want:
                 warnings.append(f"the .gitattributes autocraft block is stale ({len(set(want) - set(have))} missing, {len(set(have) - set(want))} obsolete entries): run autocraft sync")
         print(f"roles ({len(ids)}): {', '.join(ids)}")
     except SystemExit as e:
@@ -2046,10 +2214,18 @@ def main():
     p.add_argument("--slices", action="store_true", help="propose a split of the non-generated changes into stacked slices")
     p.add_argument("--target-lines", type=int, default=1500, help="max added lines per slice (default 1500)")
     p.add_argument("--emit-split-script", action="store_true", help="PRINT (never run) the git commands that create the stacked slice branches")
+    p.add_argument("--allow-mentioned", action="store_true", help="with --verify-guide: accept symbols that only occur in comments/strings (reported as 'mentioned (allowed)')")
     p.add_argument("--verify-guide", metavar="FILE", help="check every path:line, file:symbol and `path` reference in a markdown guide against the tree at --head; exit 1 if any is stale")
     p.set_defaults(f=cmd_review_map)
     a = ap.parse_args()
-    a.f(a)
+    try:
+        a.f(a)
+    except BrokenPipeError:  # `autocraft ... | head`: leave quietly
+        try:
+            os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        except Exception:
+            pass
+        sys.exit(0)
 
 
 if __name__ == "__main__":
