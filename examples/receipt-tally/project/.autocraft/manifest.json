@@ -1,0 +1,20 @@
+{
+ ".autocraft/archetypes/README.md": "ff4b9dd6f1f6ec2af61cace4f50329e910af0e3b908aa93a009467510ec39465",
+ ".autocraft/archetypes/script-automation.md": "92f5ae80d41bbfad5fce7708ea9885f0cc496c185fe6460c7e10e6b173a6e976",
+ ".autocraft/capabilities/analytics-observability.md": "538e16c836ff315a24bdfac058c22ec6647cb0437ab849a54316df41827e78ad",
+ ".autocraft/capabilities/deployment-hosting.md": "7c3d05c860592bcdf335196fbc94dc189c06a3c5b1581df6d18fbe3e16dc2ad2",
+ ".autocraft/capabilities/secrets-and-config.md": "58c7b610ce834ab426edadf6b880146ae4ce34f2ec3f687b962e6bebed8d37e5",
+ ".autocraft/protocol.md": "1f57e5771c47e26dc7a1c95a479bab0b991ab3ce9ff17b9bf9f16625c2e49dad",
+ ".claude/agents/developer.md": "525c10c509a532a88185b48f53f128918c98b89fb5c5285b5fb9add68e4aa462",
+ ".claude/agents/pr-reviewer.md": "486e80d6a4c7613f761709c5e930beccfda0a3eecb85607c82b70afac7ed3ab5",
+ ".claude/agents/requirements-analyst.md": "730fe21e713eacfa1c41fa564003f4c517054bea3804bd743fb1674b068bea80",
+ ".claude/agents/security-auditor.md": "27b81afbaca309240a1942486796b2eb811c83f768ef8ad2a8862dabbaee2be1",
+ ".claude/skills/build-feature/SKILL.md": "f8892feb375462b651282f60ad9d0627b169ad5b97377aec4896003164c31d27",
+ ".claude/skills/discover/SKILL.md": "25f09315a7befecde12cca93cb78389c43c8980d0a58afeab6a3bf4185485626",
+ ".claude/skills/explain/SKILL.md": "27ae8412a4c42c07fd0d3db8b901668f9efdbf1bd4183f6f2824a204347f9c05",
+ ".claude/skills/kickoff/SKILL.md": "fafb7c5121c8f1eae9a41c6d2dbf75c031d4e12adf01f5f02e5fdef0f839dcfe",
+ ".claude/skills/review-pr/SKILL.md": "56aefa9d4e32fc018c4bd39ce911bf0f4c03518e1cff37b3f89da2459871a803",
+ ".claude/skills/security-scan/SKILL.md": "eb7173ebc45f077d02d5b63cd1f3401771d7b6667bd6946fc2e05eae81ae255b",
+ ".claude/skills/start/SKILL.md": "ddb89b4165322a10b994c188c757a124790ed2a2dc552b596dcd1d14d51829b7",
+ ".claude/skills/status/SKILL.md": "2786537f0824ed8cb3102f03e66b565f5fa924b66376469e0b6b084fffc4c073"
+}
