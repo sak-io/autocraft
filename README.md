@@ -175,6 +175,7 @@ examples/                         worked examples (below)
 | Example | What it shows | Status |
 |---|---|---|
 | [**ClassBook**](examples/classbook/README.md) | A yoga-studio booking app built end to end with real, separate agents: spec → architecture (2 review rounds) → six tasks (three built in parallel) → QA → security audit. 26 agent runs, ≈2.2 M tokens (the last, lean-mode round took ≈190 k), 539 tests passing. Includes what went wrong. | Release-ready for merge; deployment (host sign-up) is the only open item |
+| [**Receipt Tally**](examples/receipt-tally/README.md) | A small command-line tool (bank CSV to monthly spending summary) built with the lean 4-role team and a token budget set up front. 4 agent runs, ≈270 k tokens, 36 tests, independent review included. Shows what to skip and what not to. | Finished; a local tool, nothing to deploy |
 | [**Pantry Pal kickoff**](examples/pantry-pal-kickoff/README.md) | The documents-first flow: a product concept + technical plan with planted contradictions → the team found all of them (22 gaps) | Rehearsal of the first steps |
 | [Order API walkthrough](docs/example-order-service.md) | A conceptual, narrated walkthrough on an order-management API | Illustrative |
 

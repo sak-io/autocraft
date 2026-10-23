@@ -1,0 +1,6 @@
+# Brief for developer: build T1 + T2 in ONE pass (token_mode lean: <=90k tokens, <=40 tool calls, report <=12 lines)
+Owner (simulated Sam) approved the spec; open-question defaults accepted (no currency symbol; refunds net; TOML config).
+Read ONLY docs/specs/receipt-tally.md. Python 3.11+ stdlib only (tomllib), package `receipt_tally/` (config, parse, rules, summary, cli + __main__), tests in `tests/` with pytest (python: SCRATCH/venv/bin/python, path given by lead). Total package code <=400 lines.
+Rules: tests with every behaviour (map each test name to an AC in a docstring/comment); write tests first for the AC list, then the code; Decimal only, never float; no network (a socket-blocking test); never write to or modify the input CSV (test checks mtime+bytes); errors must not echo transaction descriptions; deterministic output.
+Include `examples/` with two tiny fake CSVs (one per bank layout) and a sample `config.toml`, and a plain-language README.md for Sam (how to run monthly, how to write rules, what the errors mean) <=60 lines.
+Run the verify commands from the spec. Commit in 2 commits (T1, T2). Write .autocraft/work/T1/handoff.md (<=15 lines: commits, AC->test map summary, caveats). Do not push. Reply <=12 lines.

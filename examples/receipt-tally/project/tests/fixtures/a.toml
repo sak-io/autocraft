@@ -1,0 +1,12 @@
+[columns]
+date = "Date"
+date_format = "%d/%m/%Y"
+description = "Description"
+amount = "Amount"
+
+[rules]
+list = [
+  "tesco = Groceries",
+  "shell = Transport",
+  "salary = Income",
+]
