@@ -5,7 +5,7 @@ summary: For APIs, event processors, scheduled jobs, realtime services and autom
 fits: [api-service, event-processor, scheduled-job, realtime-service, script-automation]
 roles: [requirements-analyst, architect, principal-engineer, backend-developer, qa-engineer, pr-reviewer, security-auditor, release-gatekeeper, delivery-lead]
 optional: [devops-engineer, repo-onboarder, technical-writer]
-workflows: [discover, explain, start, design-architecture, build-feature, review-pr, release-check, security-scan, status, onboard-repo]
+workflows: [discover, explain, start, design-architecture, build-feature, review-pr, review-guide, release-check, security-scan, status, onboard-repo]
 ---
 
 # Playbook: API & Backend Team

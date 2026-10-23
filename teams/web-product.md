@@ -5,7 +5,7 @@ summary: Full team for websites and web apps with accounts and data: design, arc
 fits: [static-site, web-app, fullstack-app, internal-tool]
 roles: [requirements-analyst, ux-designer, architect, principal-engineer, frontend-developer, backend-developer, qa-engineer, pr-reviewer, security-auditor, release-gatekeeper, delivery-lead]
 optional: [repo-onboarder, devops-engineer, technical-writer, developer]
-workflows: [discover, explain, start, design-architecture, build-feature, review-pr, release-check, security-scan, status, onboard-repo]
+workflows: [discover, explain, start, design-architecture, build-feature, review-pr, review-guide, release-check, security-scan, status, onboard-repo]
 ---
 
 # Playbook: Web Product Team
