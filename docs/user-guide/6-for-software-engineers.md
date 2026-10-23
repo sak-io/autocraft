@@ -19,10 +19,11 @@ cd your-repo
 python3 ~/autocraft/bin/autocraft recommend --file docs/design.md            # optional: first-guess team + design-risk flags
 python3 ~/autocraft/bin/autocraft init . --tool claude-code --team starter \
     --add-role architect,qa-engineer --experience expert --autonomy 2 \
-    --sources docs/design.md --git-mode pr-per-task --owner your-github-handle
-git add -A && git commit -m "chore: add agent team"
+    --sources docs/design.md --git-mode pr-per-task --owner your-github-handle --commit
 ```
-What lands in your repo: `.claude/agents/` and `.claude/skills/` (or your tool's equivalents), a managed block in `CLAUDE.md` (your own text is preserved), `.autocraft/` (config, manifest, protocol, selected profiles, a **vendored copy of the framework** ≈ 0.9 MB so sessions never need access to this repo), and `.claude/settings.json` pre-approving routine safe commands — **read it before you commit**; `sync` never overwrites it. Nothing is installed globally; `rm -rf` the generated paths to remove it.
+`--commit` makes the installation **one dedicated commit** (`chore(autocraft): install agent team (generated files)`) containing only autocraft-owned paths, staged by explicit pathspec, so anything else you have staged or modified is left exactly as it was; hooks run, nothing is pushed. Later `autocraft sync --commit` does the same for regenerated files. Generated files are marked `linguist-generated` in `.gitattributes` (a managed block; `--no-gitattributes` opts out), so GitHub collapses them in pull requests. See [reviewing large PRs](../reviewing-large-prs.md).
+
+What lands in your repo: `.claude/agents/` and `.claude/skills/` (or your tool's equivalents), a managed block in `CLAUDE.md` (your own text is preserved), `.autocraft/` (config, manifest, protocol, selected profiles, a **vendored copy of the framework** ≈ 0.9 MB so sessions never need access to this repo), and `.claude/settings.json` pre-approving routine safe commands — **read it after the install commit and change it if you disagree**; `sync` never overwrites it. Nothing is installed globally; `rm -rf` the generated paths to remove it.
 
 `--experience expert` makes agents terse and trade-off-oriented. `--git-mode pr-per-task` gives one branch and PR per task with `agent:*` labels; the default `session-branch` keeps everything on one branch (better in cloud sessions).
 

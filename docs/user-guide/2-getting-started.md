@@ -62,7 +62,7 @@ Claude's **Code** sessions run in the cloud against a GitHub repository, so you 
 **If you only have an idea:**
 1. On github.com (or the GitHub app) create a **new, empty, private repository**.
 2. In the Claude app open **Code → New session → select that repository**.
-3. Paste the first prompt from the [bootstrap prompt](../bootstrap-prompt.md). The Team Builder interviews you, installs the team, and commits it to the session's branch. Then type `/start`.
+3. Paste the first prompt from the [bootstrap prompt](../bootstrap-prompt.md). The Team Builder interviews you, installs the team, and commits it to the session's branch as one separate install commit. Then type `/start`.
 
 > **Today's limits (Path B)**
 > - The team commits to the single branch your session was given and **does not open pull requests or push other branches unless you ask** (`git_mode: session-branch`). Say *"open the pull request"* when you are ready to merge.

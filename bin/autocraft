@@ -21,7 +21,9 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -665,6 +667,145 @@ def write_managed(path, block):
     path.write_text(new)
 
 
+# ----------------------------------------------------------------------------- generated-file markers (.gitattributes)
+GA_BEGIN = "# autocraft:begin generated (managed block - do not edit between the markers)"
+GA_END = "# autocraft:end"
+# Paths autocraft writes WHOLLY (nobody should hand-edit them, so GitHub may collapse them in diffs). Files that only contain a
+# managed BLOCK inside a user-editable file (CLAUDE.md, AGENTS.md, GEMINI.md, .github/copilot-instructions.md) are never listed.
+# .autocraft/config.yml and .autocraft/custom/** are user-owned and never listed either.
+ALWAYS_GENERATED_GLOBS = [".autocraft/framework/**", ".autocraft/templates/**", ".autocraft/archetypes/**", ".autocraft/capabilities/**",
+                          ".autocraft/protocol.md", ".autocraft/manifest.json"]
+NEUTRAL_COPY_GLOBS = [".autocraft/roles/**", ".autocraft/workflows/**"]  # written for tools in NEEDS_NEUTRAL_COPIES
+TOOL_GENERATED_GLOBS = {  # whole-file outputs of each exporter whose directory/name is autocraft's alone
+    "claude-code": [".claude/agents/**", ".claude/skills/**"],
+    "claude-app": ["claude-project/**"],
+    "cursor": [".cursor/rules/autocraft-team.mdc", ".cursor/rules/role-*.mdc", ".cursor/rules/workflow-*.mdc"],
+    "windsurf": [".windsurf/rules/autocraft-team.md", ".windsurf/rules/role-*.md", ".windsurf/rules/workflow-*.md"],
+    "cline": [".clinerules/autocraft-team.md"],
+    "prompts": ["prompts/**"],
+}
+TOOL_EXACT_PREFIXES = {  # directories users may also keep their own files in: list the manifest's files one by one
+    "copilot": [".github/agents/", ".github/prompts/"],
+    "gemini-cli": [".gemini/commands/"],
+}
+
+
+def glob_regex(pat):
+    """gitattributes/gitignore-flavoured glob -> regex: '**' crosses '/', '*' and '?' do not."""
+    out, i = [], 0
+    while i < len(pat):
+        c = pat[i]
+        if pat.startswith("**/", i):
+            out.append("(?:.*/)?")
+            i += 3
+        elif pat.startswith("**", i):
+            out.append(".*")
+            i += 2
+        elif c == "*":
+            out.append("[^/]*")
+            i += 1
+        elif c == "?":
+            out.append("[^/]")
+            i += 1
+        else:
+            out.append(re.escape(c))
+            i += 1
+    return re.compile("".join(out) + r"\Z", re.S)
+
+
+_GLOB_CACHE = {}
+
+
+def match_glob(pat, path):
+    """Does `path` (posix, relative) match `pat`?  'dir/' = a directory of that name anywhere in the path; a pattern without '/'
+    matches the file name at any depth; a pattern with '/' is anchored at the root ('**' crosses directories)."""
+    pat = pat.strip()
+    if not pat:
+        return False
+    if pat.endswith("/"):
+        d = pat.rstrip("/").lstrip("/")
+        if "/" in d:
+            return ("/" + path).find("/" + d + "/") >= 0
+        return any(fnmatch_case(c, d) for c in path.split("/")[:-1])
+    if "/" not in pat:
+        return fnmatch_case(path.rsplit("/", 1)[-1], pat)
+    rx = _GLOB_CACHE.get(pat)
+    if rx is None:
+        rx = _GLOB_CACHE[pat] = glob_regex(pat.lstrip("/"))
+    return bool(rx.match(path))
+
+
+def fnmatch_case(name, pat):
+    rx = _GLOB_CACHE.get(("f", pat))
+    if rx is None:
+        rx = _GLOB_CACHE[("f", pat)] = glob_regex(pat)
+    return bool(rx.match(name))
+
+
+def generated_globs(tools, manifest_paths):
+    """Globs for everything autocraft generates wholly, derived from the configured tools and the manifest."""
+    manifest_paths = sorted(manifest_paths)
+    globs = list(ALWAYS_GENERATED_GLOBS)
+    for t in tools:
+        globs += TOOL_GENERATED_GLOBS.get(t, [])
+        if t in NEEDS_NEUTRAL_COPIES:
+            globs += NEUTRAL_COPY_GLOBS
+        for pre in TOOL_EXACT_PREFIXES.get(t, []):
+            globs += [p for p in manifest_paths if p.startswith(pre)]
+    for p in manifest_paths:  # safety net: a new exporter output nobody listed above is still marked, file by file
+        if not any(match_glob(g, p) for g in globs):
+            globs.append(p)
+    return list(dict.fromkeys(globs))
+
+
+def ga_block(globs):
+    return GA_BEGIN + "\n" + "".join(f"{g} linguist-generated=true\n" for g in globs) + GA_END + "\n"
+
+
+def ga_replace(cur, globs):
+    """new .gitattributes text: only the managed block changes; everything outside it is preserved byte for byte"""
+    nl = "\r\n" if "\r\n" in cur else "\n"
+    body = ga_block(globs).replace("\n", nl)
+    rx = re.compile(re.escape(GA_BEGIN) + r".*?" + re.escape(GA_END) + r"[ \t]*(?:\r?\n|\Z)", re.S)
+    if rx.search(cur):
+        return rx.sub(lambda m: body, cur, count=1)
+    if not cur.strip():
+        return body
+    return cur.rstrip("\r\n") + nl + nl + body
+
+
+def update_gitattributes(proj, globs):
+    p = proj / ".gitattributes"
+    cur = p.read_bytes().decode("utf-8", "surrogateescape") if p.exists() else ""
+    new = ga_replace(cur, globs)
+    if new != cur:  # idempotent: an unchanged file is not even rewritten
+        p.write_bytes(new.encode("utf-8", "surrogateescape"))
+        return True
+    return False
+
+
+def read_ga_block(proj):
+    """globs listed in the managed block of proj/.gitattributes, or None when there is no block"""
+    p = proj / ".gitattributes"
+    if not p.exists():
+        return None
+    m = re.search(re.escape(GA_BEGIN) + r"\r?\n(.*?)" + re.escape(GA_END), p.read_text(errors="replace"), re.S)
+    if not m:
+        return None
+    return [ln.split()[0] for ln in m.group(1).splitlines() if ln.strip() and not ln.startswith("#")]
+
+
+def expected_generated_globs(proj, cfg):
+    mpath = proj / ".autocraft" / "manifest.json"
+    manifest = json.loads(mpath.read_text()) if mpath.exists() else {}
+    tools = [TOOL_ALIASES.get(t, t) for t in (as_list(cfg.get("tools")) or ["claude-code"])]
+    return generated_globs(tools, manifest)
+
+
+def markers_enabled(cfg):
+    return str(cfg.get("generated_markers", "true")).lower() not in ("false", "no", "off", "0")
+
+
 def build(proj, dry=False):
     cfg = read_config(proj)
     cfg["_proj"] = str(proj)
@@ -704,11 +845,12 @@ def build(proj, dry=False):
     # remove stale generated files
     mpath = proj / ".autocraft" / "manifest.json"
     old = json.loads(mpath.read_text()) if mpath.exists() else {}
-    warnings = []
+    warnings, removed = [], []
     for rel, h in old.items():
         if rel not in files and (proj / rel).exists():
             if sha((proj / rel).read_text()) == h:
                 (proj / rel).unlink()
+                removed.append(rel)
                 parent = (proj / rel).parent
                 try:
                     while parent != proj and not any(parent.iterdir()):
@@ -731,25 +873,121 @@ def build(proj, dry=False):
     vendor_framework(proj)
     cdir = proj / ".autocraft" / "custom"
     (cdir / "roles").mkdir(parents=True, exist_ok=True)
+    created = []  # scaffolding autocraft creates once and the user then owns; part of the install commit only when new
     if not (cdir / "README.md").exists():
         (cdir / "README.md").write_text(CUSTOM_README)
+        created.append(".autocraft/custom/README.md")
     if not (cdir / "team-rules.md").exists():
         (cdir / "team-rules.md").write_text("<!-- Rules every role must follow in THIS project (style, frameworks, company standards). Then run: autocraft sync -->\n")
+        created.append(".autocraft/custom/team-rules.md")
     shutil.copytree(FW / "templates", proj / ".autocraft" / "templates", dirs_exist_ok=True)
     for d in ("docs/specs", "docs/architecture/reviews", "docs/adr"):
         (proj / d).mkdir(parents=True, exist_ok=True)
         if not any((proj / d).iterdir()):
             (proj / d / ".gitkeep").write_text("")
+            created.append(f"{d}/.gitkeep")
     if not (proj / "docs" / "architecture" / "status.md").exists():
         shutil.copy2(FW / "templates" / "architecture" / "status.md", proj / "docs" / "architecture" / "status.md")
+        created.append("docs/architecture/status.md")
     if "claude-code" in tools:
         sp = proj / ".claude" / "settings.json"
         if not sp.exists():
             sp.write_text(json.dumps({"permissions": {"allow": SAFE_COMMANDS}}, indent=2) + "\n")
+            created.append(".claude/settings.json")
             warnings.append("wrote .claude/settings.json pre-approving routine commands (git, tests, autocraft); edit it to taste, sync never overwrites it")
     mpath.write_text(json.dumps(manifest, indent=1, sort_keys=True))
+    owned = set(files) | set(blocks) | set(removed) | set(created) | {".autocraft/manifest.json", ".autocraft/config.yml", ".autocraft/framework", ".autocraft/templates"}
+    if markers_enabled(cfg):
+        update_gitattributes(proj, generated_globs(tools, manifest))
+        owned.add(".gitattributes")
     summary["warnings"] = warnings
+    summary["owned"] = sorted(owned)
+    summary["block_files"] = sorted(blocks)
     return summary
+
+
+# ----------------------------------------------------------------------------- git helpers and the install commit
+def git_run(cwd, *args, stdin=None):
+    """run git in cwd -> (returncode, stdout, stderr); read-only commands never take the index lock"""
+    env = dict(os.environ, GIT_OPTIONAL_LOCKS="0")
+    r = subprocess.run(["git", *args], cwd=str(cwd), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                       input=stdin.encode("utf-8", "surrogateescape") if stdin is not None else None, env=env)
+    return r.returncode, r.stdout.decode("utf-8", "surrogateescape"), r.stderr.decode("utf-8", "surrogateescape")
+
+
+def git_nul(cwd, *args):
+    rc, out, _ = git_run(cwd, *args)
+    return [x for x in out.split("\0") if x] if rc == 0 else []
+
+
+def nearest_dir(p):
+    p = Path(p)
+    while not p.exists() and p != p.parent:
+        p = p.parent
+    return p
+
+
+def in_work_tree(p):
+    rc, out, _ = git_run(nearest_dir(p), "rev-parse", "--is-inside-work-tree")
+    return rc == 0 and out.strip() == "true"
+
+
+def git_state(proj):
+    """paths (relative to proj) that are modified, staged or untracked right now"""
+    return {"dirty": set(git_nul(proj, "diff", "--name-only", "-z", "--relative"))
+            | set(git_nul(proj, "diff", "--cached", "--name-only", "-z", "--relative"))
+            | set(git_nul(proj, "ls-files", "-z", "-o", "--exclude-standard")),
+            "staged": set(git_nul(proj, "diff", "--cached", "--name-only", "-z", "--relative"))}
+
+
+def foreign_text(text, begin, end):
+    """what is left of a file once its autocraft-managed block is removed"""
+    return re.sub(re.escape(begin) + r".*?" + re.escape(end) + r"[ \t]*\r?\n?", "", text, flags=re.S).strip()
+
+
+COMMIT_MSG = {"init": "chore(autocraft): install agent team (generated files)",
+              "sync": "chore(autocraft): sync agent team (generated files)"}
+
+
+def install_commit(proj, summary, pre, kind):
+    """ONE commit with only the autocraft-owned paths. Explicit pathspecs only; the user's other staged/unstaged changes are
+    left exactly as they were; hooks run (no --no-verify); on failure we unstage what we staged. Never pushes."""
+    notes, paths = [], []
+    gm = {r: (BEGIN, END) for r in summary.get("block_files", [])}
+    gm[".gitattributes"] = (GA_BEGIN, GA_END)
+    for rel in summary["owned"]:
+        if rel in gm and rel in pre["dirty"] and (proj / rel).exists():
+            if foreign_text((proj / rel).read_text(errors="replace"), *gm[rel]):
+                notes.append(f"left {rel} out of the commit: it had your uncommitted changes (commit it yourself)")
+                continue
+        paths.append(rel)
+    tracked = set(git_nul(proj, "ls-files", "-z"))
+    paths = [r for r in paths if (proj / r).exists() or r in tracked]
+    if paths:  # ignored paths cannot be added; skip them with a note instead of failing
+        rc, out, _ = git_run(proj, "check-ignore", "-z", "--stdin", stdin="\0".join(paths) + "\0")
+        ignored = {x for x in out.split("\0") if x}
+        for r in sorted(ignored):
+            notes.append(f"left {r} out of the commit: it is ignored by .gitignore")
+        paths = [r for r in paths if r not in ignored]
+    for n in notes:
+        print(f"note: {n}")
+    if not paths:
+        raise SystemExit("autocraft: nothing to commit (no autocraft-owned paths to stage)")
+    rc, out, err = git_run(proj, "add", "--", *paths)
+    if rc != 0:
+        raise SystemExit(f"autocraft: git add failed, nothing committed:\n{err.strip()}")
+    ours = [x for x in git_nul(proj, "diff", "--cached", "--name-only", "-z", "--relative", "--", *paths)]
+    if not ours:
+        raise SystemExit("autocraft: nothing to commit: the autocraft-owned files are already committed and unchanged")
+    rc, out, err = git_run(proj, "commit", "-m", COMMIT_MSG[kind], "--", *paths)
+    if rc != 0:
+        mine = [x for x in ours if x not in pre["staged"]]  # unstage only what we staged
+        if mine:
+            git_run(proj, "reset", "-q", "--", *mine)
+        sys.stderr.write((out + err).strip() + "\n")
+        raise SystemExit("autocraft: git commit failed (hooks are honoured, never bypassed); the generated files are on disk, nothing is left staged by autocraft")
+    print(f"committed {len(ours)} autocraft-owned files: {COMMIT_MSG[kind]}")
+    print((out.strip().splitlines() or [""])[0])
 
 
 CUSTOM_README = """# Customizing your agent team
@@ -869,9 +1107,14 @@ def split(v):
 
 def cmd_init(a):
     proj = Path(a.dir).resolve()
+    if a.commit and not a.dry_run and not in_work_tree(proj):
+        raise SystemExit(f"error: --commit needs a git work tree; {proj} is not inside one (run `git init` first or omit --commit)")
+    pre = git_state(proj) if a.commit and proj.exists() else {"dirty": set(), "staged": set()}
     proj.mkdir(parents=True, exist_ok=True)
     cfg = read_config(proj)
     upd = {}
+    if a.no_gitattributes:
+        upd["generated_markers"] = "false"
     if a.tool:
         upd["tools"] = [TOOL_ALIASES.get(t, t) for t in split(a.tool)]
     elif not cfg.get("tools"):
@@ -937,6 +1180,8 @@ def cmd_init(a):
         added = install_github(proj, a.lang)
         print(f"GitHub module: added {len(added)} files (CI, scanning, templates) for {a.lang}")
     report(proj, s)
+    if a.commit:
+        install_commit(proj, s, pre, "init")
 
 
 def report(proj, s):
@@ -996,7 +1241,13 @@ def cmd_sync(a):
     proj = Path(a.dir).resolve()
     if not config_path(proj).exists():
         raise SystemExit("error: no .autocraft/config.yml here. Run `autocraft init` first.")
-    report(proj, build(proj))
+    if a.commit and not in_work_tree(proj):
+        raise SystemExit(f"error: --commit needs a git work tree; {proj} is not inside one")
+    pre = git_state(proj) if a.commit else None
+    s = build(proj)
+    report(proj, s)
+    if a.commit:
+        install_commit(proj, s, pre, "sync")
 
 
 def edit_list(a, key, add, item, cast=lambda x: x):
@@ -1079,7 +1330,7 @@ def cmd_github(a):
 
 def cmd_doctor(a):
     proj = Path(a.dir).resolve()
-    problems, notes = [], []
+    problems, notes, warnings = [], [], []
     if not config_path(proj).exists():
         raise SystemExit("not an autocraft project: no .autocraft/config.yml")
     cfg = read_config(proj)
@@ -1122,11 +1373,19 @@ def cmd_doctor(a):
                     notes.append(f"{rel} was edited by hand - sync will overwrite it; move edits to .autocraft/custom/")
         else:
             problems.append("no manifest: run autocraft sync")
+        if markers_enabled(cfg):
+            want, have = expected_generated_globs(proj, cfg), read_ga_block(proj)
+            if have is None:
+                warnings.append("no autocraft block in .gitattributes: generated files are not marked linguist-generated, so GitHub will not collapse them in PRs (run autocraft sync)")
+            elif have != want:
+                warnings.append(f"the .gitattributes autocraft block is stale ({len(set(want) - set(have))} missing, {len(set(have) - set(want))} obsolete entries): run autocraft sync")
         print(f"roles ({len(ids)}): {', '.join(ids)}")
     except SystemExit as e:
         problems.append(str(e))
     for n in notes:
         print(f"note: {n}")
+    for w in warnings:
+        print(f"warning: {w}")
     for p in problems:
         print(f"PROBLEM: {p}")
     if not problems:
@@ -1154,10 +1413,13 @@ def main():
     p.add_argument("--token-mode", choices=["standard", "lean"], help="lean = agents work from briefs, stay within a budget and keep reports short (protocol section 15)")
     p.add_argument("--owner", help="the owner's GitHub handle (notifications target, CODEOWNERS)")
     p.add_argument("--add-role"); p.add_argument("--remove-role"); p.add_argument("--lang", help="also install CI/security/GitHub files: " + ", ".join(LANGS))
+    p.add_argument("--no-gitattributes", action="store_true", help="do not maintain the managed linguist-generated block in .gitattributes (stored as generated_markers: false)")
+    p.add_argument("--commit", action="store_true", help="create ONE commit with only the autocraft-owned files (needs a git work tree; never pushes; hooks run)")
     p.add_argument("--dry-run", action="store_true"); p.set_defaults(f=cmd_init)
     p = sp.add_parser("board", help="agent-agnostic task board: `board init [dir]` installs it; other args pass through to scripts/board.py")
     p.add_argument("action", choices=["init", "run"]); p.add_argument("dir", nargs="?", default="."); p.add_argument("--branch", default="main"); p.add_argument("rest", nargs="*"); p.set_defaults(f=cmd_board)
-    p = sp.add_parser("sync"); p.add_argument("dir", nargs="?", default="."); p.set_defaults(f=cmd_sync)
+    p = sp.add_parser("sync"); p.add_argument("dir", nargs="?", default=".")
+    p.add_argument("--commit", action="store_true", help="commit the regenerated autocraft-owned files as one dedicated commit (never pushes)"); p.set_defaults(f=cmd_sync)
     for name, add in (("add-role", True), ("remove-role", False)):
         p = sp.add_parser(name); p.add_argument("id"); p.add_argument("dir", nargs="?", default="."); p.set_defaults(f=lambda a, add=add: cmd_role(a, add))
     for name, add in (("add-tool", True), ("remove-tool", False)):
