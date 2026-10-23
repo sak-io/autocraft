@@ -22,7 +22,7 @@ That is about **one eighth of ClassBook's tokens** (the app is far smaller, so t
 ## How it was done (about 10 lines of commands)
 
 ```bash
-autocraft recommend "<the idea>"          # free; it could not classify this idea (see "what went wrong")
+autocraft recommend "<the idea>"          # free; at build time it could not classify this idea (fixed afterwards, see "what went wrong")
 autocraft init . --tool claude-code --team starter --archetype script-automation --token-saver
 ```
 `--token-saver` = reviewer/analyst/auditor on a mid-tier model, 2 review rounds, 2 parallel developers, plus `token_mode: lean`. The team is only 4 roles: `requirements-analyst`, `developer`, `pr-reviewer`, `security-auditor`.
@@ -52,7 +52,7 @@ Config files that crash with a traceback; a number like `1E+100000` that printed
 ## What went wrong, honestly
 
 - **About 8% over the token budget.** Review plus fixes (≈138k) cost more than the build (73k). Writing the tests in the same pass as the code, rather than first, probably made the review heavier.
-- **`autocraft recommend` could not classify the idea** ("couldn't tell the kind of software") and fell back to the lean team. The archetype (`script-automation`) was picked by the lead. Worth improving the recommender's keywords.
+- **`autocraft recommend` could not classify the idea** ("couldn't tell the kind of software") and fell back to the lean team. The archetype (`script-automation`) was picked by the lead. **Fixed afterwards** (PR #15: more keywords plus a regression test), so the same idea now gets `script-automation` automatically.
 - **One test cannot prove its purpose:** the sum-precision test passes with or without the larger Decimal context.
 - **The release check was done by the lead** from the evidence, not by a separate gatekeeper agent (see [`project/docs/STATUS.md`](project/docs/STATUS.md)).
 
