@@ -20,6 +20,8 @@ Building with *one* AI agent doing everything — planning, coding, and judging 
 | You find out at the end | Checkpoints you choose (spec, plan, release); everything is in files you can read |
 | Hard to repeat | The same team, in any tool, any session, any teammate |
 
+**What the evidence says so far.** In one controlled run of the same spec, a single agent's first pass failed 7 of 55 outside checks and the starter team's first pass 9, with the unreviewed builds' own tests green. A critical second pass fixed most of it in both arms (team 53/55; solo with a self-review pass 54/55), so a second look matters, but this run does **not** show that the second look must come from a different agent. Details, caveats and what would make it conclusive: [`evals/receipt-tally`](evals/receipt-tally/README.md). Every review finding from the worked examples is logged in `findings.csv` next to each example.
+
 ## Who it's for
 
 - **New to software** — founders, product people, analysts, designers, operators. Describe what you want (or point at documents you wrote). The team picks the right agents, makes and records the technical choices, explains everything in plain language, and asks only for decisions that are yours.

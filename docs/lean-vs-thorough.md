@@ -66,6 +66,17 @@ Receipt Tally had no architect, no principal-engineer challenge, no QA matrix, n
 | has users, logins, stored personal data, or is on the internet | lean mode **plus** an architect, QA and a security audit; lean only for the fix rounds |
 | handles money, health or safety | thorough; spend the tokens |
 
+## What lean costs in quality (measured once)
+
+A controlled run of the Receipt Tally spec through the standard starter team, scored by a black-box outside check, shows what the two lean shortcuts gave up ([full write-up](../evals/receipt-tally/README.md)):
+
+| Lean shortcut | Cost avoided | What it would have found |
+|---|---|---|
+| Skip the re-review after the fix round (lead re-runs the probes instead) | 64k tokens, +30% | 1 real MINOR (escape codes still echoed on error lines) and 2 NITs; no outside-check score changed |
+| Lead does the release check | 68k tokens, +31% | An unresolved review finding, a missing `STATUS.md`, a README telling a beginner to install pytest; no code defect |
+
+Skipping both saved about 130k of 347k tokens (38%) and cost one MINOR plus paperwork, on a local tool. The one MAJOR that survived (sums silently rounding around 1e30) survived the full process too. One run, one tool: not evidence for software with users, logins or money.
+
 ## How to get the saving on your own project
 
 ```bash
@@ -73,4 +84,4 @@ autocraft init . --tool claude-code --team starter --token-saver     # or: --tok
 ```
 Then, before the first agent runs, write down a budget (runs and tokens) and log each run in an `agent-runs.csv`, as both examples do. Both overran or came close: Receipt Tally was ≈8% over its stated 250 k; measuring is what made that visible.
 
-**Caveat on evidence:** these are two single runs by one team lead, with a simulated owner. They show the levers work and where tokens go, not a controlled benchmark.
+**Caveat on evidence:** these are two single runs by one team lead, with a simulated owner. They show the levers work and where tokens go, not a controlled benchmark. The [solo-vs-team run](../evals/receipt-tally/README.md) is the only controlled comparison so far, and it is one pair.

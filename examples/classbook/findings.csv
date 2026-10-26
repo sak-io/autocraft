@@ -1,0 +1,95 @@
+id,stage,severity,caught_by,found_in_round,summary,category,fix_status,solo_first_pass_had_it
+CB-001,architecture,MAJOR,principal-engineer,1,F1 Sign-in return path fails: login next leads to GET of POST-only book URL (405); AC-2.3 unmet,design,fixed,untested
+CB-002,architecture,MAJOR,principal-engineer,1,F2 CSRF token undefined before a session exists so login and signup forms cannot be protected,security,fixed,untested
+CB-003,architecture,MAJOR,principal-engineer,1,F3 Single-admin rule not enforced and admin bootstrap can leave a stray or promoted admin,security,fixed,untested
+CB-004,architecture,MAJOR,principal-engineer,1,F4 Login throttle unsafe behind platform proxy: shared IP key lockout or spoofable header; counters lost on restart,security,fixed,untested
+CB-005,architecture,MAJOR,principal-engineer,1,F5 T2/T3/T4 not independent: shared booking rules and write-transaction helper undefined; cross-task tests unowned,design,fixed,untested
+CB-006,architecture,MAJOR,principal-engineer,1,F6 No early deploying skeleton; hosting choice left until after five tasks and T6 overloaded,design,fixed,untested
+CB-007,architecture,MINOR,principal-engineer,1,F7 ADR-0003 hand-rolled scrypt auth accepted conditionally: pin params cap length hash outside tx dummy hash,security,fixed,untested
+CB-008,architecture,MINOR,principal-engineer,1,F8 Refusal rule precedence unspecified and now not read once inside the lock after locking,correctness,fixed,untested
+CB-009,architecture,MINOR,principal-engineer,1,"F9 Time edge cases: 30 days vs DST, nonexistent or repeated London local times, edit into the past",correctness,fixed,untested
+CB-010,architecture,MINOR,principal-engineer,1,"F10 Email details: outbox row ownership, retry block, unlimited mail via rebooking, header injection, unverified addresses",security,fixed,untested
+CB-011,architecture,MINOR,principal-engineer,1,"F11 Session and cookie details: dual Secure switch, no session purge, next validation gaps, __Host- prefix",security,fixed,untested
+CB-012,architecture,MINOR,principal-engineer,1,F12 No input length limits or email shape check or request body size limit,security,fixed,untested
+CB-013,architecture,MINOR,principal-engineer,1,F13 Backups not runnable: no scheduler or off-box copy or credential; account deletion semantics undefined,other,fixed,untested
+CB-014,architecture,MINOR,principal-engineer,1,F14 Observability below default: nobody named for uptime alert and no unhandled-exception log test,other,fixed,untested
+CB-015,architecture,MINOR,principal-engineer,1,F15 Single admin without MFA or reset is an unstated risk acceptance; want longer admin password and last sign-in note,security,fixed,untested
+CB-016,architecture,MINOR,principal-engineer,1,F16 T1 and T2 exceed the 400-line PR limit; also need a real-HTTP race test and production SQLite settings in tests,design,accepted,untested
+CB-017,architecture,NIT,principal-engineer,1,F17 Add HSTS and Referrer-Policy headers; note WAL needs a local disk,security,fixed,untested
+CB-018,architecture,NIT,principal-engineer,1,F18 My bookings hides admin-cancelled bookings; show as cancelled by the studio,design,fixed,untested
+CB-019,architecture,MINOR,principal-engineer,2,F22 Pages embedding a CSRF token (login signup visitor class page) must send Cache-Control no-store,security,fixed,untested
+CB-020,architecture,MINOR,principal-engineer,2,F23 Trusted-proxy hop count rests on an unverified Render claim; verify after first deploy (T8 smoke check),security,open,untested
+CB-021,architecture,MINOR,principal-engineer,2,F24 Storage for the 20 per hour per-user action cap is not defined (need table in 0001 migration),design,fixed,untested
+CB-022,architecture,MINOR,principal-engineer,2,F25 Bootstrap flags ADMIN_ALLOW_EMAIL_CHANGE and ADMIN_PROMOTE_EXISTING have no stated effect or flagged-path tests,docs,fixed,untested
+CB-023,architecture,MINOR,principal-engineer,2,F26 Parallel task wiring: T2 must register empty routers; four concurrent workers exceed cap of three,design,fixed,untested
+CB-024,architecture,MINOR,principal-engineer,2,F27 Spec out of date versus agreed design (AC-1.1 1.2 3.6 3.7 4.1 6.3 admin password); update before T4 and T5,docs,fixed,untested
+CB-025,architecture,NIT,principal-engineer,2,F28 Admin backup download includes sessions and login failures; needs rate limit or exclusion,security,open,untested
+CB-026,architecture,NIT,principal-engineer,2,F29 Last sign-in failure count reads from purged login_failures table so count covers only one day,correctness,fixed,untested
+CB-027,task-review,MINOR,pr-reviewer,1,T1 M-1 CI workflow and Dockerfile never run; first green CI run and docker build needed before merge,tests,open,untested
+CB-028,task-review,MINOR,pr-reviewer,1,T1 M-2 GitHub Actions pinned by major tag only; gitleaks-action may need a license secret,security,open,untested
+CB-029,task-review,MINOR,pr-reviewer,1,T1 M-3 pip-audit and tzdata pins unverified because developer could not install them,other,open,untested
+CB-030,task-review,MINOR,pr-reviewer,1,T1 M-4 Rule read now once after the lock is only a docstring; write_tx should yield now,design,open,untested
+CB-031,task-review,MINOR,pr-reviewer,1,T1 M-5 Unset APP_ENV silently means development with no Secure cookies so production fails open,security,open,untested
+CB-032,task-review,MINOR,pr-reviewer,1,T1 M-6 Log redaction is by key name only; rule never pass user data as log field not written down,security,unknown,untested
+CB-033,task-review,NIT,pr-reviewer,1,T1 N-1 bookings cancelled_at not tied to status by a CHECK like cancelled_by,correctness,unknown,untested
+CB-034,task-review,NIT,pr-reviewer,1,T1 N-2 spots_left can go negative after capacity is lowered; T4 must decide display,correctness,unknown,untested
+CB-035,task-review,NIT,pr-reviewer,1,T1 N-3 db.py ROLLBACK raising would mask the original exception,correctness,unknown,untested
+CB-036,task-review,NIT,pr-reviewer,1,T1 N-4 Migration backup files are never pruned and hold personal data; mention in runbook,docs,open,untested
+CB-037,task-review,NIT,pr-reviewer,1,T1 N-5 Dockerfile base image unpinned no start-period and pip without require-hashes,security,open,untested
+CB-038,task-review,NIT,pr-reviewer,1,T1 N-6 write_tx timing assertions could flake on a loaded CI runner,tests,unknown,untested
+CB-039,task-review,NIT,pr-reviewer,1,T1 N-7 CI jobs have no timeout-minutes,other,unknown,untested
+CB-040,task-review,MINOR,pr-reviewer,1,T2 M-1 uvicorn proxy-headers rewrites client IP from X-Forwarded-For on loopback; add --no-proxy-headers,security,fixed,untested
+CB-041,task-review,MINOR,pr-reviewer,1,T2 M-2 Error page messages cover only 403/404/405; 429 and 503 fall to generic text,correctness,fixed,untested
+CB-042,task-review,MINOR,pr-reviewer,1,T2 M-3 Template-scan self-test only re-checks a regex and does not run the real scan on a bad template,tests,fixed,untested
+CB-043,task-review,NIT,pr-reviewer,1,T2 N-1 Add comment that flash text is text only never URLs or actions,docs,unknown,untested
+CB-044,task-review,NIT,pr-reviewer,1,T2 N-2 CSRF scan evades via csrf_field in a Jinja comment or method set by if block,tests,unknown,untested
+CB-045,task-review,NIT,pr-reviewer,1,T2 N-3 CSRF cookie lasts until browser closes; T3 must rotate at login and logout with tests,security,fixed,untested
+CB-046,task-review,NIT,pr-reviewer,1,T2 N-4 NullMailer silently drops mail; T6 must replace it and fail a test if still wired,tests,fixed,untested
+CB-047,task-review,NIT,pr-reviewer,1,T2 N-5 Nav links to routes not yet implemented until T3-T5 land,other,unknown,untested
+CB-048,task-review,NIT,pr-reviewer,1,T2 N-6 No real browser pass so CSS and focus rings unchecked,accessibility,open,untested
+CB-049,task-review,MINOR,pr-reviewer,1,T3 dummy_hash built lazily so first unknown-email login is slower: one-time timing signal,security,fixed,untested
+CB-050,task-review,MINOR,pr-reviewer,1,T3 No test pins ADR-0003 scrypt params or no-hashing-inside-write-tx; no 129+ char password test,tests,fixed,untested
+CB-051,task-review,MINOR,pr-reviewer,1,T3 Promoting an existing student to admin keeps their active bookings in rosters,design,open,untested
+CB-052,task-review,NIT,pr-reviewer,1,T3 Throttle check and failure record are separate transactions so burst can exceed cap once,concurrency,accepted,untested
+CB-053,task-review,NIT,pr-reviewer,1,T3 Signed-in visitors can still open login and signup pages,other,accepted,untested
+CB-054,task-review,MAJOR,pr-reviewer,1,T4 M-1 Roster booked-only filter untested (AC-6.1): removing it leaves all tests green,tests,fixed,untested
+CB-055,task-review,MINOR,pr-reviewer,1,T4 m-1 Huge numeric class id gives HTTP 500 instead of 404,correctness,fixed,untested
+CB-056,task-review,MINOR,pr-reviewer,1,T4 m-2 Cancelling an already-started class rewrites attendance history to cancelled by studio,correctness,fixed,untested
+CB-057,task-review,MINOR,pr-reviewer,1,T4 m-3 Greyed class rows fail WCAG AA contrast (about 2.8 to 1),accessibility,fixed,untested
+CB-058,task-review,MINOR,pr-reviewer,1,T4 m-4 Already-cancelled flash message branch untested (mutation survives),tests,fixed,untested
+CB-059,task-review,NIT,pr-reviewer,1,T4 n-1 Capacity-below-bookings error only shown after other field errors are fixed,correctness,fixed,untested
+CB-060,task-review,NIT,pr-reviewer,1,T4 n-2 view() computes opens date for every class even when not shown,other,accepted,untested
+CB-061,task-review,NIT,pr-reviewer,1,T4 n-3 docs/STATUS.md not updated in the branch,docs,accepted,untested
+CB-062,task-review,MINOR,pr-reviewer,1,T5 M-1 Action cap checked before the 404 contradicts api.md row 6; document the order,docs,open,untested
+CB-063,task-review,MINOR,pr-reviewer,1,T5 M-2 Removed empty-router assertion should become every router has at least one route,tests,fixed,untested
+CB-064,task-review,MINOR,pr-reviewer,1,T5 M-3 No test that lock timeout returns 503 and writes nothing on book and cancel routes,tests,fixed,untested
+CB-065,task-review,NIT,pr-reviewer,1,T5 N-1 HTTP cap test only uses a 404 class; add a 409 refusal case through the route,tests,unknown,untested
+CB-066,task-review,NIT,pr-reviewer,1,T5 N-2 spots_left can return None for unknown class; unreachable but needs a comment,docs,unknown,untested
+CB-067,task-review,NIT,pr-reviewer,1,T5 N-3 Terse alias O = Outcome in routes/bookings.py,other,unknown,untested
+CB-068,task-review,MINOR,pr-reviewer,1,T6 M-1 Nothing proves confirmation mail is sent after the response; inline send passes all tests,tests,fixed,untested
+CB-069,task-review,MINOR,pr-reviewer,1,T6 M-2 No test that student name and email stay out of mail body; decision not recorded in ADR,tests,fixed,untested
+CB-070,task-review,MINOR,pr-reviewer,1,T6 M-3 Lock timeout drops an email or leaves pending row forever with no way to find them,other,open,untested
+CB-071,task-review,NIT,pr-reviewer,1,T6 N-1 Bidi override characters pass the control-character check in mail templates,security,accepted,untested
+CB-072,task-review,NIT,pr-reviewer,1,T6 N-2 RecordingMailer records nothing itself so the name may mislead,docs,unknown,untested
+CB-073,task-review,NIT,pr-reviewer,1,T6 N-3 Mail kind is passed as a string rather than derived from result outcome,design,unknown,untested
+CB-074,task-review,NIT,pr-reviewer,1,T6 N-4 Real studio class-cancel route must be shown to send no mail (test only simulated in SQL),tests,fixed,untested
+CB-075,qa,MINOR,qa-engineer,,D-1 POST book or cancel with id above 64 bits returns 500 instead of 404 (T4 fix covered class pages only),correctness,fixed,untested
+CB-076,qa,MINOR,qa-engineer,,D-2 Non-numeric ids in URLs return raw JSON 422 instead of the 404 page,correctness,fixed,untested
+CB-077,qa,MINOR,qa-engineer,,D-3 HEAD /health returns 405 so HEAD-based uptime monitors would report the site down,correctness,fixed,untested
+CB-078,qa,MINOR,qa-engineer,,D-5 Bare error pages (503 403 413 500) lack viewport meta and stylesheet so text is tiny on phones,accessibility,fixed,untested
+CB-079,qa,MINOR,qa-engineer,,D-6 No overflow-wrap so long unbroken names or titles scroll the page sideways on a 360 px screen,accessibility,fixed,untested
+CB-080,qa,MINOR,qa-engineer,,D-7 Admin page lacks the promised count of failed sign-ins since last login,security,fixed,untested
+CB-081,qa,MINOR,qa-engineer,,D-8 AC-1.1 says greyed classes show spots left but build shows only Opens for booking on (owner chose build),docs,accepted,untested
+CB-082,qa,MINOR,qa-engineer,,D-9 Signed-in student sees the signed-out menu on 404 and 405 pages,correctness,fixed,untested
+CB-083,security-audit,MAJOR,security-auditor,,Audit M-1 (MEDIUM) Backups admin download and nightly copy not built yet (T8); do not go live before,other,open,untested
+CB-084,security-audit,MAJOR,security-auditor,,Audit M-2 (MEDIUM) Throttled sign-up attempts still written to the database so disk can be filled,security,fixed,untested
+CB-085,security-audit,MINOR,security-auditor,,Audit L-2 (LOW) Password hash cost N=2^14 below current guidance; add scrypt2 prefix with rehash at login,security,open,untested
+CB-086,security-audit,MINOR,security-auditor,,Audit L-3 (LOW) user_actions and messages tables never purged; messages keep email addresses forever,security,fixed,untested
+CB-087,security-audit,MINOR,security-auditor,,Audit L-4 (LOW) Thin supply-chain checks: no Dependabot or CodeQL or bandit and CI never run,security,open,untested
+CB-088,security-audit,MINOR,security-auditor,,Audit L-5 (LOW) Content-Security-Policy and HSTS could be tighter (base-uri form-action frame-ancestors),security,fixed,untested
+CB-089,security-audit,MINOR,security-auditor,,Audit L-7 (LOW) Migration safety copy briefly world-readable; set umask 077 at startup,security,fixed,untested
+CB-090,hardening-review,MINOR,pr-reviewer,1,H1 CSP header tests compare to the imported constant so two assertions are tautological; pin literal policy,tests,unknown,untested
+CB-091,hardening-review,MINOR,pr-reviewer,1,H1 os.umask(0o077) in create_app is process-global; add a code comment,docs,unknown,untested
+CB-092,hardening-review,MINOR,pr-reviewer,1,H1 Admin failed-sign-in banner only appears if previous login exists; earlier failures not shown,correctness,unknown,untested
+CB-093,hardening-review,MINOR,pr-reviewer,1,H1 Purging messages at 90 days drops the booking_id and kind idempotency record; confirm retention with owner,design,open,untested
+CB-094,hardening-review,NIT,pr-reviewer,1,H1 style.css has two body rules; L-7 test does not cover WAL/SHM files; handoff says 9 xfail vs 6,other,unknown,untested

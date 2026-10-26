@@ -1,0 +1,7 @@
+arm,stage,outside_checks_passed,outside_checks_total,failed_major,failed_minor,failed_nit,own_tests,package_lines,run_tokens,run_tool_uses,run_seconds
+solo,pass-1 (build + own tests),48,55,4,2,1,32,303,68613,7,110
+solo,pass-2 (self-review and fix),54,55,0,0,1,46,334,85723,7,104
+team,after developer build,46,55,5,3,1,36,294,77810,11,139
+team,after review 1 + fix round 1 (lean mode stops here),53,55,1,0,1,45,320,137456,16,144
+team,after review 2 (approved; no code change),53,55,1,0,1,45,320,64049,6,47
+team,release-gatekeeper (blocked: 2 blockers; no code change),53,55,1,0,1,45,320,67576,8,59

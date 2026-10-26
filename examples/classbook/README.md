@@ -4,6 +4,8 @@ A real project, built by following the [User Guide](../../docs/user-guide/README
 
 > **How to read this page:** each step shows **what you (the owner) do**, **what the agents do**, and **what you see**, with links to the real artifacts. Read it top to bottom to see the whole journey, or jump to the [results](#results-at-a-glance) and [what went wrong](#what-went-wrong-and-what-we-changed-because-of-it).
 
+Every finding the reviewers, QA and the auditor raised is in [`findings.csv`](findings.csv) (94 findings: 9 MAJOR, 55 MINOR, 30 NIT; counting rules in the [evidence write-up](../../evals/receipt-tally/README.md#findings-logs-for-the-existing-examples)).
+
 ## Honest notes before you start
 
 - **The owner is simulated.** "Maya" is a fictional non-technical studio owner. I (an AI) played her, answering the agents' questions as a real owner might — including two changes of mind that alter scope. Everything the **agents** produced is real, unedited output.

@@ -1,0 +1,457 @@
+{
+ "summary": {
+  "project": "/tmp/claude-0/-home-user-autocraft/c5218fef-9a82-599c-b6ec-b32673ab0323/scratchpad/team/B1",
+  "checks": 55,
+  "passed": 53,
+  "failed": {
+   "MAJOR": 1,
+   "MINOR": 0,
+   "NIT": 1
+  },
+  "own_tests": 45,
+  "own_tests_pass": true,
+  "own_runner": "pytest -q"
+ },
+ "results": [
+  {
+   "id": "AC1",
+   "ac": "AC-1",
+   "severity": "MAJOR",
+   "title": "Layout A: signed amount column parsed; negative = spending, positive = income",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC2",
+   "ac": "AC-2",
+   "severity": "MAJOR",
+   "title": "Layout B: separate Debit/Credit columns, YYYY-MM-DD dates",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC3",
+   "ac": "AC-3",
+   "severity": "MAJOR",
+   "title": "Column order/header names changed in config only",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC4",
+   "ac": "AC-4",
+   "severity": "MAJOR",
+   "title": "Exact money: 0.10 + 0.20 totals 0.30; income 0.30 vs spending 0.30 nets to 0.00 (not -0.00)",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC4b",
+   "ac": "AC-4",
+   "severity": "MAJOR",
+   "title": "Exact money: 1000 rows of 0.10 total exactly 100.00",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC5",
+   "ac": "AC-5",
+   "severity": "MAJOR",
+   "title": "First matching rule wins (file order)",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC6",
+   "ac": "AC-6",
+   "severity": "MAJOR",
+   "title": "Rule is a case-insensitive substring match",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC7",
+   "ac": "AC-7",
+   "severity": "MAJOR",
+   "title": "No match -> 'Uncategorised' bucket and its count",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC8a",
+   "ac": "AC-8",
+   "severity": "MAJOR",
+   "title": "Summary has category totals, income, spending, net, top-5 spends, uncategorised count",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC8b",
+   "ac": "AC-8",
+   "severity": "MAJOR",
+   "title": "Top 5 lists the five largest spends only, largest first, income excluded",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC8c",
+   "ac": "AC-8",
+   "severity": "MAJOR",
+   "title": "--month selects that month only; default is the latest month in the file",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC9",
+   "ac": "AC-9",
+   "severity": "MAJOR",
+   "title": "Missing file: one plain line, non-zero exit, no traceback",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC10a",
+   "ac": "AC-10",
+   "severity": "MAJOR",
+   "title": "Bad amount/date/short row: reported with line number, skipped, others processed, exit 0, skipped note",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC11",
+   "ac": "AC-11",
+   "severity": "MAJOR",
+   "title": "No --out: nothing written anywhere (cwd tree unchanged)",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC12a",
+   "ac": "AC-12",
+   "severity": "MAJOR",
+   "title": "--out writes the summary to that file",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC12b",
+   "ac": "AC-12",
+   "severity": "MAJOR",
+   "title": "Existing --out file is not overwritten without --force; --force overwrites",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC13a",
+   "ac": "AC-13",
+   "severity": "MAJOR",
+   "title": "Deterministic: two runs byte-identical, no timestamps",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC13b",
+   "ac": "AC-13",
+   "severity": "MINOR",
+   "title": "Deterministic: equal-amount ties ordered by date then description regardless of file order",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC14",
+   "ac": "AC-14",
+   "severity": "MAJOR",
+   "title": "Works with sockets blocked and imports no networking modules",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC15a",
+   "ac": "AC-15",
+   "severity": "MAJOR",
+   "title": "Bank file bytes and mtime unchanged",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC15b",
+   "ac": "AC-15",
+   "severity": "MAJOR",
+   "title": "--out pointing at the bank file (even with --force) is refused; bank file survives",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC15c",
+   "ac": "AC-15",
+   "severity": "MAJOR",
+   "title": "--out via a symlink (or ./x/../) to the bank file is refused; bank file survives",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC16a",
+   "ac": "AC-16",
+   "severity": "MAJOR",
+   "title": "Bad-row messages never contain the transaction description",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC16b",
+   "ac": "AC-16",
+   "severity": "MAJOR",
+   "title": "No log/side files are written during runs or errors",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC17a",
+   "ac": "AC-17",
+   "severity": "MINOR",
+   "title": "Plain text output: no ANSI escape codes",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "AC17b",
+   "ac": "AC-17",
+   "severity": "MINOR",
+   "title": "Escape/control characters inside a transaction description do not reach the terminal",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "NF1",
+   "ac": "NF-simplicity",
+   "severity": "MINOR",
+   "title": "Stdlib only and package code <= 400 lines",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "NF2",
+   "ac": "AC-4",
+   "severity": "MAJOR",
+   "title": "No float() used for money in the package",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "NF3",
+   "ac": "T2",
+   "severity": "MINOR",
+   "title": "README exists and explains running and rules",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R1",
+   "ac": "ROB",
+   "severity": "MAJOR",
+   "title": "Config with wrong value type (date_format = 5): clean error, no traceback",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R2",
+   "ac": "ROB",
+   "severity": "MAJOR",
+   "title": "Config that is not valid UTF-8: clean error",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R3",
+   "ac": "ROB",
+   "severity": "MAJOR",
+   "title": "Missing config file: clean error",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R4",
+   "ac": "ROB",
+   "severity": "MAJOR",
+   "title": "Invalid TOML syntax: clean error",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R5",
+   "ac": "ROB",
+   "severity": "MAJOR",
+   "title": "Config missing required keys / sections: clean error",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R6",
+   "ac": "ROB",
+   "severity": "MAJOR",
+   "title": "Config names a column that is not in the CSV: clean error naming it (exit non-zero)",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R7",
+   "ac": "ROB",
+   "severity": "MINOR",
+   "title": "Malformed rule line (no '='): no traceback",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R8a",
+   "ac": "ROB",
+   "severity": "MAJOR",
+   "title": "Hostile amount 1E+100000 does not hang or print a gigantic number",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R8b",
+   "ac": "ROB",
+   "severity": "MAJOR",
+   "title": "NaN / Infinity amounts rejected as bad rows (no crash, no 'nan' totals)",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R9",
+   "ac": "ROB",
+   "severity": "MINOR",
+   "title": "Sub-cent amounts: rejected, or printed figures stay consistent (top-5 lines add up to the total)",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R10",
+   "ac": "ROB",
+   "severity": "MINOR",
+   "title": "--month 2026-3 is normalised or rejected, never a silent all-zero summary",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R11",
+   "ac": "ROB",
+   "severity": "MINOR",
+   "title": "--month with garbage, and a month with no rows: no traceback; garbage rejected",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R11b",
+   "ac": "ROB",
+   "severity": "NIT",
+   "title": "Month with no transactions says so in words (not just zeros)",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R12",
+   "ac": "ROB",
+   "severity": "MAJOR",
+   "title": "European number '1.234,56' is rejected or read correctly, never read as 1.23456",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R13",
+   "ac": "ROB",
+   "severity": "MAJOR",
+   "title": "Quoted thousands separator \"-1,234.50\" and currency symbols are parsed correctly",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R14",
+   "ac": "ROB",
+   "severity": "MAJOR",
+   "title": "UTF-8 BOM, CRLF line endings, blank lines, padded values",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R15",
+   "ac": "ROB",
+   "severity": "MAJOR",
+   "title": "Empty file, header-only file, headerless file: no traceback",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R16",
+   "ac": "ROB",
+   "severity": "MAJOR",
+   "title": "CSV that is not valid UTF-8: no traceback",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R17",
+   "ac": "ROB",
+   "severity": "MINOR",
+   "title": "20,000 rows processed in under 5 seconds",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R18",
+   "ac": "ROB",
+   "severity": "MINOR",
+   "title": "--out into a missing directory: clean one-line error",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R19",
+   "ac": "ROB",
+   "severity": "MINOR",
+   "title": "Zero amount rows and -0.00 never print as '-0.00'; 29 Feb 2024 valid, 31 Feb invalid",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R20",
+   "ac": "ROB",
+   "severity": "MINOR",
+   "title": "Rule match is case-insensitive for non-ASCII text (caf\u00e9 = Food matches 'CAF\u00c9 NERO')",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R21",
+   "ac": "ROB",
+   "severity": "MINOR",
+   "title": "Quoted description with commas and a newline inside does not crash",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R22",
+   "ac": "ROB",
+   "severity": "MINOR",
+   "title": "Rows from other months do not leak into the chosen month; unordered input fine",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "R23",
+   "ac": "ROB",
+   "severity": "NIT",
+   "title": "Plural: '1 row(s) skipped' is grammatical",
+   "passed": false,
+   "detail": "'1 rows'"
+  },
+  {
+   "id": "R24",
+   "ac": "ROB",
+   "severity": "MAJOR",
+   "title": "Absurdly large magnitude (1e30 as plain digits) does not corrupt sums silently",
+   "passed": false,
+   "detail": "silent rounding of huge sum:\nSpending summary for 2026-09\n\nBy category (net; spending is negative)\n  Uncategorised      -1,000,000,000,000,000,000,000,000,000,000.00\n  Groceries                                                  -0.01\n\nTotals\n  Total income                                                0.00\n  Total spending     "
+  }
+ ]
+}

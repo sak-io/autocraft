@@ -1,0 +1,19 @@
+id,stage,severity,caught_by,found_in_round,summary,category,fix_status,solo_first_pass_had_it
+TR-01,task-review,MAJOR,pr-reviewer,1,"Wrong-type config value (date_format = 5, rules = 5) crashes with a traceback (outside check R1)",correctness,fixed,no
+TR-02,task-review,MAJOR,pr-reviewer,1,"Money silently wrong: 1.234,56 read as 1.23456; 1_0.00 and 1e3 accepted (outside check R12)",correctness,fixed,yes
+TR-03,task-review,MAJOR,pr-reviewer,1,When every row is bad only 'no usable rows' is printed; the per-line problems (AC-10) are lost,correctness,fixed,no
+TR-04,task-review,MINOR,pr-reviewer,1,Description with a non-ASCII letter crashes with UnicodeEncodeError on a non-UTF-8 terminal,correctness,fixed,yes
+TR-05,task-review,MINOR,pr-reviewer,1,Control characters in descriptions reach the screen (AC-17; outside check AC17b),security,fixed,yes
+TR-06,task-review,MINOR,pr-reviewer,1,--month 2026-8 accepted and prints a silent empty summary (outside check R10),correctness,fixed,no
+TR-07,task-review,MINOR,pr-reviewer,1,--out with --force can overwrite the config file,correctness,fixed,yes
+TR-08,task-review,MINOR,pr-reviewer,1,Amounts with more than 2 decimals shown rounded with no warning (outside check R9),correctness,fixed,yes
+TR-09,task-review,NIT,pr-reviewer,1,Spec verify command and fixtures path differ from what was built,docs,fixed,n/a
+TR-10,task-review,NIT,pr-reviewer,2,Non-ASCII digits are accepted as amounts (still exact),correctness,open,yes
+TR-11,task-review,MINOR,pr-reviewer,2,"Cell text echoed in 'bad date/amount' lines is printed raw, so control characters still reach the screen (AC-17)",security,open,yes
+TR-12,task-review,NIT,pr-reviewer,2,".50 and 5. are skipped as bad amounts (safe, loud)",correctness,accepted,no
+TR-13,release-check,MAJOR,release-gatekeeper,,"docs/STATUS.md missing, so the reviewer's 'note it in STATUS' had no home (protocol rule 7)",docs,open,n/a
+TR-14,release-check,MINOR,release-gatekeeper,,"README tells the owner to run pytest, which is not part of Python",docs,open,yes
+TR-15,outside-check,MAJOR,outside-check,,"Amounts around 1e30 silently round the totals (decimal precision 28); outside check R24, survived both reviews",correctness,open,yes
+TR-16,outside-check,MAJOR,outside-check,,"Config that is not valid UTF-8 crashes with a traceback (R2); missed by both reviews, cleared as a side effect of fix round 1's catch-all",correctness,fixed,yes
+TR-17,outside-check,MAJOR,outside-check,,"Amount 1E+100000 prints a 666,000-character number (R8a); not named by either review, cleared as a side effect of fix round 1's strict amount parser",correctness,fixed,yes
+TR-18,outside-check,NIT,outside-check,,'1 rows skipped' is not grammatical (R23); survived both reviews,docs,open,yes

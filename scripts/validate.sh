@@ -146,6 +146,10 @@ while IFS= read -r l; do
   [[ -e "$(dirname "$file")/$target" ]] || err "$file: broken link -> $target"
 done < <(grep -rnoE '\]\(([^)]+)\)' README.md docs archetypes capabilities | sed -E 's/^([^:]+):[0-9]+:\]\((.*)\)$/\1:\2/')
 
+# --- evidence files: findings.csv schema and values
+python3 scripts/findings_summary.py --check || err "findings.csv files are invalid"
+python3 -m py_compile evals/receipt-tally/outside_check.py || err "outside_check.py does not compile"
+rm -rf evals/receipt-tally/__pycache__
 for pid in $cli_pids; do wait "$pid" || { cat "$tmp"/cli-*.log >&2; err "scripts/test_cli.py failed"; }; done
 [[ -f templates/review/review-guide.md && -f workflows/review-guide.md ]] || err "review-guide workflow or template missing"
 for h in "## 1. What is in the diff" "## 2. The system on one page" "## 3. Properties that must always hold" "## 4. Suggested reading order" "## 5. How to verify" "## 6. What has NOT been independently verified" "## 7. Decisions that need the owner" "## 8. Making it reviewable"; do

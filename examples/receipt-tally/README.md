@@ -47,7 +47,7 @@ autocraft init . --tool claude-code --team starter --archetype script-automation
 
 ## What the review caught that the builder missed
 
-Config files that crash with a traceback; a number like `1E+100000` that printed 100,000 digits; sub-cent amounts that made printed lines not add up to the total; a silent all-zero summary for `--month 2026-3`; an escape character in a transaction description reaching the terminal; and a thousands-separator mutation that no test noticed. Without the independent reviewer these would have shipped.
+Config files that crash with a traceback; a number like `1E+100000` that printed 100,000 digits; sub-cent amounts that made printed lines not add up to the total; a silent all-zero summary for `--month 2026-3`; an escape character in a transaction description reaching the terminal; and a thousands-separator mutation that no test noticed. Findings are logged in [`findings.csv`](findings.csv) (11 distinct defects: 2 MAJOR, 7 MINOR, 2 NIT; the 2 MAJOR + 4 MINOR + 1 NIT above groups them by fix-brief item). Would a solo agent have shipped them? A later controlled run ([evidence](../../evals/receipt-tally/README.md)) built the same spec with one agent: of the 8 findings that could be tested, 5 were in its first pass, 2 were not and 1 partly. But that agent fixed most of them too when asked to review its own work, so the evidence supports "a critical second pass is needed", not yet "it must be a different agent".
 
 ## What went wrong, honestly
 
