@@ -5,7 +5,7 @@ summary: For libraries, SDKs, command-line tools, plugins/extensions and desktop
 fits: [library-cli, plugin-extension, desktop-app]
 roles: [requirements-analyst, architect, principal-engineer, developer, qa-engineer, pr-reviewer, security-auditor, release-gatekeeper, technical-writer]
 optional: [frontend-developer, ux-designer, devops-engineer, delivery-lead]
-workflows: [discover, explain, start, design-architecture, build-feature, review-pr, release-check, security-scan, status]
+workflows: [discover, explain, start, design-architecture, build-feature, review-pr, review-guide, release-check, security-scan, status]
 ---
 
 # Playbook: Toolsmith Team

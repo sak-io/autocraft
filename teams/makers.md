@@ -5,7 +5,7 @@ summary: For games and embedded/IoT devices: testable logic separated from hardw
 fits: [game, embedded-iot]
 roles: [requirements-analyst, architect, principal-engineer, game-developer, embedded-engineer, qa-engineer, pr-reviewer, security-auditor, release-gatekeeper]
 optional: [backend-developer, devops-engineer, ux-designer, delivery-lead]
-workflows: [discover, explain, start, design-architecture, build-feature, review-pr, release-check, security-scan, status]
+workflows: [discover, explain, start, design-architecture, build-feature, review-pr, review-guide, release-check, security-scan, status]
 ---
 
 # Playbook: Makers Team

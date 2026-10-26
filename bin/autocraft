@@ -13,6 +13,7 @@ One tool-neutral definition of roles, teams, workflows, archetypes and capabilit
     autocraft new-role ID                scaffold a custom role in .autocraft/custom/roles/
     autocraft github [DIR] --lang L      add CI, security scanning and GitHub templates
     autocraft doctor [DIR]               check the setup
+    autocraft review-map [DIR]           what is in this diff? product vs tests vs generated (no model tokens)
 
 Standard library only (Python 3.8+).
 """
@@ -20,8 +21,12 @@ import argparse
 import hashlib
 import json
 import os
+import posixpath
 import re
+import shlex
 import shutil
+import signal
+import subprocess
 import sys
 from pathlib import Path
 
@@ -665,6 +670,168 @@ def write_managed(path, block):
     path.write_text(new)
 
 
+# ----------------------------------------------------------------------------- generated-file markers (.gitattributes)
+GA_BEGIN = "# autocraft:begin generated (managed block - do not edit between the markers)"
+GA_END = "# autocraft:end"
+# Paths autocraft writes WHOLLY (nobody should hand-edit them, so GitHub may collapse them in diffs). Files that only contain a
+# managed BLOCK inside a user-editable file (CLAUDE.md, AGENTS.md, GEMINI.md, .github/copilot-instructions.md) are never listed.
+# .autocraft/config.yml and .autocraft/custom/** are user-owned and never listed either.
+ALWAYS_GENERATED_GLOBS = [".autocraft/framework/**", ".autocraft/templates/**", ".autocraft/archetypes/**", ".autocraft/capabilities/**",
+                          ".autocraft/protocol.md", ".autocraft/manifest.json"]
+NEUTRAL_COPY_GLOBS = [".autocraft/roles/**", ".autocraft/workflows/**"]  # written for tools in NEEDS_NEUTRAL_COPIES
+TOOL_GENERATED_GLOBS = {  # whole-file outputs of each exporter whose directory/name is autocraft's alone
+    "claude-code": [".claude/agents/**", ".claude/skills/**"],
+    "claude-app": ["claude-project/**"],
+    "cursor": [".cursor/rules/autocraft-team.mdc", ".cursor/rules/role-*.mdc", ".cursor/rules/workflow-*.mdc"],
+    "windsurf": [".windsurf/rules/autocraft-team.md", ".windsurf/rules/role-*.md", ".windsurf/rules/workflow-*.md"],
+    "cline": [".clinerules/autocraft-team.md"],
+    "prompts": ["prompts/**"],
+}
+TOOL_EXACT_PREFIXES = {  # directories users may also keep their own files in: list the manifest's files one by one
+    "copilot": [".github/agents/", ".github/prompts/"],
+    "gemini-cli": [".gemini/commands/"],
+}
+
+
+def glob_regex(pat):
+    """gitattributes/gitignore-flavoured glob -> regex: '**' crosses '/', '*' and '?' do not."""
+    out, i = [], 0
+    while i < len(pat):
+        c = pat[i]
+        if pat.startswith("**/", i):
+            out.append("(?:.*/)?")
+            i += 3
+        elif pat.startswith("**", i):
+            out.append(".*")
+            i += 2
+        elif c == "*":
+            out.append("[^/]*")
+            i += 1
+        elif c == "?":
+            out.append("[^/]")
+            i += 1
+        else:
+            out.append(re.escape(c))
+            i += 1
+    return re.compile("".join(out) + r"\Z", re.S)
+
+
+_GLOB_CACHE = {}
+
+
+def match_glob(pat, path):
+    """Does `path` (posix, relative) match `pat`?  'dir/' = a directory of that name anywhere in the path; a pattern without '/'
+    matches the file name at any depth; a pattern with '/' is anchored at the root ('**' crosses directories)."""
+    pat = pat.strip()
+    if not pat:
+        return False
+    if pat.endswith("/"):
+        d = pat.rstrip("/").lstrip("/")
+        if "/" in d:
+            return ("/" + path).find("/" + d + "/") >= 0
+        return any(fnmatch_case(c, d) for c in path.split("/")[:-1])
+    if "/" not in pat:
+        return fnmatch_case(path.rsplit("/", 1)[-1], pat)
+    rx = _GLOB_CACHE.get(pat)
+    if rx is None:
+        rx = _GLOB_CACHE[pat] = glob_regex(pat.lstrip("/"))
+    return bool(rx.match(path))
+
+
+def fnmatch_case(name, pat):
+    rx = _GLOB_CACHE.get(("f", pat))
+    if rx is None:
+        rx = _GLOB_CACHE[("f", pat)] = glob_regex(pat)
+    return bool(rx.match(name))
+
+
+def generated_globs(tools, manifest_paths):
+    """Globs for everything autocraft generates wholly, derived from the configured tools and the manifest."""
+    manifest_paths = sorted(manifest_paths)
+    globs = list(ALWAYS_GENERATED_GLOBS)
+    for t in tools:
+        globs += TOOL_GENERATED_GLOBS.get(t, [])
+        if t in NEEDS_NEUTRAL_COPIES:
+            globs += NEUTRAL_COPY_GLOBS
+        for pre in TOOL_EXACT_PREFIXES.get(t, []):
+            globs += [p for p in manifest_paths if p.startswith(pre)]
+    for p in manifest_paths:  # safety net: a new exporter output nobody listed above is still marked, file by file
+        if not any(match_glob(g, p) for g in globs):
+            globs.append(p)
+    return list(dict.fromkeys(globs))
+
+
+def ga_block(globs):
+    return GA_BEGIN + "\n" + "".join(f"{g} linguist-generated=true\n" for g in globs) + GA_END + "\n"
+
+
+def ga_replace(cur, globs):
+    """new .gitattributes text: only the managed block changes; everything outside it is preserved byte for byte"""
+    nl = "\r\n" if "\r\n" in cur else "\n"
+    body = ga_block(globs).replace("\n", nl)
+    rx = re.compile(re.escape(GA_BEGIN) + r".*?" + re.escape(GA_END) + r"[ \t]*(?:\r?\n|\Z)", re.S)
+    if rx.search(cur):
+        return rx.sub(lambda m: body, cur, count=1)
+    if not cur.strip():
+        return body
+    return cur.rstrip("\r\n") + nl + nl + body
+
+
+def update_gitattributes(proj, globs):
+    p = proj / ".gitattributes"
+    cur = p.read_bytes().decode("utf-8", "surrogateescape") if p.exists() else ""
+    new = ga_replace(cur, globs)
+    if new != cur:  # idempotent: an unchanged file is not even rewritten
+        p.write_bytes(new.encode("utf-8", "surrogateescape"))
+        return True
+    return False
+
+
+def ga_conflicts(text, globs):
+    """user rules that switch linguist-generated off for a path our block marks: git uses the LAST matching line, so say who wins"""
+    out, in_block, block_end = [], False, None
+    lines = text.splitlines()
+    for i, ln in enumerate(lines, 1):
+        if ln.strip() == GA_BEGIN:
+            in_block = True
+        elif in_block:
+            if ln.startswith(GA_END):
+                in_block, block_end = False, i
+    for i, ln in enumerate(lines, 1):
+        parts = ln.split()
+        if len(parts) < 2 or parts[0].startswith("#"):
+            continue
+        if not any(x in ("-linguist-generated", "!linguist-generated", "linguist-generated=false") for x in parts[1:]):
+            continue
+        hit = [g for g in globs if g == parts[0] or match_glob(parts[0], g) or match_glob(g, parts[0])]
+        if hit:
+            wins = "your rule wins (it comes later)" if block_end is not None and i > block_end else "autocraft's block wins (it comes later)"
+            out.append(f".gitattributes line {i} ('{ln.strip()}') conflicts with autocraft's entry '{hit[0]}': {wins}; git uses the last matching line")
+    return out
+
+
+def read_ga_block(proj):
+    """globs listed in the managed block of proj/.gitattributes, or None when there is no block"""
+    p = proj / ".gitattributes"
+    if not p.exists():
+        return None
+    m = re.search(re.escape(GA_BEGIN) + r"\r?\n(.*?)" + re.escape(GA_END), p.read_text(errors="replace"), re.S)
+    if not m:
+        return None
+    return [ln.split()[0] for ln in m.group(1).splitlines() if ln.strip() and not ln.startswith("#")]
+
+
+def expected_generated_globs(proj, cfg):
+    mpath = proj / ".autocraft" / "manifest.json"
+    manifest = json.loads(mpath.read_text()) if mpath.exists() else {}
+    tools = [TOOL_ALIASES.get(t, t) for t in (as_list(cfg.get("tools")) or ["claude-code"])]
+    return generated_globs(tools, manifest)
+
+
+def markers_enabled(cfg):
+    return str(cfg.get("generated_markers", "true")).lower() not in ("false", "no", "off", "0")
+
+
 def build(proj, dry=False):
     cfg = read_config(proj)
     cfg["_proj"] = str(proj)
@@ -704,11 +871,12 @@ def build(proj, dry=False):
     # remove stale generated files
     mpath = proj / ".autocraft" / "manifest.json"
     old = json.loads(mpath.read_text()) if mpath.exists() else {}
-    warnings = []
+    warnings, removed = [], []
     for rel, h in old.items():
         if rel not in files and (proj / rel).exists():
             if sha((proj / rel).read_text()) == h:
                 (proj / rel).unlink()
+                removed.append(rel)
                 parent = (proj / rel).parent
                 try:
                     while parent != proj and not any(parent.iterdir()):
@@ -731,25 +899,129 @@ def build(proj, dry=False):
     vendor_framework(proj)
     cdir = proj / ".autocraft" / "custom"
     (cdir / "roles").mkdir(parents=True, exist_ok=True)
+    created = []  # scaffolding autocraft creates once and the user then owns; part of the install commit only when new
     if not (cdir / "README.md").exists():
         (cdir / "README.md").write_text(CUSTOM_README)
+        created.append(".autocraft/custom/README.md")
     if not (cdir / "team-rules.md").exists():
         (cdir / "team-rules.md").write_text("<!-- Rules every role must follow in THIS project (style, frameworks, company standards). Then run: autocraft sync -->\n")
+        created.append(".autocraft/custom/team-rules.md")
     shutil.copytree(FW / "templates", proj / ".autocraft" / "templates", dirs_exist_ok=True)
     for d in ("docs/specs", "docs/architecture/reviews", "docs/adr"):
         (proj / d).mkdir(parents=True, exist_ok=True)
         if not any((proj / d).iterdir()):
             (proj / d / ".gitkeep").write_text("")
+            created.append(f"{d}/.gitkeep")
     if not (proj / "docs" / "architecture" / "status.md").exists():
         shutil.copy2(FW / "templates" / "architecture" / "status.md", proj / "docs" / "architecture" / "status.md")
+        created.append("docs/architecture/status.md")
     if "claude-code" in tools:
         sp = proj / ".claude" / "settings.json"
         if not sp.exists():
             sp.write_text(json.dumps({"permissions": {"allow": SAFE_COMMANDS}}, indent=2) + "\n")
+            created.append(".claude/settings.json")
             warnings.append("wrote .claude/settings.json pre-approving routine commands (git, tests, autocraft); edit it to taste, sync never overwrites it")
     mpath.write_text(json.dumps(manifest, indent=1, sort_keys=True))
+    owned = set(files) | set(blocks) | set(removed) | set(created) | {".autocraft/manifest.json", ".autocraft/config.yml", ".autocraft/framework", ".autocraft/templates"}
+    if markers_enabled(cfg):
+        gl = generated_globs(tools, manifest)
+        update_gitattributes(proj, gl)
+        owned.add(".gitattributes")
+        warnings += [m for m in ga_conflicts((proj / ".gitattributes").read_text(errors="replace"), gl)]
     summary["warnings"] = warnings
+    summary["owned"] = sorted(owned)
+    summary["block_files"] = sorted(blocks)
     return summary
+
+
+# ----------------------------------------------------------------------------- git helpers and the install commit
+def git_run(cwd, *args, stdin=None):
+    """run git in cwd -> (returncode, stdout, stderr); read-only commands never take the index lock"""
+    env = dict(os.environ, GIT_OPTIONAL_LOCKS="0")
+    r = subprocess.run(["git", *args], cwd=str(cwd), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                       input=stdin.encode("utf-8", "surrogateescape") if stdin is not None else None, env=env)
+    return r.returncode, r.stdout.decode("utf-8", "surrogateescape"), r.stderr.decode("utf-8", "surrogateescape")
+
+
+def git_nul(cwd, *args):
+    rc, out, _ = git_run(cwd, *args)
+    return [x for x in out.split("\0") if x] if rc == 0 else []
+
+
+def nearest_dir(p):
+    p = Path(p)
+    while not p.exists() and p != p.parent:
+        p = p.parent
+    return p
+
+
+def in_work_tree(p):
+    rc, out, _ = git_run(nearest_dir(p), "rev-parse", "--is-inside-work-tree")
+    return rc == 0 and out.strip() == "true"
+
+
+def git_state(proj):
+    """paths (relative to proj) that are modified, staged or untracked right now"""
+    return {"dirty": set(git_nul(proj, "diff", "--name-only", "-z", "--relative"))
+            | set(git_nul(proj, "diff", "--cached", "--name-only", "-z", "--relative"))
+            | set(git_nul(proj, "ls-files", "-z", "-o", "--exclude-standard")),
+            "staged": set(git_nul(proj, "diff", "--cached", "--name-only", "-z", "--relative"))}
+
+
+def foreign_text(text, begin, end):
+    """what is left of a file once its autocraft-managed block is removed"""
+    return re.sub(re.escape(begin) + r".*?" + re.escape(end) + r"[ \t]*\r?\n?", "", text, flags=re.S).strip()
+
+
+COMMIT_MSG = {"init": "chore(autocraft): install agent team (generated files)",
+              "sync": "chore(autocraft): sync agent team (generated files)"}
+
+
+def install_commit(proj, summary, pre, kind):
+    """ONE commit with only the autocraft-owned paths. Explicit pathspecs only; the user's other staged/unstaged changes are
+    left exactly as they were; hooks run (no --no-verify); on failure we unstage what we staged. Never pushes."""
+    notes, paths = [], []
+    gm = {r: (BEGIN, END) for r in summary.get("block_files", [])}
+    gm[".gitattributes"] = (GA_BEGIN, GA_END)
+    for rel in summary["owned"]:
+        if rel in gm and rel in pre["dirty"] and (proj / rel).exists():
+            if foreign_text((proj / rel).read_text(errors="replace"), *gm[rel]):
+                notes.append(f"left {rel} out of the commit: it had your uncommitted changes (commit it yourself)")
+                continue
+        paths.append(rel)
+    tracked = set(git_nul(proj, "ls-files", "-z"))
+    paths = [r for r in paths if (proj / r).exists() or r in tracked]
+    if paths:  # ignored paths cannot be added; skip them with a note instead of failing
+        rc, out, _ = git_run(proj, "check-ignore", "-z", "--stdin", stdin="\0".join(paths) + "\0")
+        ignored = {x for x in out.split("\0") if x}
+        for r in sorted(ignored):
+            notes.append(f"left {r} out of the commit: it is ignored by .gitignore")
+        paths = [r for r in paths if r not in ignored]
+    for n in notes:
+        print(f"note: {n}")
+    if not paths:
+        print("autocraft: nothing to commit (no autocraft-owned paths to stage)")
+        return
+    rc, out, err = git_run(proj, "add", "--", *paths)
+    if rc != 0:
+        raise SystemExit(f"autocraft: git add failed, nothing committed:\n{err.strip()}")
+    ours = [x for x in git_nul(proj, "diff", "--cached", "--name-only", "-z", "--relative", "--", *paths)]
+    if not ours:  # exit 0: re-running init/sync on an up-to-date repo is not an error
+        print("autocraft: nothing to commit: the autocraft-owned files are already committed and unchanged")
+        return
+    rc, out, err = git_run(proj, "commit", "-m", COMMIT_MSG[kind], "--", *paths)
+    if rc != 0:
+        mine = [x for x in ours if x not in pre["staged"]]  # unstage only what we staged
+        if mine:
+            git_run(proj, "reset", "-q", "--", *mine)
+        sys.stderr.write((out + err).strip() + "\n")
+        raise SystemExit("autocraft: git commit failed (hooks are honoured, never bypassed); the generated files are on disk, nothing is left staged by autocraft")
+    ref = git_run(proj, "symbolic-ref", "-q", "--short", "HEAD")[1].strip()
+    sha = git_run(proj, "rev-parse", "--short", "HEAD")[1].strip()
+    where = f"branch {ref}" if ref else f"detached HEAD (now at {sha}; not on any branch)"
+    git_run(proj, "reset", "-q", "--", *ours)  # a hook that rewrote and re-added files leaves a stale index entry under --only: sync it to HEAD
+    print(f"committed {len(ours)} autocraft-owned files on {where}: {COMMIT_MSG[kind]}")
+    print((out.strip().splitlines() or [""])[0])
 
 
 CUSTOM_README = """# Customizing your agent team
@@ -797,6 +1069,745 @@ def install_github(proj, lang):
         set_config(proj, {"language": lang})
     shutil.copytree(FW / "templates", proj / ".autocraft" / "templates", dirs_exist_ok=True)
     return added
+
+
+# ----------------------------------------------------------------------------- review-map (deterministic, zero model tokens)
+# Classification is table-driven: ordered (class, patterns) rows, first match wins. Patterns use match_glob():
+#   'dir/'  a directory of that name anywhere in the path      '*.ext' / 'name'  the file name at any depth
+#   'a/b/**' anchored at the repository root ('**' crosses directories)
+RM_GENERATED = ["package-lock.json", "yarn.lock", "pnpm-lock.yaml", "poetry.lock", "Cargo.lock", "Gemfile.lock", "go.sum",
+                "composer.lock", "uv.lock", "Pipfile.lock", "bun.lockb", "*.lock", "*.min.*", "dist/", "build/", "vendor/",
+                "node_modules/", "*.egg-info/", ".autocraft/framework/**"]
+RM_TESTS = ["tests/", "test/", "__tests__/", "spec/", "test_helpers/", "testing/", "fixtures/", "testdata/", "__fixtures__/", "test_*.*", "*_test.*", "*.test.*", "*.spec.*", "conftest.py"]
+RM_CI_EARLY = [".github/", "requirements*.txt", "constraints*.txt", "CMakeLists.txt"]  # would otherwise be caught by docs rules
+RM_DOCS = ["docs/", "*.md", "*.rst", "*.txt", "*.adoc", "LICENSE", "LICENSE.*", "NOTICE", "AUTHORS", "CHANGELOG", "CHANGELOG.*"]
+RM_CI_CONFIG = [".github/", "*.toml", "*.yml", "*.yaml", "*.json", "*.ini", "*.cfg", "Dockerfile", "Dockerfile.*", "Makefile", "makefile",
+                "*.mk", ".gitignore", ".gitattributes", ".dockerignore", "MANIFEST.in", ".editorconfig", "go.mod", ".npmrc", ".nvmrc",
+                ".flake8", "CODEOWNERS", "*.gradle", "pom.xml"]
+RM_CODE_EXT = set("py pyi js mjs cjs jsx ts tsx go rs java kt kts scala c h cc cpp cxx hpp hh cs rb php swift m mm sh bash zsh fish "
+                  "ps1 lua pl pm r jl dart ex exs erl hrl hs clj cljs sql html htm css scss sass less vue svelte proto graphql tf "
+                  "sol zig nim v groovy gradle".split())
+RM_CLASSES = ["generated", "tests", "docs", "ci_config", "product", "other"]
+RM_DEFAULTS = {"human_review": "optional", "review_guide": "auto", "review_guide_min_files": 60, "review_guide_min_product_lines": 1500}
+
+
+def review_settings(cfg):
+    """validated review settings from the config -> (settings, problems)"""
+    st, problems = dict(RM_DEFAULTS), []
+    for k, choices in (("human_review", ("optional", "required")), ("review_guide", ("auto", "always", "never"))):
+        v = str(cfg.get(k, RM_DEFAULTS[k]))
+        if v in choices:
+            st[k] = v
+        else:
+            problems.append(f"{k}: '{v}' is not one of {' | '.join(choices)}")
+    for k in ("review_guide_min_files", "review_guide_min_product_lines"):
+        v = str(cfg.get(k, RM_DEFAULTS[k]))
+        if v.isdigit():
+            st[k] = int(v)
+        else:
+            problems.append(f"{k}: '{v}' is not a non-negative integer")
+    for k in ("review_map_extra_generated", "review_map_extra_tests", "verify_guide_ignore"):
+        st[k] = as_list(cfg.get(k))
+    st["review_guide_path"] = str(cfg.get("review_guide_path") or "docs/review-guide.md")
+    return st, problems
+
+
+def rm_class(path, binary, rules):
+    base = path.rsplit("/", 1)[-1]
+    if path in rules["manifest"] or any(match_glob(g, path) for g in rules["generated"]):
+        return "generated"
+    if any(match_glob(g, path) for g in rules["tests"]):
+        return "tests"
+    if any(match_glob(g, path) for g in RM_CI_EARLY):
+        return "ci_config"
+    if any(match_glob(g, path) for g in RM_DOCS):
+        return "docs"
+    if any(match_glob(g, path) for g in RM_CI_CONFIG):
+        return "ci_config"
+    if binary:
+        return "other"
+    ext = base.rsplit(".", 1)[-1].lower() if "." in base.lstrip(".") else ""
+    if ext in RM_CODE_EXT:
+        return "product"
+    if not ext and not base.startswith("."):
+        return "product"  # extension-less scripts (bin/tool) are code
+    return "other"
+
+
+def rm_git_text(root, ref, rel):
+    rc, out, _ = git_run(root, "show", f"{ref}:./{rel}")
+    return out if rc == 0 else None
+
+
+def rm_rules(root, head, cfg, st):
+    """classification rules for the tree at `head`: manifest paths, linguist-generated entries and tool outputs of THAT commit"""
+    manifest, tools, ga = {}, [], []
+    txt = rm_git_text(root, head, ".autocraft/manifest.json")
+    if txt:
+        try:
+            manifest = json.loads(txt)
+        except ValueError:
+            pass
+    conf = rm_git_text(root, head, ".autocraft/config.yml")
+    if conf:
+        for line in conf.splitlines():
+            m = re.match(r"^tools:\s*(.*?)(\s+#.*)?$", line)
+            if m:
+                tools = [TOOL_ALIASES.get(t, t) for t in as_list(parse_val(m.group(1)))]
+    gtxt = rm_git_text(root, head, ".gitattributes")
+    for line in (gtxt or "").splitlines():
+        parts = line.split()
+        if len(parts) >= 2 and not parts[0].startswith("#"):
+            attrs = parts[1:]
+            if ("linguist-generated" in attrs or "linguist-generated=true" in attrs) and "-linguist-generated" not in attrs:
+                ga.append(parts[0])
+    generated = list(RM_GENERATED) + ga + st["review_map_extra_generated"]
+    if manifest or tools:
+        generated += [g for g in generated_globs(tools, manifest) if g not in generated]
+    return {"manifest": set(manifest), "generated": generated, "tests": list(RM_TESTS) + st["review_map_extra_tests"]}
+
+
+def rm_resolve_base(root, cfg, head, base, out_err):
+    """-> (base_ref_shown, merge_base_sha) or exits 2 with a clear message"""
+    if not base:
+        d = str(cfg.get("default_branch") or "main")
+        for cand in (f"origin/{d}", d):
+            if git_run(root, "rev-parse", "--verify", "-q", f"{cand}^{{commit}}")[0] == 0:
+                base = cand
+                break
+        if not base:
+            out_err(f"error: no base to compare with: neither origin/{d} nor {d} exists here. Pass --base <ref> (a branch, tag or commit).")
+    elif git_run(root, "rev-parse", "--verify", "-q", f"{base}^{{commit}}")[0] != 0:
+        hint = (" This is a shallow clone, so older commits (like HEAD~N) may simply not be there: deepen it (`git fetch --unshallow`, or "
+                "`git fetch --deepen=200`) or pass a ref that exists.") if git_run(root, "rev-parse", "--is-shallow-repository")[1].strip() == "true" else ""
+        out_err(f"error: base '{base}' is not a commit in this repository (typo, or not fetched yet).{hint}")
+    rc, out, _ = git_run(root, "merge-base", base, head)
+    if rc != 0 or not out.strip():
+        shallow = git_run(root, "rev-parse", "--is-shallow-repository")[1].strip() == "true"
+        if shallow:
+            out_err(f"error: no merge-base between {base} and {head}: this is a shallow clone and the common ancestor is not in the history "
+                    f"it has. Deepen it (`git fetch --unshallow`, or `git fetch --deepen=200`) or pass --base <commit that is in the history>.")
+        out_err(f"error: {base} and {head} share no common ancestor, so there is no three-dot diff. Pass an explicit --base that is an ancestor.")
+    return base, out.strip().splitlines()[0]
+
+
+def rm_diff(root, mb, head):
+    """[{path, old_path, status, added, deleted, binary}] from git diff --numstat/--name-status -z -M"""
+    rc, out, err = git_run(root, "diff", "--numstat", "-z", "-M", "--relative", mb, head)
+    if rc != 0:
+        raise SystemExit(f"error: git diff failed: {err.strip()}")
+    toks, i, files = out.split("\0"), 0, []
+    while i < len(toks):
+        t = toks[i]
+        i += 1
+        m = re.match(r"^(\d+|-)\t(\d+|-)\t(.*)$", t, re.S)
+        if not m:
+            continue
+        a, d, path = m.groups()
+        old = None
+        if path == "":  # rename/copy: old and new follow as separate NUL fields
+            old, path = toks[i], toks[i + 1]
+            i += 2
+        files.append({"path": path, "old_path": old, "added": 0 if a == "-" else int(a), "deleted": 0 if d == "-" else int(d),
+                      "binary": a == "-", "status": "R" if old else "M"})
+    rc, out, _ = git_run(root, "diff", "--name-status", "-z", "-M", "--relative", mb, head)
+    status, toks, i = {}, out.split("\0"), 0
+    while i < len(toks) and toks[i]:
+        st = toks[i][0]
+        if st in "RC":
+            status[toks[i + 2]] = st
+            i += 3
+        else:
+            status[toks[i + 1]] = st
+            i += 2
+    for f in files:
+        f["status"] = status.get(f["path"], f["status"])
+    return files
+
+
+def rm_summary(by, total_files, total_added):
+    parts = []
+    for c in ("product", "tests", "docs", "ci_config", "generated", "other"):
+        n = by[c]["files"]
+        if n:
+            label = {"product": "product files", "tests": "test files", "generated": "generated", "docs": "docs",
+                     "ci_config": "config/CI", "other": "other"}[c]
+            parts.append(f"{n} {label} ({by[c]['added']} lines)")
+    return f"{total_files} files / {total_added} added: " + (", ".join(parts) if parts else "nothing changed")
+
+
+def rm_guide(st, total_files, product_lines):
+    """-> (recommended, reason, split_recommended, split_reason)"""
+    mf, mp = st["review_guide_min_files"], st["review_guide_min_product_lines"]
+    if st["review_guide"] == "never":
+        rec, why = False, "review_guide=never"
+    elif st["review_guide"] == "always":
+        rec, why = True, "review_guide=always"
+    elif total_files > mf:
+        rec, why = True, f"{total_files} files changed > review_guide_min_files ({mf})"
+    elif product_lines > mp:
+        rec, why = True, f"{product_lines} product lines added > review_guide_min_product_lines ({mp})"
+    elif st["human_review"] == "required":
+        rec, why = True, "human_review=required"
+    else:
+        rec, why = False, f"below the thresholds ({total_files} files <= {mf}, {product_lines} product lines <= {mp})"
+    if total_files > 2 * mf:
+        srec, swhy = True, f"{total_files} files changed > 2 x review_guide_min_files ({2 * mf})"
+    elif product_lines > 2 * mp:
+        srec, swhy = True, f"{product_lines} product lines added > 2 x review_guide_min_product_lines ({2 * mp})"
+    else:
+        srec, swhy = False, "below twice the thresholds"
+    return rec, why, srec, swhy
+
+
+# --- slices
+def rm_stem(path):
+    """normalised stem used to pair code with its tests: engine.py, test_engine.py, engine_test.go, engine.test.ts -> 'engine'"""
+    stem = path.rsplit("/", 1)[-1].lstrip(".").split(".", 1)[0]
+    stem = re.sub(r"^test_", "", stem)
+    stem = re.sub(r"_test$", "", stem)
+    return stem.lower()
+
+
+def rm_test_key(path):
+    """where a test would live if it mirrored the code: tests/foo/test_bar.py -> foo/test_bar.py"""
+    parts = path.split("/")
+    parts = [p for i, p in enumerate(parts) if not (i < len(parts) - 1 and p in ("tests", "test", "__tests__", "spec"))]
+    return "/".join(parts)
+
+
+def rm_units(files, read=None):
+    """-> (units, leftovers): a unit = one product file with its mirrored tests/docs, or a standalone test group.
+    A test with no same-stem code file goes with the product file whose stem it mentions most often (read(path) -> text)."""
+    prod = [f for f in files if f["cls"] == "product"]
+    by_stem = {}
+    for f in prod:
+        by_stem.setdefault(rm_stem(f["path"]), []).append(f)
+    units = {f["path"]: {"key": f["path"], "files": [f]} for f in prod}
+    left = []
+
+    def best(cands, path, mirror):
+        want = set(mirror.split("/")[:-1])
+        return sorted(cands, key=lambda c: (-len(want & set(c["path"].split("/")[:-1])), c["path"]))[0]
+
+    for f in files:
+        if f["cls"] == "tests":
+            cands = by_stem.get(rm_stem(f["path"]))
+            if not cands and read is not None:
+                text = read(f["path"]) or ""
+                score = sorted(((len(re.findall(r"(?<![A-Za-z0-9])" + re.escape(stem) + r"(?![a-z0-9])", text, re.I)), stem)
+                                for stem in by_stem if len(stem) >= 4), reverse=True)
+                if score and score[0][0] >= 2 and (len(score) == 1 or score[0][0] > score[1][0]):
+                    cands = by_stem[score[0][1]]
+            if cands:
+                units[best(cands, f["path"], rm_test_key(f["path"]))["path"]]["files"].append(f)
+            else:
+                units[f["path"]] = {"key": rm_test_key(f["path"]), "files": [f]}
+        elif f["cls"] in ("docs", "ci_config", "other"):
+            cands = by_stem.get(rm_stem(f["path"])) if f["cls"] == "docs" else None
+            if cands:
+                units[best(cands, f["path"], f["path"])["path"]]["files"].append(f)
+            else:
+                left.append(f)
+    out = []
+    for u in units.values():
+        u["lines"] = sum(x["added"] for x in u["files"])
+        out.append(u)
+    out.sort(key=lambda u: u["key"].split("/"))
+    return out, left
+
+
+def rm_blocks(units, target, depth=0):
+    total = sum(u["lines"] for u in units)
+    if total <= target or len(units) <= 1:
+        return [units]
+    groups, order = {}, []
+    for u in units:
+        comps = u["key"].split("/")
+        g = comps[depth] if depth < len(comps) - 1 else "\0" + u["key"]
+        if g not in groups:
+            groups[g] = []
+            order.append(g)
+        groups[g].append(u)
+    if all(g.startswith("\0") for g in order):  # nothing left to group by: every file is its own block
+        return [[u] for u in units]
+    out = []
+    for g in order:
+        out += [groups[g]] if g.startswith("\0") else rm_blocks(groups[g], target, depth + 1)
+    return out
+
+
+def rm_slices(files, target, read=None):
+    """heuristic stacked-slice proposal for the non-generated changes"""
+    gen = [f for f in files if f["cls"] == "generated"]
+    rest = [f for f in files if f["cls"] != "generated"]
+    units, left = rm_units(rest, read)
+    blocks = rm_blocks(units, target)
+    slices, cur, cur_lines = [], [], 0
+    for b in blocks:
+        n = sum(u["lines"] for u in b)
+        if cur and cur_lines + n > target:
+            slices.append(cur)
+            cur, cur_lines = [], 0
+        cur += b
+        cur_lines += n
+    if cur:
+        slices.append(cur)
+    out = []
+    for sl in slices:
+        fl = [f for u in sl for f in u["files"]]
+        out.append({"files": fl})
+    if left:
+        ln = sum(f["added"] for f in left)
+        if out and sum(f["added"] for f in out[-1]["files"]) + ln <= target:
+            out[-1]["files"] += left
+            out[-1]["note"] = "includes docs/config leftovers"
+        else:
+            out.append({"files": left, "note": "docs/config leftovers"})
+    res = []
+    for i, sl in enumerate(out, 1):
+        fl = sorted(sl["files"], key=lambda f: f["path"])
+        names = [f["path"] for f in fl if f["cls"] == "product"] or [f["path"] for f in fl if f["cls"] == "tests"]
+        dirs = names[:3] + ([f"+{len(names) - 3} more"] if len(names) > 3 else [])
+        added = sum(f["added"] for f in fl)
+        res.append({"n": i, "files": len(fl), "added": added, "oversize": added > target, "note": sl.get("note", ""),
+                    "areas": dirs, "kinds": {c: len([f for f in fl if f["cls"] == c]) for c in ("product", "tests", "docs", "ci_config", "other") if any(f["cls"] == c for f in fl)}, "paths": [f["path"] for f in fl], "entries": fl})
+    return {"target_lines": target, "bootstrap": {"files": len(gen), "added": sum(f["added"] for f in gen),
+                                                  "paths": sorted(f["path"] for f in gen), "entries": gen},
+            "slices": res}
+
+
+def rm_split_script(plan, mb, head, files):
+    q = shlex.quote
+    L = ["#!/usr/bin/env bash",
+         "# Proposed stacked branches. Generated by `autocraft review-map --emit-split-script`; PRINTED, NEVER RUN by autocraft.",
+         "# Review it, then run it yourself from a clean work tree. It only creates LOCAL branches; pushes are comments.",
+         "# Heuristic, not dependency-aware: after running, test every slice branch on its own (see docs/reviewing-large-prs.md).",
+         "set -euo pipefail",
+         f"BASE={q(mb)}   # merge-base the stack starts from",
+         f"HEAD={q(head)}   # the commit being split",
+         'test -z "$(git status --porcelain)" || { echo "work tree not clean"; exit 1; }', ""]
+    prev, steps = '"$BASE"', []  # prev = what the next branch starts from; steps = branches created so far
+
+    def emit(name, msg, entries):
+        nonlocal prev
+        L.append(f"git checkout -b {q(name)} {prev}")
+        keep = [e for e in entries if e["status"] != "D"]
+        rm = [e["old_path"] for e in entries if e["status"] == "R" and e["old_path"]] + [e["path"] for e in entries if e["status"] == "D"]
+        if rm:
+            L.append("git rm -q --ignore-unmatch -- \\\n  " + " \\\n  ".join(q(x) for x in rm))
+        if keep:
+            L.append('git checkout "$HEAD" -- \\\n  ' + " \\\n  ".join(q(e["path"]) for e in keep))
+        L.append(f"git commit -q -m {q(msg)}")
+        L.append(f"# git push -u origin {q(name)}   # then open a PR with base = " + (steps[-1] if steps else "the default branch"))
+        L.append("")
+        prev = q(name)
+        steps.append(name)
+
+    if plan["bootstrap"]["entries"]:
+        emit("slice-0-bootstrap", "chore: bootstrap (generated files)", plan["bootstrap"]["entries"])
+    for s in plan["slices"]:
+        emit(f"slice-{s['n']}", f"slice {s['n']}/{len(plan['slices'])}: {', '.join(s['areas']) or 'changes'}", s["entries"])
+    L.append("# every change is in some slice if this prints nothing:")
+    L.append(f'git diff --stat {prev} "$HEAD"')
+    return "\n".join(L)
+
+
+# --- verify-guide
+GV_EXT = set(RM_CODE_EXT) | set("md rst txt adoc json yml yaml toml ini cfg lock in mdc env xml csv svg".split())
+GV_PATH = r"[A-Za-z0-9_@+.\-/]+"
+GV_DOC_EXT = {"md", "rst", "txt", "adoc"}
+GV_HASH_EXT = {"py", "sh", "bash", "zsh", "rb", "yml", "yaml", "toml", "pl", "r", "ini", "cfg", "tf", "mk", "jl", "ex", "exs", "env"}
+GV_NOT_HASH_COMMENT = {"c", "h", "cc", "cpp", "cxx", "hpp", "hh", "cs", "m", "mm"}  # '#' starts a preprocessor line there
+GV_MARK = re.compile(r"<!--\s*verify-guide:\s*(?:runtime|ignore)\s*-->")
+GV_NB = r"(?<![A-Za-z0-9_])"
+GV_NA = r"(?![A-Za-z0-9_])"
+GV_FAIL = ("STALE", "AMBIGUOUS", "NOT DEFINED")
+
+
+def gv_norm(p):
+    p = p.replace("\\", "/")
+    while p.startswith("./"):
+        p = p[2:]
+    return p
+
+
+def gv_path_ok(p, allow_noext=False):
+    """does this look like a repo file path?  A known extension is required, except extension-less scripts in a directory (path:LINE)."""
+    if not p or p.startswith("/") or ".." in p.split("/") or p.endswith("/") or "//" in p:
+        return False
+    base = p.rsplit("/", 1)[-1]
+    ext = base.rsplit(".", 1)[-1].lower() if "." in base.lstrip(".") else ""
+    return ext in GV_EXT or (allow_noext and "/" in p and not ext)
+
+
+def gv_extract(text, guide_dir=""):
+    """-> (refs, stats). refs: {line, kind: line|symbol|file, path, text, declared, alts, ...}. Fenced code blocks are skipped (counted)."""
+    refs, seen, fence, prev = [], set(), None, ""
+    stats = {"skipped_fenced_lines": 0, "unparsed_candidates": 0}
+    P = GV_PATH
+    pat_line = re.compile(r"(?<![A-Za-z0-9_@+.\-/:])(" + P + r"):(\d+)(?:-(\d+))?(?![\w])")
+    pat_hash = re.compile(r"(?<![A-Za-z0-9_@+.\-/:])(" + P + r")#L(\d+)(?:-L?(\d+))?(?![\w])")
+    pat_sym = re.compile(r"(?<![A-Za-z0-9_@+.\-/:])(" + P + r"):([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)(?![\w])")
+    pat_bare = re.compile(r"(?<![\w/.\-@+:])((?:[\w.\-@+]+/)+[\w.\-@+]*\w)(?![\w/]|:[\w]|#L\d)")
+    pat_link = re.compile(r"\[[^\]\n]*\]\(\s*<?([^)\s>]+)>?[^)]*\)")
+    pat_tick = re.compile(r"`([^`\n]+)`")
+    pathish = re.compile(r"^[\w.\-/@+]+/[\w.\-@+]+\.[A-Za-z0-9]+$")
+    for ln, raw in enumerate(text.splitlines(), 1):
+        m = re.match(r"^\s*(`{3,}|~{3,})", raw)
+        if m:
+            if fence is None:
+                fence = m.group(1)[0] * 3
+            elif raw.strip().startswith(fence):
+                fence = None
+            continue
+        if fence:
+            stats["skipped_fenced_lines"] += 1
+            continue
+        line = re.sub(r"(?<![\\\w])([\w.\-@+]+(?:\\[\w.\-@+]+)+)", lambda mm: mm.group(1).replace("\\", "/"), raw)  # Windows paths
+        declared = bool(GV_MARK.search(raw) or GV_MARK.search(prev))
+        prev = raw
+        ok_here = set()
+
+        def add(kind, path, shown, alts=(), **kw):
+            path = gv_norm(path)
+            key = (kind, shown, declared)
+            if gv_path_ok(path, kind == "line"):
+                ok_here.add(shown)
+            if gv_path_ok(path, kind == "line") and key not in seen:
+                seen.add(key)
+                refs.append(dict(line=ln, kind=kind, path=path, text=shown, declared=declared, alts=list(alts), **kw))
+
+        for m in pat_link.finditer(line):
+            tgt = m.group(1)
+            if tgt.startswith("#") or re.match(r"^[A-Za-z][A-Za-z0-9+.\-]*:", tgt):
+                continue
+            path, _, frag = tgt.partition("#")
+            path = gv_norm(path).lstrip("/") if path.startswith("/") else gv_norm(path)
+            alts = []
+            if guide_dir is not None:
+                j = posixpath.normpath(posixpath.join(guide_dir, path)) if path else ""
+                if j and not j.startswith(".."):
+                    alts.append(j)
+                    if ".." in path.split("/"):
+                        path = j  # '../src/x.py' from docs/guide.md is src/x.py
+            mm = re.fullmatch(r"L(\d+)(?:-L?(\d+))?", frag) if frag else None
+            if mm:
+                add("line", path, tgt, alts, start=int(mm.group(1)), end=int(mm.group(2)) if mm.group(2) else None)
+            else:
+                add("file", path, tgt, alts)
+            if tgt not in ok_here and "/" in path and pathish.match(path):
+                stats["unparsed_candidates"] += 1
+        for m in pat_line.finditer(line):
+            add("line", m.group(1), m.group(0), start=int(m.group(2)), end=int(m.group(3)) if m.group(3) else None)
+        for m in pat_hash.finditer(line):
+            add("line", m.group(1), m.group(0), start=int(m.group(2)), end=int(m.group(3)) if m.group(3) else None)
+        for m in pat_sym.finditer(line):
+            add("symbol", m.group(1), m.group(0), symbol=m.group(2))
+        for m in pat_tick.finditer(line):
+            c = m.group(1).strip()
+            if re.fullmatch(P, c) and "." in c.rsplit("/", 1)[-1]:
+                add("file", c, c)
+            if "/" in c and pathish.match(c) and c not in ok_here and gv_norm(c) not in ok_here:
+                stats["unparsed_candidates"] += 1
+        for m in pat_bare.finditer(line):
+            add("file", m.group(1), m.group(1))
+    return refs, stats
+
+
+def gv_code_view(content, ext):
+    """best effort, language-agnostic: drop comment-only lines, simple one-line string literals and trailing comments"""
+    if ext in GV_DOC_EXT:
+        return content
+    out = []
+    strip_hash = ext not in GV_NOT_HASH_COMMENT
+    for ln in content.splitlines():
+        s = ln.lstrip()
+        if s.startswith(("//", "--", ";", "*", "/*")) or (strip_hash and s.startswith("#")):
+            out.append("")
+            continue
+        ln = re.sub(r'"(?:[^"\\\n]|\\.)*"|\'(?:[^\'\\\n]|\\.)*\'', '""', ln)
+        if ext in GV_HASH_EXT:
+            ln = re.sub(r"\s#.*$", "", ln)
+        else:
+            ln = re.sub(r"\s//.*$", "", ln)
+        out.append(ln)
+    return "\n".join(out)
+
+
+def gv_symbol_state(content, sym, ext=""):
+    """'defined' | 'mentioned' (occurs, but only in comments/strings/uses) | 'absent'. Case-sensitive whole-word matches."""
+    name = sym.split(".")[-1]
+    w = re.escape(name)
+    if not re.search(GV_NB + w + GV_NA, content):
+        return "absent"
+    view = gv_code_view(content, ext)
+    kw = (r"(?:async\s+def|def|class|function\*?|const|let|var|interface|type|enum|struct|fn|func|trait|module|package|object|record|"
+          r"namespace|protocol|actor|extension|mixin|macro_rules!?|macro|sub|proc)")
+    mods = r"(?:export|pub|pub\([a-z]+\)|static|final|readonly|public|private|protected|const|let|var|declare|local|my|our|val|mut)"
+    pats = [GV_NB + kw + r"[ \t]+(?:\([^)\n]*\)[ \t]*)?(?:[A-Za-z_]\w*\.)*" + w + GV_NA,
+            GV_NB + r"impl(?:<[^>\n]*>)?[ \t]+(?:[\w:<>]+[ \t]+for[ \t]+)?" + w + GV_NA,
+            r"^[ \t]*(?:" + mods + r"[ \t]+)*" + w + r"[ \t]*(?::[^=\n]+?)?(?::=|=)(?!=)",
+            r"^[ \t]*(?:-[ \t]+)?" + w + r"[ \t]*:(?!:)",
+            r"^[ \t]*" + w + r"[ \t]*\([ \t]*\)",
+            r"^[ \t]*(?:(?:public|private|protected|static|async|override|virtual|final|abstract|internal|open|suspend|inline|unsafe|extern|pub|get|set)[ \t]+)+"
+            r"(?:[\w<>\[\],.*&?:]+[ \t]+)*" + w + r"[ \t]*[(<]"]
+    if ext in GV_DOC_EXT:
+        pats.append(r"^[ \t]*#{1,6}[ \t]+.*" + GV_NB + w + GV_NA)
+    return "defined" if any(re.search(p, view, re.M) for p in pats) else "mentioned"
+
+
+def rm_verify_guide(root, head, guide_path, ignore=(), allow_mentioned=False):
+    """-> (results, stats). Every reference gets a status; declared runtime references are listed, never dropped."""
+    rc, tree, err = git_run(root, "ls-tree", "-r", "-z", "--name-only", head)
+    if rc != 0:
+        raise SystemExit(f"error: cannot list the tree of {head}: {err.strip()}")
+    paths = [x for x in tree.split("\0") if x]
+    pset = set(paths)
+    cache = {}
+    try:
+        guide_dir = posixpath.dirname(Path(guide_path).resolve().relative_to(Path(root).resolve()).as_posix())
+    except ValueError:
+        guide_dir = None
+
+    def content(p):
+        if p not in cache:
+            cache[p] = git_run(root, "show", f"{head}:./{p}")[1]
+        return cache[p]
+
+    def resolve(r):
+        exact = [p for p in [r["path"]] + r["alts"] if p in pset]
+        if exact:
+            return exact[:1], "exact"
+        if "/" not in r["path"]:
+            return [p for p in paths if p.endswith("/" + r["path"])], "suffix"
+        return [], "exact"
+
+    refs, stats = gv_extract(Path(guide_path).read_text(errors="replace"), guide_dir)
+    results = []
+    for r in refs:
+        res = {"guide_line": r["line"], "kind": r["kind"], "ref": r["text"], "resolved": [], "status": "ok", "detail": ""}
+        results.append(res)
+        if r["declared"] or any(match_glob(g, r["path"]) for g in ignore):
+            res.update(status="declared (runtime)", detail="declared as created at runtime; not checked")
+            continue
+        cands, how = resolve(r)
+        res["resolved"] = cands[:5]
+        if not cands:
+            res.update(status="STALE", detail="file not found at " + head[:12])
+            continue
+        if how == "suffix" and len(cands) > 1:
+            res.update(status="AMBIGUOUS", detail=f"{len(cands)} files are named {r['path']}: {', '.join(cands[:4])}; cite the full path")
+            continue
+        p = cands[0]
+        c = content(p)
+        if r["kind"] == "line":
+            n = len(c.splitlines())
+            hi = r["end"] if r["end"] is not None else r["start"]
+            if r["start"] < 1 or (r["end"] is not None and r["end"] < r["start"]):
+                res.update(status="STALE", detail="invalid line range")
+            elif hi > n:
+                res.update(status="STALE", detail=f"line {hi} > file has {n} lines")
+        elif r["kind"] == "symbol":
+            ext = p.rsplit(".", 1)[-1].lower() if "." in p.rsplit("/", 1)[-1] else ""
+            s = gv_symbol_state(c, r["symbol"], ext)
+            if s == "absent":
+                res.update(status="STALE", detail=f"symbol '{r['symbol']}' not in file")
+            elif s == "mentioned":
+                if allow_mentioned:
+                    res.update(status="mentioned (allowed)", detail=f"'{r['symbol']}' occurs but is not defined here")
+                else:
+                    res.update(status="NOT DEFINED", detail=f"'{r['symbol']}' occurs in {p} only in a comment, string or use; cite its definition (or --allow-mentioned)")
+            else:
+                res["detail"] = "defined"
+        if res["status"] == "ok" and how == "suffix":
+            res["status"] = f"ok (resolved by suffix -> {p})"
+    stats = dict(stats, checked=len(results), declared=sum(1 for x in results if x["status"].startswith("declared")))
+    return results, stats
+
+
+GUIDE_MARK = re.compile(r"^<!--\s*review-guide:\s*base=(\S+)\s+head=([0-9a-f]{7,40})\s*-->")
+
+
+def rm_guide_status(root, st, head_sha, rules):
+    """-> (missing|current|stale, reason) for the configured guide file.  The first line of the guide is a machine-readable marker
+    `<!-- review-guide: base=<sha> head=<sha> -->`.  Current = written for this head, or only documentation changed since."""
+    p = root / st["review_guide_path"]
+    if not p.is_file():
+        return "missing", f"{st['review_guide_path']} does not exist"
+    first = (p.read_text(errors="replace").splitlines() or [""])[0]
+    m = GUIDE_MARK.match(first)
+    if not m:
+        return "stale", "the first line is not a `<!-- review-guide: base=<sha> head=<sha> -->` marker with real commit ids"
+    rc, full, _ = git_run(root, "rev-parse", "--verify", "-q", m.group(2) + "^{commit}")
+    if rc != 0:
+        return "stale", f"the marker's head {m.group(2)[:10]} is not a commit in this repository"
+    full = full.strip()
+    if full == head_sha:
+        return "current", f"written for this head ({head_sha[:10]})"
+    rc, out, _ = git_run(root, "diff", "--name-only", "-z", "--relative", full, head_sha)
+    changed = [x for x in out.split("\0") if x]
+    if rc == 0 and all(rm_class(c, False, rules) == "docs" for c in changed):
+        return "current", f"written for {full[:10]}; only documentation changed since ({len(changed)} files)"
+    return "stale", f"written for {full[:10]}; code, tests or config changed since"
+
+
+def rm_pct(a, b):
+    return f"{100.0 * a / b:5.1f}%" if b else "  0.0%"
+
+
+REVIEW_MAP_HELP = """Describe a diff without a model: how much is product code, tests, docs, config and generated files.
+
+Computed from `git diff --numstat -M BASE...HEAD`. Every changed file gets ONE class, first match wins:
+  generated  paths in .autocraft/manifest.json, `linguist-generated` entries of .gitattributes, tool outputs of the configured tools,
+             .autocraft/framework/**, lockfiles (*.lock, package-lock.json, go.sum, ...), *.min.*, dist/ build/ vendor/ node_modules/ *.egg-info/
+  tests      tests/ test/ __tests__/ spec/, test_*.*, *_test.*, *.test.*, *.spec.*, conftest.py
+  docs       docs/, *.md *.rst *.txt *.adoc, LICENSE, CHANGELOG ... (outside tests)
+  ci_config  .github/, requirements*.txt, *.toml *.yml *.yaml *.json *.ini *.cfg, Dockerfile, Makefile, .gitignore, .gitattributes, MANIFEST.in ...
+  product    every other code file (known code extensions, or an extension-less script)
+  other      everything else (images, data, binaries, dotfiles)
+Extend from .autocraft/config.yml:  review_map_extra_generated: [globs]   review_map_extra_tests: [globs]
+Globs: 'dir/' = that directory anywhere; 'name' / '*.ext' = file name at any depth; 'a/b/**' anchored at the repo root.
+
+--slices proposes stacked slices (heuristic, not dependency-aware); --emit-split-script prints the git commands, it never runs them.
+--verify-guide FILE checks a reviewer's guide: exit 1 if a cited file, line or symbol does not exist at --head.
+guide_recommended comes from human_review / review_guide / review_guide_min_files / review_guide_min_product_lines in the config.
+Exit codes: 0 success (an empty diff is success), 1 stale references (--verify-guide), 2 usage or environment error."""
+
+
+def cmd_review_map(a):
+    def fail(msg):
+        sys.stderr.write(msg + "\n")
+        raise SystemExit(2)
+
+    try:
+        sys.stdout.reconfigure(errors="replace")
+    except Exception:
+        pass
+    if hasattr(signal, "SIGPIPE"):
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    root = Path(a.dir).resolve()
+    if not root.is_dir():
+        fail(f"error: {root} is not a directory")
+    if not in_work_tree(root):
+        fail(f"error: {root} is not inside a git work tree")
+    cfg = read_config(root)
+    st, problems = review_settings(cfg)
+    if problems:
+        fail("error: bad review settings in .autocraft/config.yml:\n  " + "\n  ".join(problems))
+    head = a.head or "HEAD"
+    if git_run(root, "rev-parse", "--verify", "-q", f"{head}^{{commit}}")[0] != 0:
+        fail(f"error: head '{head}' is not a commit in this repository (no commits yet?)")
+    head_sha = git_run(root, "rev-parse", f"{head}^{{commit}}")[1].strip()
+    if a.verify_guide:
+        gp = Path(a.verify_guide)
+        if not gp.is_file():
+            fail(f"error: guide file not found: {a.verify_guide}")
+        res, vst = rm_verify_guide(root, head, gp, st["verify_guide_ignore"], a.allow_mentioned)
+        cnt = lambda pred: sum(1 for r in res if pred(r["status"]))
+        bad = [r for r in res if r["status"] in GV_FAIL]
+        summary = {"references": len(res), "ok": cnt(lambda x: x.startswith("ok")), "declared": vst["declared"],
+                   "stale": cnt(lambda x: x == "STALE"), "ambiguous": cnt(lambda x: x == "AMBIGUOUS"),
+                   "not_defined": cnt(lambda x: x == "NOT DEFINED"), "mentioned_allowed": cnt(lambda x: x == "mentioned (allowed)"),
+                   "skipped_fenced_lines": vst["skipped_fenced_lines"], "unparsed_candidates": vst["unparsed_candidates"], "head": head_sha}
+        footer = (f"checked {len(res)} references ({vst['declared']} declared); skipped {vst['skipped_fenced_lines']} fenced-code lines; "
+                  f"{vst['unparsed_candidates']} unparsed candidates")
+        summary["footer"] = footer
+        if a.json:
+            print(json.dumps({"summary": summary, "references": res}, indent=1))
+        else:
+            print(f"verify-guide: {gp} against {head_sha[:12]}")
+            for r in res:
+                where = r["resolved"][0] if len(r["resolved"]) == 1 else (f"({len(r['resolved'])} matches)" if r["resolved"] else "-")
+                print(f"  L{r['guide_line']:<4} {r['status']:<20} {r['ref']:<48} -> {where}" + (f"  [{r['detail']}]" if r["detail"] else ""))
+            print(f"\n{summary['references']} references: {summary['ok']} ok, {summary['declared']} declared (runtime), {summary['mentioned_allowed']} mentioned (allowed), "
+                  f"{summary['ambiguous']} AMBIGUOUS, {summary['not_defined']} NOT DEFINED, {summary['stale']} STALE")
+            print(footer)
+        sys.exit(1 if bad else 0)
+    base, mb = rm_resolve_base(root, cfg, head, a.base, fail)
+    rules = rm_rules(root, head, cfg, st)
+    files = rm_diff(root, mb, head)
+    for f in files:
+        f["cls"] = rm_class(f["path"], f["binary"], rules)
+    by = {c: {"files": 0, "added": 0, "deleted": 0} for c in RM_CLASSES}
+    for f in files:
+        by[f["cls"]]["files"] += 1
+        by[f["cls"]]["added"] += f["added"]
+        by[f["cls"]]["deleted"] += f["deleted"]
+    tf, ta, td = len(files), sum(f["added"] for f in files), sum(f["deleted"] for f in files)
+    for c in RM_CLASSES:
+        by[c]["pct_files"] = round(100.0 * by[c]["files"] / tf, 1) if tf else 0.0
+        by[c]["pct_added"] = round(100.0 * by[c]["added"] / ta, 1) if ta else 0.0
+    prod = sorted([f for f in files if f["cls"] == "product"], key=lambda f: (-f["added"], f["path"]))
+    top = prod[: max(0, a.top)]
+    warns = []
+    if tf and by["generated"]["files"] * 100 > 30 * tf:
+        warns.append(f"{by['generated']['files']} of {tf} changed files ({by['generated']['pct_files']}%) are generated: mark them "
+                     f"linguist-generated (`autocraft sync` maintains .gitattributes) and keep them in their own commit (`init --commit`).")
+    rec, why, srec, swhy = rm_guide(st, tf, by["product"]["added"])
+    gstat, greason = rm_guide_status(root, st, head_sha, rules)
+    summ = rm_summary(by, tf, ta)
+    plan = rm_slices(files, a.target_lines, lambda p: git_run(root, "show", f"{head_sha}:./{p}")[1]) if (a.slices or a.emit_split_script) else None
+    if a.emit_split_script:
+        if not plan["slices"] and not plan["bootstrap"]["entries"]:
+            fail("error: nothing to split (empty diff)")
+        print(rm_split_script(plan, mb, head_sha, files))
+        return
+    if a.json:
+        data = {"base": base, "head": head_sha, "merge_base": mb, "totals": {"files": tf, "added": ta, "deleted": td},
+                "classes": by, "product_top": [{"path": f["path"], "added": f["added"], "deleted": f["deleted"]} for f in top],
+                "files": [{"path": f["path"], "old_path": f["old_path"], "status": f["status"], "added": f["added"],
+                           "deleted": f["deleted"], "binary": f["binary"], "class": f["cls"]} for f in files],
+                "summary": summ, "warnings": warns, "guide_recommended": rec, "guide_reason": why,
+                "split_recommended": srec, "split_reason": swhy,
+                "guide_path": st["review_guide_path"], "guide_status": gstat, "guide_status_reason": greason,
+                "thresholds": {k: st[k] for k in ("human_review", "review_guide", "review_guide_min_files", "review_guide_min_product_lines")}}
+        if plan:
+            data["slices"] = {k: ({kk: vv for kk, vv in v.items() if kk != "entries"} if isinstance(v, dict) else
+                                  [{kk: vv for kk, vv in s.items() if kk != "entries"} for s in v]) if k != "target_lines" else v
+                              for k, v in plan.items()}
+        print(json.dumps(data, indent=1))
+        return
+    print(f"review-map: {base} ({mb[:10]}) ... {head} ({head_sha[:10]})")
+    if not tf:
+        print("no changes between the merge-base and head: nothing to review.")
+        print(f"\n{summ}")
+        return
+    print(f"\n{'class':<11}{'files':>7}{'added':>9}{'deleted':>9}{'% files':>9}{'% added':>9}")
+    for c in RM_CLASSES:
+        r = by[c]
+        print(f"{c:<11}{r['files']:>7}{r['added']:>9}{r['deleted']:>9}{rm_pct(r['files'], tf):>9}{rm_pct(r['added'], ta):>9}")
+    print(f"{'total':<11}{tf:>7}{ta:>9}{td:>9}")
+    if prod:
+        print(f"\nproduct files by added lines (top {len(top)} of {len(prod)}):")
+        for f in top:
+            print(f"  {f['added']:>6} +{f['deleted']:<5} {f['path']}" + (f"   (from {f['old_path']})" if f["old_path"] else ""))
+    print(f"\n{summ}")
+    for w in warns:
+        print(f"warning: {w}")
+    print(f"reviewer's guide: {'RECOMMENDED' if rec else 'not needed'} ({why})" + ("  -> run the /review-guide workflow" if rec else ""))
+    print(f"guide file {st['review_guide_path']}: {gstat} ({greason})" + ("  -> skip regeneration" if gstat == "current" else ""))
+    if srec:
+        print(f"split: this diff is large ({swhy}); offer the owner a stacked-PR split: autocraft review-map --slices")
+    if plan:
+        print_slices(plan)
+
+
+def print_slices(plan):
+    t = plan["target_lines"]
+    print(f"\nPROPOSED SPLIT (heuristic, NOT dependency-aware; at most {t} added lines per slice unless one file group is bigger):")
+    b = plan["bootstrap"]
+    if b["files"]:
+        print(f"  slice 0  bootstrap (generated): {b['files']} files, {b['added']} lines: land FIRST as its own PR (or ignore: marked generated)")
+    for s in plan["slices"]:
+        flag = "  [larger than target: one indivisible file group]" if s["oversize"] else ""
+        kinds = "/".join(f"{v}{k[0] if k != 'ci_config' else 'c'}" for k, v in s["kinds"].items())
+        print(f"  slice {s['n']:<2} {s['added']:>6} lines  {s['files']:>3} files ({kinds})  {', '.join(s['areas']) or '-'}"
+              + (f"  ({s['note']})" if s["note"] else "") + flag)
+    print("(files: p=product t=tests d=docs c=config o=other)")
+    print("Product files stay with their mirrored tests (same stem, test_<stem>, <stem>_test, tests/<dir>); docs/config leftovers go last.")
+    print("Each slice must still build and pass the tests ON ITS OWN: check out the slice branches in order and run the suite on each. If slice N\n"
+          "needs code from a later slice, merge the two (raise --target-lines) or reorder. `--emit-split-script` PRINTS the git commands (never runs them).")
 
 
 # ----------------------------------------------------------------------------- commands
@@ -869,9 +1880,14 @@ def split(v):
 
 def cmd_init(a):
     proj = Path(a.dir).resolve()
+    if a.commit and not a.dry_run and not in_work_tree(proj):
+        raise SystemExit(f"error: --commit needs a git work tree; {proj} is not inside one (run `git init` first or omit --commit)")
+    pre = git_state(proj) if a.commit and proj.exists() else {"dirty": set(), "staged": set()}
     proj.mkdir(parents=True, exist_ok=True)
     cfg = read_config(proj)
     upd = {}
+    if a.no_gitattributes:
+        upd["generated_markers"] = "false"
     if a.tool:
         upd["tools"] = [TOOL_ALIASES.get(t, t) for t in split(a.tool)]
     elif not cfg.get("tools"):
@@ -937,6 +1953,8 @@ def cmd_init(a):
         added = install_github(proj, a.lang)
         print(f"GitHub module: added {len(added)} files (CI, scanning, templates) for {a.lang}")
     report(proj, s)
+    if a.commit:
+        install_commit(proj, s, pre, "init")
 
 
 def report(proj, s):
@@ -996,7 +2014,13 @@ def cmd_sync(a):
     proj = Path(a.dir).resolve()
     if not config_path(proj).exists():
         raise SystemExit("error: no .autocraft/config.yml here. Run `autocraft init` first.")
-    report(proj, build(proj))
+    if a.commit and not in_work_tree(proj):
+        raise SystemExit(f"error: --commit needs a git work tree; {proj} is not inside one")
+    pre = git_state(proj) if a.commit else None
+    s = build(proj)
+    report(proj, s)
+    if a.commit:
+        install_commit(proj, s, pre, "sync")
 
 
 def edit_list(a, key, add, item, cast=lambda x: x):
@@ -1079,7 +2103,7 @@ def cmd_github(a):
 
 def cmd_doctor(a):
     proj = Path(a.dir).resolve()
-    problems, notes = [], []
+    problems, notes, warnings = [], [], []
     if not config_path(proj).exists():
         raise SystemExit("not an autocraft project: no .autocraft/config.yml")
     cfg = read_config(proj)
@@ -1122,11 +2146,23 @@ def cmd_doctor(a):
                     notes.append(f"{rel} was edited by hand - sync will overwrite it; move edits to .autocraft/custom/")
         else:
             problems.append("no manifest: run autocraft sync")
+        _, review_problems = review_settings(cfg)
+        problems += review_problems
+        if markers_enabled(cfg):
+            want, have = expected_generated_globs(proj, cfg), read_ga_block(proj)
+            if have is None:
+                warnings.append("no autocraft block in .gitattributes: generated files are not marked linguist-generated, so GitHub will not collapse them in PRs (run autocraft sync)")
+            else:
+                warnings += ga_conflicts((proj / ".gitattributes").read_text(errors="replace"), want)
+            if have is not None and have != want:
+                warnings.append(f"the .gitattributes autocraft block is stale ({len(set(want) - set(have))} missing, {len(set(have) - set(want))} obsolete entries): run autocraft sync")
         print(f"roles ({len(ids)}): {', '.join(ids)}")
     except SystemExit as e:
         problems.append(str(e))
     for n in notes:
         print(f"note: {n}")
+    for w in warnings:
+        print(f"warning: {w}")
     for p in problems:
         print(f"PROBLEM: {p}")
     if not problems:
@@ -1154,10 +2190,13 @@ def main():
     p.add_argument("--token-mode", choices=["standard", "lean"], help="lean = agents work from briefs, stay within a budget and keep reports short (protocol section 15)")
     p.add_argument("--owner", help="the owner's GitHub handle (notifications target, CODEOWNERS)")
     p.add_argument("--add-role"); p.add_argument("--remove-role"); p.add_argument("--lang", help="also install CI/security/GitHub files: " + ", ".join(LANGS))
+    p.add_argument("--no-gitattributes", action="store_true", help="do not maintain the managed linguist-generated block in .gitattributes (stored as generated_markers: false)")
+    p.add_argument("--commit", action="store_true", help="create ONE commit with only the autocraft-owned files (needs a git work tree; never pushes; hooks run)")
     p.add_argument("--dry-run", action="store_true"); p.set_defaults(f=cmd_init)
     p = sp.add_parser("board", help="agent-agnostic task board: `board init [dir]` installs it; other args pass through to scripts/board.py")
     p.add_argument("action", choices=["init", "run"]); p.add_argument("dir", nargs="?", default="."); p.add_argument("--branch", default="main"); p.add_argument("rest", nargs="*"); p.set_defaults(f=cmd_board)
-    p = sp.add_parser("sync"); p.add_argument("dir", nargs="?", default="."); p.set_defaults(f=cmd_sync)
+    p = sp.add_parser("sync"); p.add_argument("dir", nargs="?", default=".")
+    p.add_argument("--commit", action="store_true", help="commit the regenerated autocraft-owned files as one dedicated commit (never pushes)"); p.set_defaults(f=cmd_sync)
     for name, add in (("add-role", True), ("remove-role", False)):
         p = sp.add_parser(name); p.add_argument("id"); p.add_argument("dir", nargs="?", default="."); p.set_defaults(f=lambda a, add=add: cmd_role(a, add))
     for name, add in (("add-tool", True), ("remove-tool", False)):
@@ -1165,8 +2204,28 @@ def main():
     p = sp.add_parser("new-role"); p.add_argument("id"); p.add_argument("dir", nargs="?", default="."); p.set_defaults(f=cmd_new_role)
     p = sp.add_parser("github"); p.add_argument("dir", nargs="?", default="."); p.add_argument("--lang", required=True, choices=list(LANGS)); p.set_defaults(f=cmd_github)
     p = sp.add_parser("doctor"); p.add_argument("dir", nargs="?", default="."); p.set_defaults(f=cmd_doctor)
+    p = sp.add_parser("review-map", formatter_class=argparse.RawDescriptionHelpFormatter, help="what is in this diff? product vs tests vs generated (deterministic, no model tokens)",
+                      description=REVIEW_MAP_HELP)
+    p.add_argument("dir", nargs="?", default=".", help="the repository (default: current directory)")
+    p.add_argument("--base", help="compare against this ref (default: merge-base of HEAD with origin/<default_branch>, else <default_branch>)")
+    p.add_argument("--head", help="the commit to describe (default HEAD)")
+    p.add_argument("--json", action="store_true", help="machine-readable output, including guide_recommended / guide_reason")
+    p.add_argument("--top", type=int, default=15, help="how many product files to list (default 15)")
+    p.add_argument("--slices", action="store_true", help="propose a split of the non-generated changes into stacked slices")
+    p.add_argument("--target-lines", type=int, default=1500, help="max added lines per slice (default 1500)")
+    p.add_argument("--emit-split-script", action="store_true", help="PRINT (never run) the git commands that create the stacked slice branches")
+    p.add_argument("--allow-mentioned", action="store_true", help="with --verify-guide: accept symbols that only occur in comments/strings (reported as 'mentioned (allowed)')")
+    p.add_argument("--verify-guide", metavar="FILE", help="check every path:line, file:symbol and `path` reference in a markdown guide against the tree at --head; exit 1 if any is stale")
+    p.set_defaults(f=cmd_review_map)
     a = ap.parse_args()
-    a.f(a)
+    try:
+        a.f(a)
+    except BrokenPipeError:  # `autocraft ... | head`: leave quietly
+        try:
+            os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        except Exception:
+            pass
+        sys.exit(0)
 
 
 if __name__ == "__main__":

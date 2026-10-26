@@ -5,7 +5,7 @@ summary: For iOS/Android apps (and their backend): UX, mobile and back-end devel
 fits: [mobile-app]
 roles: [requirements-analyst, ux-designer, architect, principal-engineer, mobile-developer, backend-developer, qa-engineer, pr-reviewer, security-auditor, release-gatekeeper, delivery-lead]
 optional: [devops-engineer, technical-writer, repo-onboarder]
-workflows: [discover, explain, start, design-architecture, build-feature, review-pr, release-check, security-scan, status, onboard-repo]
+workflows: [discover, explain, start, design-architecture, build-feature, review-pr, review-guide, release-check, security-scan, status, onboard-repo]
 ---
 
 # Playbook: Mobile App Team

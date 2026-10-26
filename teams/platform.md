@@ -5,7 +5,7 @@ summary: For cloud infrastructure as code, deployment pipelines and environments
 fits: [infrastructure]
 roles: [requirements-analyst, architect, principal-engineer, devops-engineer, qa-engineer, pr-reviewer, security-auditor, release-gatekeeper, delivery-lead]
 optional: [repo-onboarder, technical-writer]
-workflows: [discover, explain, start, design-architecture, build-feature, review-pr, release-check, security-scan, status, onboard-repo]
+workflows: [discover, explain, start, design-architecture, build-feature, review-pr, review-guide, release-check, security-scan, status, onboard-repo]
 ---
 
 # Playbook: Platform & Infrastructure Team

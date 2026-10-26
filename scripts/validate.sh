@@ -64,6 +64,9 @@ python3 -m py_compile templates/board/board.py || err "board.py does not compile
 rm -rf templates/board/__pycache__
 BOARD_PY="$PWD/templates/board/board.py" bash templates/board/test-board.sh >/dev/null || err "board self-test failed"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+# git-facing CLI tests (generated-file markers, install commit, review-map, verify-guide): run alongside the rest, collected at the end
+cli_pids=""; for c in GitattributesTests InstallCommitTests ReviewMapTests VerifyGuideTests; do
+  python3 -I scripts/test_cli.py "$c" >"$tmp/cli-$c.log" 2>&1 & cli_pids="$cli_pids $!"; done
 python3 bin/autocraft init "$tmp/p" --tool claude-code,claude-app,cursor,copilot,gemini-cli,windsurf,cline,agents-md,prompts \
   --team web-product,ai-product,mobile --archetype fullstack-app,ai-assistant --add-role technical-writer --lang node >/dev/null || err "autocraft init failed"
 python3 "$tmp/p/.autocraft/framework/bin/autocraft" doctor "$tmp/p" >/dev/null || err "autocraft doctor failed on fresh project"
@@ -142,6 +145,13 @@ while IFS= read -r l; do
   [[ -z "$target" || "$target" == http* || "$target" == mailto:* ]] && continue
   [[ -e "$(dirname "$file")/$target" ]] || err "$file: broken link -> $target"
 done < <(grep -rnoE '\]\(([^)]+)\)' README.md docs archetypes capabilities | sed -E 's/^([^:]+):[0-9]+:\]\((.*)\)$/\1:\2/')
+
+for pid in $cli_pids; do wait "$pid" || { cat "$tmp"/cli-*.log >&2; err "scripts/test_cli.py failed"; }; done
+[[ -f templates/review/review-guide.md && -f workflows/review-guide.md ]] || err "review-guide workflow or template missing"
+for h in "## 1. What is in the diff" "## 2. The system on one page" "## 3. Properties that must always hold" "## 4. Suggested reading order" "## 5. How to verify" "## 6. What has NOT been independently verified" "## 7. Decisions that need the owner" "## 8. Making it reviewable"; do
+  grep -q "^$h" templates/review/review-guide.md || err "templates/review/review-guide.md: missing section '$h'"; done
+[[ -f "$tmp/p/.autocraft/templates/review/review-guide.md" && -f "$tmp/p/.autocraft/framework/templates/review/review-guide.md" ]] || err "review-guide template is not installed with the framework"
+[[ -f "$tmp/p/.claude/skills/review-guide/SKILL.md" ]] || err "review-guide workflow not exported to claude-code skills"
 
 ((fail)) && { echo "Validation FAILED" >&2; exit 1; }
 echo "Validation passed: $(echo $ROLES | wc -w) roles, $(ls teams | wc -l) teams, $(echo $WFS | wc -w) workflows, $(echo $ARCHS | wc -w) archetypes, $(($(ls capabilities | wc -l)-1)) capabilities; all 9 tool exports generate, parse and sync idempotently"

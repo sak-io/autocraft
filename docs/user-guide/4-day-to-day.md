@@ -10,6 +10,7 @@
 | Build the next task | `/build-feature` |
 | Have a change reviewed | `/review-pr <number or branch>` |
 | Check a change before release | `/release-check` |
+| Get a big change ready for a human to review | `autocraft review-map`, then `/review-guide` if it recommends one ([details](../reviewing-large-prs.md)) |
 | Check security | `/security-scan` |
 | Understand anything (a file, a comment, an error, a word) | `/explain <it>` |
 | Change my team | `/customize-team` |

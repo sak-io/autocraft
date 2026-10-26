@@ -14,5 +14,14 @@ autonomy_level: 2          # 1 = approve every phase, 2 = approve architecture +
 max_review_rounds: 3       # review loops before escalating to a human
 max_parallel_developers: 3 # builder agents at once (independent tasks only)
 default_branch: main
+generated_markers: true    # true | false  keep a managed block in .gitattributes that marks autocraft-generated files linguist-generated (GitHub collapses them in diffs); init --no-gitattributes sets false
+human_review: optional     # optional | required  required = a human will read the PR, so `autocraft review-map` always recommends a reviewer's guide
+review_guide: auto         # auto | always | never  when review-map recommends the /review-guide workflow (see docs/reviewing-large-prs.md)
+review_guide_min_files: 60            # auto: recommend a guide when the diff changes more files than this ...
+review_guide_min_product_lines: 1500  # ... or adds more product-code lines than this (a split into stacked PRs is offered above twice these)
+review_guide_path: docs/review-guide.md  # where /review-guide saves the guide; review-map --json reports guide_status (missing | current | stale) for it
+verify_guide_ignore: []               # globs of files a guide may cite although they do not exist in the repo (created at runtime); reported as 'declared (runtime)'
+review_map_extra_generated: []        # extra globs `autocraft review-map` counts as generated, e.g. [src/gen/**, "*.pb.go"]
+review_map_extra_tests: []            # extra globs counted as tests, e.g. [e2e/**]
 language: ""               # set when GitHub CI is installed (autocraft github --lang ...)
 human_owner: ""            # GitHub handle to notify when something is release-ready
