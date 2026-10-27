@@ -68,7 +68,7 @@ Claude's **Code** sessions run in the cloud against a GitHub repository, so you 
 > - The team commits to the single branch your session was given and **does not open pull requests or push other branches unless you ask** (`git_mode: session-branch`). Say *"open the pull request"* when you are ready to merge.
 > - Cloud sessions have GitHub *tools* rather than the `gh` command; the roles adapt (protocol §13).
 > - A full run from the phone app has not yet been rehearsed end to end; please report anything that surprises you.
-> - Long multi-agent runs can reach your usage limit. Work is saved at each step; continue with `/status` after the limit resets.
+> - Work is saved at each step. If a session ends for any reason, continue in a new one with `/status`.
 
 ---
 

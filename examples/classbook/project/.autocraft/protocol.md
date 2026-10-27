@@ -127,7 +127,7 @@ If a needed operation has no tool in your session, say so plainly and fall back 
 - **`pr-per-task`:** one pushed branch and pull request per task with `agent:*` labels (sections 3-4); the owner merges each.
 
 ## 15. Token efficiency (`token_mode: lean`)
-Multi-agent work is token-hungry; most of the cost is agents re-reading and re-exploring, long logs, and over-deep review of low-risk changes. `token_mode: lean` (config; `autocraft init --token-mode lean`) tells every role to spend only what the task safely needs. **Quality gates never change**: tests with every change, independent review, human merge.
+Separate agents each carry their own context, so a team spends more tokens than one agent doing everything; most of the cost is agents re-reading and re-exploring, long logs, and over-deep review of low-risk changes. `token_mode: lean` (config; `autocraft init --token-mode lean`) tells every role to spend only what the task safely needs. **Quality gates never change**: tests with every change, independent review, human merge.
 
 | Lever | Rule |
 |---|---|
