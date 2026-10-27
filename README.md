@@ -53,7 +53,7 @@ cd ~/code/yoga && claude          # then type:  /start
         what you build                 who builds it                     where it runs
    ┌─────────────────────┐      ┌──────────────────────┐        ┌───────────────────────────┐
    │ 20 archetypes       │      │ 22 roles → 10 teams  │        │ Claude Code (CLI/web/app) │
-   │ 10 capabilities     │ ───► │ + 13 workflows       │ ─────► │ Claude app (chat Projects)│
+   │ 10 capabilities     │ ───► │ + 15 workflows       │ ─────► │ Claude app (chat Projects)│
    │ (api, mobile, web,  │      │ (lean → full)        │ export │ Cursor · GitHub Copilot   │
    │  AI, data, game, …) │      │ customizable         │        │ Gemini CLI · Windsurf     │
    └─────────────────────┘      └──────────────────────┘        │ Cline · Codex & AGENTS.md │
@@ -81,6 +81,34 @@ idea / your documents → spec → plan (architect ⇄ principal) → build (par
                                                   QA · security audit ◄───┘ → release check → you merge
 ```
 Agents stop for you at the gates you set (`autonomy_level` 1–3), when they disagree for more than `max_review_rounds`, and for decisions only you can make (money, legal, accounts). They never merge to `main`.
+
+## Guardrails
+
+Agents move quickly inside limits you control. The table says what is in place and who enforces it: **instructed** means agents follow written rules and reviewers check them; **enforced** means a tool refuses the action whatever the agent does.
+
+| Guardrail | What it does | Kind |
+|---|---|---|
+| Human holds the merge | Agents never approve or merge into `main`, at any autonomy level | Instructed; **enforced** when branch protection is on (`scripts/onboard-repo.sh`: required review, required `ci` check, no force-push) |
+| Independent review | A different agent in a fresh context re-runs the tests; severity-tagged findings; every earlier comment re-verified | Instructed; `autocraft doctor` flags a team with no reviewer or no builder |
+| Round limits and escalation | After `max_review_rounds` the work stops as `needs-human` with both positions summarised | Instructed |
+| Gates you choose | `autonomy_level` 1–3: spec, plan, release; money, legal and account decisions are always yours | Instructed |
+| Safety rules | No secrets in code or logs; never disable tests, checks or protections; ask before destructive actions; say what was verified versus assumed | Instructed |
+| Command permissions | The generated `.claude/settings.json` pre-approves only routine git, test and autocraft commands | Enforced by Claude Code (Claude Code only) |
+| Security checks | `security-auditor` role; CI templates for 8 stacks (dependency audits where the stack has one), CodeQL, a weekly secret and dependency scan, Dependabot; GitHub secret scanning and push protection via the onboarding script | Enforced by CI and GitHub once installed |
+| Safe defaults per domain | Capability profiles (authentication, payments, secrets, privacy, …) with must-test lists | Instructed; QA and reviewers check |
+| Cost controls | `--token-saver`, `token_mode: lean`, per-role models, review-round and parallelism caps, briefs and short reports | Instructed (budgets are advisory) |
+| Framework integrity | `validate.sh` runs in CI on every pull request; `doctor` detects drift and missing generated files; the install is its own commit and git hooks are never bypassed | Enforced by scripts and CI |
+
+Full detail, the gaps we know about and what you can do about them today: [guardrails](docs/guardrails.md).
+
+## Token cost and how to control it
+
+Independent roles each carry their own context, so a team uses more tokens than one agent doing everything. That is the price of separation and review, and it is measured, not hidden:
+
+- **ClassBook** (a booking web app, ≈2,360 lines of code, 539 tests): ≈2.2 M tokens across 26 agent runs, of which the final lean-mode round was ≈190 k.
+- **Receipt Tally** (a small command-line tool, built under a budget stated up front): ≈270 k tokens across 4 runs, with independent review.
+
+Both log tokens per run in `agent-runs.csv`. Your numbers will depend on your model, prompts and plan. To spend less without removing the gates: `autocraft init --token-saver`, `--token-mode lean` ([protocol §15](docs/protocol.md)), `--role-model role=model`, and the `/lean-build` workflow ([lean orchestration](docs/lean-orchestration.md), [lean vs thorough](docs/lean-vs-thorough.md)).
 
 ## Supported AI tools
 
@@ -147,6 +175,8 @@ Levels, from light to heavy: config knobs → team rules → per-role rules → 
 | `autocraft github [DIR] --lang …` | add CI, security scanning and GitHub templates |
 | `autocraft doctor [DIR]` | check config, manifest, drift, sources, the `.gitattributes` generated-file block |
 | `autocraft init\|sync … --commit` | commit the autocraft-owned files as ONE dedicated commit (`init --no-gitattributes` opts out of the generated-file markers) |
+| `autocraft init … --token-saver` · `--token-mode lean` | spend fewer tokens without changing the quality gates: mid-tier models for reviewer, QA, auditor and analyst, 2 review rounds, 2 parallel developers, work from briefs and short reports; an explicit `--role-model` still wins ([protocol §15](docs/protocol.md)) |
+| `autocraft board init [DIR]` | install the agent-agnostic task board used by the `/lean-build` workflow ([guide](docs/lean-orchestration.md)) |
 | `autocraft review-map [DIR] [--base REF] [--head REF] [--json] [--slices] [--emit-split-script] [--verify-guide FILE]` | what is in this diff (product / tests / docs / config / generated), whether a reviewer's guide is recommended, a stacked-PR split proposal, and a check that every `path:line` in a guide still exists; deterministic, no model tokens ([details](docs/reviewing-large-prs.md)) |
 
 ## Repository layout
@@ -171,6 +201,7 @@ examples/                         worked examples (below)
 | Engineers | [For software engineers](docs/user-guide/6-for-software-engineers.md) · [Protocol](docs/protocol.md) · [Orchestration patterns](docs/orchestration-patterns.md) · [Customizing](docs/customizing.md) |
 | Claude app users | [Kick off from your own documents](docs/kickoff-existing-docs.md) · [Claude app](docs/tools/claude-app.md) · [Bootstrap prompt](docs/bootstrap-prompt.md) |
 | Big pull requests | [Reviewing large PRs](docs/reviewing-large-prs.md) — generated-file markers, the separate install commit, `review-map`, the reviewer's guide, the split offer |
+| Safety and cost | [Guardrails](docs/guardrails.md) · [Lean orchestration](docs/lean-orchestration.md) · [Lean vs thorough](docs/lean-vs-thorough.md) |
 | Concepts | [Lifecycle](docs/lifecycle.md) · [Archetypes & recipes](archetypes/README.md) · [Capabilities](capabilities/README.md) |
 
 ## Examples
@@ -188,7 +219,8 @@ The owner in both examples is simulated; the agents' outputs are real.
 
 - **Only the Claude path has been exercised end to end.** The other exporters follow vendors' documented formats but haven't been run in those products.
 - **A full run from the Claude app on a phone has not been done yet**; the documents-first kickoff was rehearsed in a cloud session, and the install, ingestion and spec steps worked.
-- Agents make mistakes. The process (independent review, tests, CI, a human merge) is what catches them — don't remove the human gate for anything important. Multi-agent runs are token-hungry (ClassBook ≈ 2 M tokens) and can hit usage limits; work is saved at every step.
+- Agents make mistakes. The process (independent review, tests, CI, a human merge) is what catches them — don't remove the human gate for anything important. A team spends more tokens than a single agent (see [token cost](#token-cost-and-how-to-control-it)); work is saved to files at every step.
+- **Most guardrails are instructions to the agents.** Hard enforcement comes from branch protection, CI and the Claude Code permission list, and only where they are installed. The known gaps are listed in [guardrails](docs/guardrails.md#known-gaps).
 - Not supported yet: per-project custom archetypes/capabilities, per-directory teams in a monorepo.
 - `recommend` is a keyword heuristic; the Team Builder agent reads your documents properly.
 
