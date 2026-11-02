@@ -80,12 +80,12 @@ The team **never merges to `main` and never opens a pull request unless you ask.
 - **Resume in a new session** (same repo): type `/status`. The state is in `docs/STATUS.md` and the commits, not in chat memory.
 - **Ask for less:** *"Stop after the plan and wait for me."* · *"Use only the lean team."* · *"Keep it as simple as safely possible."*
 - **Change your mind:** edit your documents (or say it in chat). The requirements analyst updates the spec and tells you which tasks change.
-- **Run out of usage?** Long multi-agent runs use a lot. Work is saved at every step; continue after the limit resets with `/status`.
+- **Session ended or paused?** Work is saved at every step (files and commits). Continue in a new session with `/status`.
 - **Fewer approval taps on a phone:** the install adds `.claude/settings.json` that pre-approves routine, safe commands (git, running tests, the autocraft tool). Review it once.
 
-## What it costs you (honestly)
+## What it costs
 
-The [ClassBook example](../examples/classbook/README.md) — a small app — used 26 agent runs and ≈2.2 million tokens, mostly in review and QA (its last round, run with `token_mode: lean`, took only ≈190 thousand), for about 30–40 minutes of the owner's attention. Your project's size decides yours. Start lean; add QA and security when the product is real.
+Independent roles each carry their own context, so a team uses more tokens than one agent doing everything; that is the price of separation and review. The [ClassBook example](../examples/classbook/README.md) — a small app — used 26 agent runs and ≈2.2 million tokens, mostly in review and QA (its last round, run with `token_mode: lean`, took ≈190 thousand), for about 30–40 minutes of the owner's attention. Your project's size decides yours. Start lean (`--token-saver`); add QA and security when the product is real.
 
 ## Troubleshooting
 

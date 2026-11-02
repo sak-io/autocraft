@@ -1908,7 +1908,7 @@ def cmd_init(a):
         upd["experience"] = a.experience
     if a.autonomy:
         upd["autonomy_level"] = a.autonomy
-    if a.token_saver:  # measured on a real 30-task run, see docs/lean-orchestration.md
+    if a.token_saver:  # mid-tier models for checklist roles, fewer rounds, narrower parallelism; rationale in docs/lean-orchestration.md
         upd.setdefault("max_review_rounds", 2)
         upd.setdefault("max_parallel_developers", 2)
         upd.setdefault("token_mode", "lean")

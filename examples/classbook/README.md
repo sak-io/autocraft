@@ -231,8 +231,7 @@ An example that only shows successes isn't trustworthy. In running this one we f
 3. **The architect over-built for a 1,000-student studio** (a security-heavy design with hand-written sessions, a throttling table, a backup design, a hosting ADR). The principal engineer judged it *sound*, not *proportionate*. A real owner can say *"simpler, please"* at the plan gate — **the guide should say so** (added to page 3).
 4. **Two correct branches broke when merged.** Merge early; run everything together.
 5. **A fix made in one place wasn't applied to its twin** (huge IDs fixed on class pages, still crashing on booking routes) — found only by QA and the security auditor. Independent roles looking at the *whole* app pay for themselves.
-6. **Agents ran into the session's usage limit** — long multi-agent runs consume a lot (this one: ≈2M tokens). The guide now says start lean and expect QA to be the biggest single cost.
-7. **A papercut:** the project's `pytest.ini` had `-q` which made the test summary line vanish — a reminder that agents' "all green" claims should be re-run, which the reviewers did.
+6. **A papercut:** the project's `pytest.ini` had `-q` which made the test summary line vanish — a reminder that agents' "all green" claims should be re-run, which the reviewers did.
 
 ## Run it yourself
 
