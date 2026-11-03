@@ -213,7 +213,7 @@ examples/                         worked examples (below)
 | [**Pantry Pal kickoff**](examples/pantry-pal-kickoff/README.md) | The documents-first flow: a product concept + technical plan with planted contradictions → the team found all of them (22 gaps) | Rehearsal of the first steps |
 | [Order API walkthrough](docs/example-order-service.md) | A conceptual, narrated walkthrough on an order-management API | Illustrative |
 
-The owner in both examples is simulated; the agents' outputs are real.
+In the worked examples the owner is simulated; the agents' outputs are real.
 
 ## Status and honest limits
 

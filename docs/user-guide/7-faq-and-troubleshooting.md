@@ -1,4 +1,4 @@
-# 6. FAQ and troubleshooting
+# 7. FAQ and troubleshooting
 
 ## Understanding
 

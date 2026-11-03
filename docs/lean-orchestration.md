@@ -11,6 +11,9 @@ Why this exists: separate roles each carry their own context and review each oth
 6. **State in chat.** A session ending, or a switch to a different tool, lost context. Fix: the state is files in git.
 
 ## The agent-agnostic board
+
+> **Installing `/lean-build`:** no team switches this workflow on by default (as of this writing), and `board init` installs the board scripts but not the workflow. To add it to a project, run `mkdir -p .autocraft/custom/workflows && cp <autocraft>/workflows/lean-build.md .autocraft/custom/workflows/`, then `python3 .autocraft/framework/bin/autocraft sync`. `autocraft doctor` should still report OK.
+
 `autocraft board init` installs `scripts/board.py` (stdlib Python), `work/{tasks,status}`, `AGENTS.md`. State per task is one small JSON file, so two agents never conflict; a claim is a git push (first push wins); a claim without a heartbeat for `lease_hours` is free again. `AGENTS.md` is read natively by Codex, Cursor and Copilot; Claude Code reads it via the `CLAUDE.md` pointer; chat tools (ChatGPT, Grok, ...) are given `AGENTS.md` + the card and ask a human to run git. The one rule for all of them: **only take tasks that `board.py next` lists.**
 
 ## Checklist
