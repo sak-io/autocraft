@@ -1,6 +1,6 @@
 # Example: Receipt Tally, built effectively with a small token budget
 
-A second worked example, the opposite of [ClassBook](../classbook/README.md): ClassBook shows a thorough multi-agent build of a web app (24 agent runs, ≈2.0M tokens). **Receipt Tally shows the same safeguards (spec, tests, an independent reviewer that probes, human-owned decisions) on a small tool, with `token_mode: lean` from the first minute.**
+A second worked example, the opposite of [ClassBook](../classbook/README.md): ClassBook shows a thorough multi-agent build of a web app (26 agent runs, ≈2.2M tokens). **Receipt Tally shows the same safeguards (spec, tests, an independent reviewer that probes, human-owned decisions) on a small tool, with `token_mode: lean` from the first minute.**
 
 The owner's idea, in their words ([`project/docs/idea.md`](project/docs/idea.md)): *"a small tool that reads the CSV files my bank lets me download, sorts each transaction into categories using rules I write in a text file, and prints a monthly spending summary. It must never send my data anywhere."*
 
