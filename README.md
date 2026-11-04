@@ -4,6 +4,8 @@
 
 **Agent teams for building software with AI.** Pick your kind of software, pick your AI tool, get a ready-made team of specialised agents — planner, designer, builders, independent reviewer, QA, security, release check — that you can use as is, trim, or rebuild to your own standards. You approve the decisions that matter and always hold the merge.
 
+**Jump to:** [Quick start](#quick-start) · [Guardrails](#guardrails) · [Token cost](#token-cost-and-how-to-control-it) · [Pick a team](#pick-a-team) · [Customize](#customize) · [CLI reference](#cli-reference) · [Examples](#examples) · [Docs](#documentation)
+
 Claude is the first-class target (Claude Code in a terminal, and Claude app Code sessions on web and phone). The same team exports to Cursor, GitHub Copilot, Gemini CLI, Windsurf, Cline, anything that reads `AGENTS.md`, or plain prompts.
 
 ---
@@ -29,7 +31,9 @@ Same engine and quality bar for both — independent review, tests with every ch
 
 ## Quick start
 
-Prerequisites: `git` and **Python 3.8+** (the CLI is one standard-library file; nothing to install) and an AI tool.
+Prerequisites: `git` and **Python 3.8+** (the CLI is one standard-library file; nothing to install; CI runs the checks on 3.8 and 3.12) and an AI tool.
+
+Not sure which commands fit your project? [**Pick your path**](docs/user/guide/0-pick-your-path.md) has them for a simple, medium or complex project, an existing codebase, or documents you already wrote. Browse all documents in [docs/README.md](docs/README.md).
 
 Pick the entry that matches where you are:
 
@@ -38,6 +42,7 @@ Pick the entry that matches where you are:
 | **Only an idea** | Open your AI tool in an empty folder and paste the [bootstrap prompt](docs/user/bootstrap-prompt.md). The Team Builder interviews you, recommends a lean or full team, installs it, and explains how to start. |
 | **A product concept / technical plan in a repo**, and I use the **Claude app** | Add a small `CLAUDE.md` pointer, start a Code session on the repo, say *"Kick off this project with autocraft."* → [Kick off from your own documents](docs/user/kickoff-existing-docs.md) |
 | **An existing codebase**, and I'm an **engineer** | `python3 autocraft/bin/autocraft init . --tool claude-code --team starter --add-role architect,qa-engineer --experience expert` → [For software engineers](docs/user/guide/6-for-software-engineers.md) |
+| **A small project** (a site, a script, a small tool) and I want to keep costs down | add `--token-saver` to `init`, as in [Receipt Tally](examples/receipt-tally/README.md); see [token cost](#token-cost-and-how-to-control-it) |
 | **A terminal** and a project in mind | the commands below |
 
 ```bash
@@ -65,7 +70,7 @@ cd ~/code/yoga && claude          # then type:  /start
 |---|---|---|
 | **Roles** (22) | Job descriptions for agents: requirements-analyst, architect, principal-engineer, ux-designer, developer (and backend/frontend/mobile/data/ML/AI/DevOps/embedded/game variants), pr-reviewer, qa-engineer, security-auditor, release-gatekeeper, technical-writer, delivery-lead, repo-onboarder, team-builder | [`roles/`](roles/) |
 | **Teams** (10) | A roster plus a playbook for a kind of software, from the lean `starter` to full teams | [`teams/`](teams/) |
-| **Workflows** (15) | Procedures you start with a command: `/discover`, `/kickoff`, `/start`, `/design-architecture`, `/build-feature`, `/lean-build` (low-token, tool-agnostic task board; [guide](docs/reference/lean-orchestration.md)), `/review-pr`, `/review-guide` (a reviewer's guide for big diffs, [guide](docs/reference/reviewing-large-prs.md)), `/release-check`, `/security-scan`, `/status`, `/explain`, … They switch on automatically when their roles are present. | [`workflows/`](workflows/) |
+| **Workflows** (15) | Procedures you start with a command: `/discover`, `/kickoff`, `/start`, `/design-architecture`, `/build-feature`, `/lean-build` (low-token, tool-agnostic task board, installed by every team except `setup`; [guide](docs/reference/lean-orchestration.md)), `/review-pr`, `/review-guide` (a reviewer's guide for big diffs, [guide](docs/reference/reviewing-large-prs.md)), `/release-check`, `/security-scan`, `/status`, `/explain`, … They switch on automatically when their roles are present. | [`workflows/`](workflows/) |
 | **Archetypes** (20) | Software-type profiles (API, web app, mobile app, AI assistant, data pipeline, game, infrastructure, …): the questions to ask, what the architecture must cover, how to test, what to scan, what to check before release. Includes a recipes table ("online store", "SaaS", "Slack bot"). | [`archetypes/`](archetypes/README.md) |
 | **Capabilities** (10) | Cross-cutting needs with safe defaults and must-test lists: authentication, payments, database, email, uploads, search, observability, secrets, hosting, privacy | [`capabilities/`](capabilities/README.md) |
 | **Protocol** | The contract between roles: handoff blocks, severity-tagged reviews, round limits, human gates, git modes, `gh` vs GitHub tools | [`docs/protocol.md`](docs/protocol.md) |
@@ -176,7 +181,7 @@ Levels, from light to heavy: config knobs → team rules → per-role rules → 
 | `autocraft doctor [DIR]` | check config, manifest, drift, sources, the `.gitattributes` generated-file block |
 | `autocraft init\|sync … --commit` | commit the autocraft-owned files as ONE dedicated commit (`init --no-gitattributes` opts out of the generated-file markers) |
 | `autocraft init … --token-saver` · `--token-mode lean` | spend fewer tokens without changing the quality gates: mid-tier models for reviewer, QA, auditor and analyst, 2 review rounds, 2 parallel developers, work from briefs and short reports; an explicit `--role-model` still wins ([protocol §15](docs/protocol.md)) |
-| `autocraft board init [DIR]` | install the agent-agnostic task board used by the `/lean-build` workflow ([guide](docs/reference/lean-orchestration.md)) |
+| `autocraft board init [DIR]` · `board run …` | install the agent-agnostic task board used by the `/lean-build` workflow, or pass arguments through to its `scripts/board.py` (`next`, `claim`, `submit`, ...) ([guide](docs/reference/lean-orchestration.md)) |
 | `autocraft review-map [DIR] [--base REF] [--head REF] [--json] [--slices] [--emit-split-script] [--verify-guide FILE]` | what is in this diff (product / tests / docs / config / generated), whether a reviewer's guide is recommended, a stacked-PR split proposal, and a check that every `path:line` in a guide still exists; deterministic, no model tokens ([details](docs/reference/reviewing-large-prs.md)) |
 
 ## Repository layout
