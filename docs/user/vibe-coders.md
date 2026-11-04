@@ -12,7 +12,7 @@ You have an idea. You may never have heard of "CI", "architecture" or "pull requ
 7. **Release** — you press the button.
 8. **Keep it healthy** — monitoring, updates, security scans, fixes.
 
-Professional teams use specialists for each step. Here, each specialist is an agent (see [why a team](orchestration-patterns.md)). Start with the small **starter** team — a planner, a builder, an independent reviewer and a security check — and add specialists as the project grows.
+Professional teams use specialists for each step. Here, each specialist is an agent (see [why a team](../reference/orchestration-patterns.md)). Start with the small **starter** team — a planner, a builder, an independent reviewer and a security check — and add specialists as the project grows.
 
 ## Your first 10 minutes
 **Easiest:** open your AI tool (Claude Code, Cursor, Copilot, Gemini CLI, …) in an empty folder and paste the [bootstrap prompt](bootstrap-prompt.md). The *Team Builder* agent asks about your idea and your tool, then sets everything up.

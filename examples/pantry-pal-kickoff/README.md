@@ -1,6 +1,6 @@
 # Rehearsal: kick off a project from your own documents
 
-This is the scenario from [Kick off a project from your own documents](../../docs/kickoff-existing-docs.md), rehearsed with real agents. A fictional owner has a **product concept** and a **technical plan** in a repo (`inputs/`), adds the small `CLAUDE.md` pointer, and says *"Kick off this project with autocraft."*
+This is the scenario from [Kick off a project from your own documents](../../docs/user/kickoff-existing-docs.md), rehearsed with real agents. A fictional owner has a **product concept** and a **technical plan** in a repo (`inputs/`), adds the small `CLAUDE.md` pointer, and says *"Kick off this project with autocraft."*
 
 > **What this is and isn't.** The agents were real and separate, and they read only what a fresh session would see (the repo + pointer). It ran in a cloud Code session like the Claude app's, but **not through the app's phone UI**, and the repo had **no GitHub remote** (so pushing and `add_repo` of a private framework repo were not exercised). The documents were written to contain deliberate gaps and contradictions to see whether the team finds them.
 

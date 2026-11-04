@@ -13,6 +13,6 @@ Delegate to the `team-builder` role. Assume the person has never configured agen
 4. **Install** on confirmation:
    `autocraft init . --tool <tools> --team <team> --archetype <a,b> --capability <c,d> --experience <level>`
    (`--dry-run` first if they want to see the file list).
-5. **Orient:** tell them exactly how to start in their tool (e.g. "type `/start`", "open Copilot chat and choose the `architect` agent", "say: *Act as the requirements-analyst from AGENTS.md*"). Point to `docs/tools/<tool>.md`.
+5. **Orient:** tell them exactly how to start in their tool (e.g. "type `/start`", "open Copilot chat and choose the `architect` agent", "say: *Act as the requirements-analyst from AGENTS.md*"). Point to `docs/reference/tools/<tool>.md`.
 6. **Offer customization** (`customize-team`) and `/status`.
 7. Run `autocraft doctor` and report anything left for the human.

@@ -39,9 +39,9 @@ Neither audience gets a different quality bar. **Independent review, tests with 
 
 **Already have your product concept / technical plan written down?** [Kick off a project from your own documents](../kickoff-existing-docs.md) (Claude app or terminal).
 
-**See it in action:** two worked examples with every step and agent output. [ClassBook](../../examples/classbook/README.md) is a thorough build of a web app. [Receipt Tally](../../examples/receipt-tally/README.md) is a small tool built with the lean team and a token budget. [Lean vs thorough](../lean-vs-thorough.md) compares them. Each example says what is done and what is not.
+**See it in action:** two worked examples with every step and agent output. [ClassBook](../../../examples/classbook/README.md) is a thorough build of a web app. [Receipt Tally](../../../examples/receipt-tally/README.md) is a small tool built with the lean team and a token budget. [Lean vs thorough](../../reference/lean-vs-thorough.md) compares them. Each example says what is done and what is not.
 
-**What is and is not enforced:** [Guardrails](../guardrails.md).
+**What is and is not enforced:** [Guardrails](../../reference/guardrails.md).
 
 ## How much to trust this guide (honest status)
 

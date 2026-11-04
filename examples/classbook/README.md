@@ -1,6 +1,6 @@
 # Worked example: ClassBook — a booking app for a yoga studio
 
-A real project, built by following the [User Guide](../../docs/user-guide/README.md). Every file under [`project/`](project/) was produced by the agent team; every decision, disagreement and defect below really happened.
+A real project, built by following the [User Guide](../../docs/user/guide/README.md). Every file under [`project/`](project/) was produced by the agent team; every decision, disagreement and defect below really happened.
 
 > **How to read this page:** each step shows **what you (the owner) do**, **what the agents do**, and **what you see**, with links to the real artifacts. Read it top to bottom to see the whole journey, or jump to the [results](#results-at-a-glance) and [what went wrong](#what-went-wrong-and-what-we-changed-because-of-it).
 
@@ -186,7 +186,7 @@ In parallel with QA, the `security-auditor` ran real scanners and a hostile read
 
 These are in [`project/docs/STATUS.md`](project/docs/STATUS.md) — that file is how any future session (or person) would pick up exactly here with `/status`.
 
-*Compared with a lean build of a small tool: [lean vs thorough](../../docs/lean-vs-thorough.md).*
+*Compared with a lean build of a small tool: [lean vs thorough](../../docs/reference/lean-vs-thorough.md).*
 
 ## Token budget (lean mode)
 

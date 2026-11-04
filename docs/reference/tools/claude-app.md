@@ -11,9 +11,9 @@ The Claude app gives you **two different ways** to work with autocraft. Pick by 
 
 A Code session is Claude Code running in the cloud against your GitHub repository. Everything autocraft does in a terminal works here, including **sub-agents running in parallel**.
 
-**Start from documents you already wrote** → [Kick off a project from your own documents](../kickoff-existing-docs.md). (One small `CLAUDE.md` pointer in your repo, then one sentence in the app.)
+**Start from documents you already wrote** → [Kick off a project from your own documents](../../user/kickoff-existing-docs.md). (One small `CLAUDE.md` pointer in your repo, then one sentence in the app.)
 
-**Start from only an idea** → use the [bootstrap prompt](../bootstrap-prompt.md) in a Code session attached to an empty repo.
+**Start from only an idea** → use the [bootstrap prompt](../../user/bootstrap-prompt.md) in a Code session attached to an empty repo.
 
 What is different from a terminal, and how autocraft handles it:
 
@@ -35,7 +35,7 @@ Good for discovery, specs, architecture reviews, and learning.
 ```bash
 python3 autocraft/bin/autocraft init ~/code/my-idea --tool claude-app --team starter
 ```
-Writes `claude-project/INSTRUCTIONS.md` and `claude-project/knowledge/*.md`. Create a Project in claude.ai, paste the instructions, upload the knowledge files, and say "Let's start." Don't have a computer? Paste the chat prompt from the [bootstrap prompt](../bootstrap-prompt.md).
+Writes `claude-project/INSTRUCTIONS.md` and `claude-project/knowledge/*.md`. Create a Project in claude.ai, paste the instructions, upload the knowledge files, and say "Let's start." Don't have a computer? Paste the chat prompt from the [bootstrap prompt](../../user/bootstrap-prompt.md).
 
 **Independence trick:** open a *new chat in the same Project* for each reviewer role and paste only the spec and the work to review.
 
