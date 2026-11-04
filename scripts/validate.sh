@@ -161,5 +161,14 @@ for t in $(ls teams | sed 's/\.md$//'); do
   [[ -f "$d/.claude/skills/lean-build/SKILL.md" ]] || err "team $t does not install the lean-build workflow"
 done
 
+# --- board init works, is repeatable, and /lean-build still tells the agent to run it when the board is missing
+bd="$tmp/board-proj"; mkdir -p "$bd"
+python3 bin/autocraft init "$bd" --tool claude-code --team starter >/dev/null 2>&1 || err "init failed for board test"
+python3 bin/autocraft board init "$bd" --branch main >/dev/null 2>&1 || err "board init failed"
+[[ -f "$bd/scripts/board.py" && -f "$bd/AGENTS.md" && -d "$bd/work" ]] || err "board init did not create scripts/board.py, AGENTS.md and work/"
+python3 bin/autocraft board init "$bd" --branch main >/dev/null 2>&1 || err "board init is not repeatable"
+grep -q 'Set up the board if needed' "$bd/.claude/skills/lean-build/SKILL.md" || err "lean-build skill lost its board setup step"
+grep -q 'board init' "$bd/.claude/skills/lean-build/SKILL.md" || err "lean-build skill no longer mentions board init"
+
 ((fail)) && { echo "Validation FAILED" >&2; exit 1; }
 echo "Validation passed: $(echo $ROLES | wc -w) roles, $(ls teams | wc -l) teams, $(echo $WFS | wc -w) workflows, $(echo $ARCHS | wc -w) archetypes, $(($(ls capabilities | wc -l)-1)) capabilities; all 9 tool exports generate, parse and sync idempotently"
