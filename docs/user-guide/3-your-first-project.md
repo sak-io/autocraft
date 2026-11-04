@@ -104,7 +104,7 @@ The [ClassBook example](../../examples/classbook/README.md) — a booking app fo
 
 **Two lessons from it:**
 1. **Say "simpler" at the plan gate.** The architect built a more careful design than a one-room studio needs. The reviewer judged it sound, not proportionate. If the plan looks heavier than your idea deserves, tell the team: *"This is a small studio, keep it as simple as safely possible."* It will redo the plan.
-2. **Budget for the big steps.** Independent QA and security checks are the most valuable *and* the most expensive steps. Long runs can reach your AI tool's usage limit; work is saved in your files (`/status` resumes it), but plan for pauses. Starting with the lean team keeps usage down.
+2. **Budget for the big steps.** Independent QA and security checks are the most valuable *and* the most expensive steps. Work is saved in your files (`/status` resumes it), so a pause loses nothing. Starting with the lean team (`--token-saver`) keeps usage down.
 
 ## Your time, realistically
 

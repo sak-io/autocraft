@@ -106,7 +106,7 @@ After any edit: `autocraft sync && autocraft doctor`. Generated files are overwr
   ```
 - **Mixed tools on one team.** `--tool claude-code,cursor,agents-md` gives everyone the same roster in their own tool's format.
 - **Monorepos.** One `.autocraft/` per repo root. Declare several archetypes (`[mobile-app, api-service]`); the architect tags tasks by component. There is no per-subdirectory team yet.
-- **Cost.** Multi-agent work is token-hungry (ClassBook ≈ 2 M tokens, QA ≈ 16 % of it). Start lean, add roles where you've seen failures, use `--role-model` for high-volume roles.
+- **Cost.** Independent roles re-read context, so a team spends more tokens than one agent (ClassBook ≈ 2.2 M tokens, QA ≈ 16 % of it, and QA found 9 defects). Start lean (`--token-saver`), add roles where you've seen failures, use `--role-model` for high-volume roles. See [guardrails](../guardrails.md) for what the cost controls do and do not enforce.
 
 ## Extend and contribute
 

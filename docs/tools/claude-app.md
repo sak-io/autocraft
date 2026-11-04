@@ -24,7 +24,7 @@ What is different from a terminal, and how autocraft handles it:
 | Sub-agent files created during the session | Spawn them by role id; if one isn't registered yet, the team lead uses a general-purpose agent that reads the role file |
 | Many approval taps on a phone | `.claude/settings.json` pre-approves routine safe commands (git, tests, autocraft) |
 | Sessions end | State lives in files (`docs/STATUS.md`, `.autocraft/work/`) and commits; `/status` resumes in a new session |
-| Usage limits | Work is saved at each step; start lean; QA/security are the biggest costs |
+| Token budget | Start lean (`--token-saver`); QA and security are the biggest costs; work is saved at each step |
 
 You are asked at the **gates** (spec, plan, anything only you can decide) and for the **final merge**. The team never merges to `main`.
 
