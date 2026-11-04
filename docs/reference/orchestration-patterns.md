@@ -27,7 +27,7 @@ Use **role hats**:
 3. Pass work through **files**, not memory: specs, `docs/architecture/`, review files (`.autocraft/work/<task>/review-N.md`), `docs/STATUS.md`.
 
 ## Handoffs are the contract
-Every role ends with a handoff block (from, to, status, artifacts, open items, next) — see [protocol](protocol.md). Because they're text in files, they work in every tool and survive across sessions and people.
+Every role ends with a handoff block (from, to, status, artifacts, open items, next) — see [protocol](../protocol.md). Because they're text in files, they work in every tool and survive across sessions and people.
 
 ## Humans stay in charge
 Autonomy levels 1–3 control how often you're asked; **merging and releasing is always yours**. Loops stop after a set number of rounds and ask you instead of grinding.

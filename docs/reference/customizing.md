@@ -33,7 +33,7 @@ Independent review, tests with every change, no secrets in code, and **humans me
 - **Role:** add `roles/<id>.md` (frontmatter `id, title, category, abilities, description`), list it in the right `teams/*.md`.
 - **Team:** add `teams/<id>.md` (`roles`, `optional`, `workflows`, `fits`, and a playbook body).
 - **Archetype / capability:** copy an existing profile and keep its headings.
-- **Another AI tool:** add an `export()` branch in `bin/autocraft`, an entry in `TOOLS`/`HOWTO`, and `docs/tools/<tool>.md`. `scripts/validate.sh` checks it all.
+- **Another AI tool:** add an `export()` branch in `bin/autocraft`, an entry in `TOOLS`/`HOWTO`, and `docs/reference/tools/<tool>.md`. `scripts/validate.sh` checks it all.
 - **Another language's CI:** add `templates/github/workflows/ci-<lang>.yml` and an entry in `LANGS` in `bin/autocraft`.
 
 ## Update the framework

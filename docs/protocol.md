@@ -63,7 +63,7 @@ Exactly one `agent:*` state label on a PR at a time. Whoever moves the PR forwar
 | Change branch protection / visibility / delete repo | ❌ never without explicit ask | ✅ |
 | Create the repo | ✅ after human confirmation | ✅ |
 
-When branch protection is enabled (applied by `scripts/onboard-repo.sh`, or set up by hand), it enforces the human gate: ≥1 approving review is required, and agents run with your credentials, so the *approval click is yours*. Without it, the gate is the written rule above. See [guardrails](guardrails.md) for what is enforced by tools and what rests on instructions.
+When branch protection is enabled (applied by `scripts/onboard-repo.sh`, or set up by hand), it enforces the human gate: ≥1 approving review is required, and agents run with your credentials, so the *approval click is yours*. Without it, the gate is the written rule above. See [guardrails](reference/guardrails.md) for what is enforced by tools and what rests on instructions.
 
 ## 6. Autonomy levels (`.autocraft/config.yml → autonomy_level`)
 | Level | You approve | Best for |
@@ -144,4 +144,4 @@ Separate agents each carry their own context, so a team spends more tokens than 
 
 ## 16. Reviewing large changes
 - The framework install is its own commit (`autocraft init --commit`, later `sync --commit`), made before product work; generated files are marked `linguist-generated` in `.gitattributes` so GitHub collapses them.
-- Before telling the owner to merge, run `autocraft review-map` (deterministic, no model tokens). If `guide_recommended`, a **fresh** `pr-reviewer` writes `docs/review-guide.md` (workflow `review-guide`): counts pasted from the script, every `path:symbol` checked with `review-map --verify-guide`, and a mandatory "what has NOT been independently verified" section that says who reviewed the code. If `split_recommended`, **offer** the stacked-PR split and do it only after an explicit yes. See `docs/reviewing-large-prs.md` in the autocraft repository.
+- Before telling the owner to merge, run `autocraft review-map` (deterministic, no model tokens). If `guide_recommended`, a **fresh** `pr-reviewer` writes `docs/review-guide.md` (workflow `review-guide`): counts pasted from the script, every `path:symbol` checked with `review-map --verify-guide`, and a mandatory "what has NOT been independently verified" section that says who reviewed the code. If `split_recommended`, **offer** the stacked-PR split and do it only after an explicit yes. See `docs/reference/reviewing-large-prs.md` in the autocraft repository.

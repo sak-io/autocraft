@@ -85,7 +85,7 @@ The team **never merges to `main` and never opens a pull request unless you ask.
 
 ## What it costs
 
-Independent roles each carry their own context, so a team uses more tokens than one agent doing everything; that is the price of separation and review. The [ClassBook example](../examples/classbook/README.md) — a small app — used 26 agent runs and ≈2.2 million tokens, mostly in review and QA (its last round, run with `token_mode: lean`, took ≈190 thousand), for about 30–40 minutes of the owner's attention. Your project's size decides yours. Start lean (`--token-saver`); add QA and security when the product is real.
+Independent roles each carry their own context, so a team uses more tokens than one agent doing everything; that is the price of separation and review. The [ClassBook example](../../examples/classbook/README.md) — a small app — used 26 agent runs and ≈2.2 million tokens, mostly in review and QA (its last round, run with `token_mode: lean`, took ≈190 thousand), for about 30–40 minutes of the owner's attention. Your project's size decides yours. Start lean (`--token-saver`); add QA and security when the product is real.
 
 ## Troubleshooting
 
@@ -100,4 +100,4 @@ Independent roles each carry their own context, so a team uses more tokens than 
 | The plan feels too heavy for your idea | Say *"This is v1; keep the design as simple as safely possible."* |
 | You pushed new documents but the team ignores them | Mention them: *"Re-read docs/…; update the spec and tell me what changed."* |
 
-See also: [Claude app tool page](tools/claude-app.md) · [User Guide](user-guide/README.md) · [Protocol](protocol.md)
+See also: [Claude app tool page](../reference/tools/claude-app.md) · [User Guide](guide/README.md) · [Protocol](../protocol.md)

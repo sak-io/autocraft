@@ -6,7 +6,7 @@ description: Writes a reviewer's guide for a large change - what is in the diff 
 
 # /review-guide [base..head]
 
-A human should be able to review a big change in one sitting. This workflow produces `docs/review-guide.md` (configurable) so they know what to read, what to skip, what must hold, and what nobody has verified. Background and numbers: `docs/reviewing-large-prs.md`.
+A human should be able to review a big change in one sitting. This workflow produces `docs/review-guide.md` (configurable) so they know what to read, what to skip, what must hold, and what nobody has verified. Background and numbers: `docs/reference/reviewing-large-prs.md`.
 
 Do **not** run it for every PR. Small changes do not need a guide; `autocraft review-map` decides (config: `human_review`, `review_guide`, `review_guide_min_files`, `review_guide_min_product_lines`).
 
@@ -35,4 +35,4 @@ Do **not** run it for every PR. Small changes do not need a guide; `autocraft re
 4. Lead: commit the guide, link it as in rule 7, and tell the owner what to read first. If `split_recommended` is true in the `review-map --json` output, also **offer** the stacked-PR split (section 8 of the guide); see "Split offer" below.
 
 ## Split offer (only offer; never do it unasked)
-If the diff exceeds **twice** the thresholds (`split_recommended`), show the owner the plan from `review-map --slices` (number of slices, sizes, the generated bootstrap slice first) and ask: "Split into N stacked PRs?" Perform it **only after an explicit yes**. How to do it mechanically and safely is in `docs/reviewing-large-prs.md` ("Splitting a large diff"): `review-map --emit-split-script` prints the commands; every slice branch must build and pass the tests on its own; the generated bootstrap goes first; open each PR against the previous slice's branch. Without a yes, continue with the single PR plus the guide.
+If the diff exceeds **twice** the thresholds (`split_recommended`), show the owner the plan from `review-map --slices` (number of slices, sizes, the generated bootstrap slice first) and ask: "Split into N stacked PRs?" Perform it **only after an explicit yes**. How to do it mechanically and safely is in `docs/reference/reviewing-large-prs.md` ("Splitting a large diff"): `review-map --emit-split-script` prints the commands; every slice branch must build and pass the tests on its own; the generated bootstrap goes first; open each PR against the previous slice's branch. Without a yes, continue with the single PR plus the guide.

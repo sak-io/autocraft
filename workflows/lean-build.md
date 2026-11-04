@@ -5,7 +5,7 @@ description: Token-frugal build loop driven by the agent-agnostic task board - c
 
 # /lean-build [task id]
 
-Use instead of `/build-feature` when token budgets matter or several different AI tools may work on the project. Setup once (step 0 below does it if the board is missing), write `work/tasks/<ID>.md` cards (or `python3 scripts/board.py import-tasks docs/architecture/work-breakdown.md`), `python3 scripts/board.py render`, commit. See `docs/lean-orchestration.md` for the reasoning.
+Use instead of `/build-feature` when token budgets matter or several different AI tools may work on the project. Setup once (step 0 below does it if the board is missing), write `work/tasks/<ID>.md` cards (or `python3 scripts/board.py import-tasks docs/architecture/work-breakdown.md`), `python3 scripts/board.py render`, commit. See `docs/reference/lean-orchestration.md` for the reasoning.
 
 0. **Set up the board if needed.** If `scripts/board.py` does not exist, run `python3 .autocraft/framework/bin/autocraft board init . --branch <integration-branch>` (use `main` if the project has no integration branch), then create the task cards as described above and commit. Skip this step when the board is already there.
 1. **Pick.** `python3 scripts/board.py next`. Only tasks listed there may be taken. Claim with `board.py claim <ID> --agent <name>`; a lost race means pick another.

@@ -4,7 +4,7 @@ autocraft lets agents move quickly inside limits you control. This page lists th
 
 Two kinds of guardrail are mixed together in any agent framework, and it matters which is which:
 
-- **Instructed**: written into the role files and the [protocol](protocol.md); agents follow them and reviewers check them. They work well in practice but nothing stops an agent that ignores them.
+- **Instructed**: written into the role files and the [protocol](../protocol.md); agents follow them and reviewers check them. They work well in practice but nothing stops an agent that ignores them.
 - **Enforced**: a tool refuses the action regardless of what the agent does (a CI check, GitHub branch protection, the Claude Code permission list, a script).
 
 This list comes from reading the protocol, roles, CLI and templates in this repository. It is not a security audit.
@@ -14,26 +14,26 @@ This list comes from reading the protocol, roles, CLI and templates in this repo
 ### Human control
 | Guardrail | Detail | Kind |
 |---|---|---|
-| Humans merge | Agents never approve or merge into `main`, at any autonomy level ([protocol §5](protocol.md)). A developer never merges its own PR or bypasses CI or branch protection (`roles/developer.md`). The release gatekeeper cannot edit code, merge or approve (`roles/release-gatekeeper.md`). | Instructed. **Enforced** if branch protection is on. |
+| Humans merge | Agents never approve or merge into `main`, at any autonomy level ([protocol §5](../protocol.md)). A developer never merges its own PR or bypasses CI or branch protection (`roles/developer.md`). The release gatekeeper cannot edit code, merge or approve (`roles/release-gatekeeper.md`). | Instructed. **Enforced** if branch protection is on. |
 | Branch protection | `templates/branch-protection.json`, applied by `scripts/onboard-repo.sh`: one approving review, required `ci` check, up-to-date branch, admins included, no force-push, no deletion, linear history, conversations resolved. | Enforced by GitHub (opt-in). |
-| Gates you choose | `autonomy_level` 1-3 sets which phases need your approval: spec, plan, release. Money, legal and account decisions always come to you ([protocol §6](protocol.md)). | Instructed |
-| Quiet git by default | `git_mode: session-branch` keeps work on the session branch; no extra remote branches or pull requests unless you ask ([protocol §14](protocol.md)). | Instructed |
+| Gates you choose | `autonomy_level` 1-3 sets which phases need your approval: spec, plan, release. Money, legal and account decisions always come to you ([protocol §6](../protocol.md)). | Instructed |
+| Quiet git by default | `git_mode: session-branch` keeps work on the session branch; no extra remote branches or pull requests unless you ask ([protocol §14](../protocol.md)). | Instructed |
 
 ### Review and quality
 | Guardrail | Detail | Kind |
 |---|---|---|
-| Independent review | A different agent, in a fresh session that sees only the spec, diff and protocol, re-runs the tests itself ([protocol §3, §12](protocol.md)). | Instructed |
+| Independent review | A different agent, in a fresh session that sees only the spec, diff and protocol, re-runs the tests itself ([protocol §3, §12](../protocol.md)). | Instructed |
 | Severity tags and approval rules | `[BLOCKER]`, `[MAJOR]`, `[MINOR]`, `[NIT]`, `[QUESTION]`, `[RELEASE-BLOCKER]`; approval only with zero open BLOCKER/MAJOR and green CI; the reviewer re-verifies every earlier comment each round. | Instructed |
 | Round limit and escalation | After `max_review_rounds` (default 3; 2 with `--token-saver`) the work is labelled `needs-human` and both positions are summarised neutrally. | Instructed |
-| Definition of Ready / Done | Clear acceptance criteria before building; tests, green CI, reviewer approval, pre-release check and human merge before done ([protocol §7](protocol.md)). | Instructed |
-| Parallelism cap | `max_parallel_developers`; only independent tasks, each in its own worktree ([protocol §8](protocol.md)). | Instructed |
+| Definition of Ready / Done | Clear acceptance criteria before building; tests, green CI, reviewer approval, pre-release check and human merge before done ([protocol §7](../protocol.md)). | Instructed |
+| Parallelism cap | `max_parallel_developers`; only independent tasks, each in its own worktree ([protocol §8](../protocol.md)). | Instructed |
 | Team sanity check | `autocraft doctor` reports a team with no independent reviewer or no builder, unknown archetypes, capabilities or tools, missing source documents and missing or drifted generated files. | Enforced by script |
 | Big-diff reviewability | `autocraft review-map` (no model tokens) classifies a diff and recommends a reviewer's guide; the guide must say what has **not** been independently verified and `--verify-guide` checks its `path:line` references ([reviewing large PRs](reviewing-large-prs.md)). | Script plus instruction |
 
 ### Safety and security
 | Guardrail | Detail | Kind |
 |---|---|---|
-| Safety rules for all agents | No secrets in code, logs or comments; never disable tests, checks or protections to get green; ask before destructive or outward-facing actions; be honest about what was verified versus assumed ([protocol §9](protocol.md)). | Instructed |
+| Safety rules for all agents | No secrets in code, logs or comments; never disable tests, checks or protections to get green; ask before destructive or outward-facing actions; be honest about what was verified versus assumed ([protocol §9](../protocol.md)). | Instructed |
 | Security auditor | Triages dependency, code and secret scans; cannot modify product code; may not dismiss an alert without written justification; a leaked secret means "rotate now" (`roles/security-auditor.md`). | Instructed |
 | CI templates | Language CI for 8 stacks with a required status check named `ci`. Dependency-audit steps for .NET, Go, Java, Node, Python and Rust (Flutter relies on Dependabot). CodeQL, Dependabot, CODEOWNERS, PR template and SECURITY.md templates. | Enforced by CI once installed (`autocraft github`) |
 | Secret scanning | A weekly scheduled gitleaks and dependency scan; GitHub secret scanning and push protection turned on by `scripts/onboard-repo.sh`. | Enforced by CI/GitHub once installed |
@@ -44,7 +44,7 @@ This list comes from reading the protocol, roles, CLI and templates in this repo
 ### Cost controls
 | Guardrail | Detail | Kind |
 |---|---|---|
-| Lean mode | `token_mode: lean` tells every role to work from briefs, run cheap automated checks first, keep reports short and match review depth to risk ([protocol §15](protocol.md)). Quality gates do not change. | Instructed |
+| Lean mode | `token_mode: lean` tells every role to work from briefs, run cheap automated checks first, keep reports short and match review depth to risk ([protocol §15](../protocol.md)). Quality gates do not change. | Instructed |
 | Token saver | `autocraft init --token-saver`: mid-tier models for reviewer, QA, auditor and analyst, 2 review rounds, 2 parallel developers. An explicit `--role-model` still wins. | Configuration |
 | Per-run budgets | A stated tool-call or token budget in each brief; the agent stops and reports what remains. Measuring tokens per run (for example `agent-runs.csv` in the examples) is a convention. | Instructed |
 
