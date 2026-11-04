@@ -89,14 +89,18 @@ python3 ~/autocraft/bin/autocraft init . --tool claude-code --team starter \
 
 ## Using the lean task board (`/lean-build`)
 
-`autocraft board init` and the `/lean-build` workflow are for running several agents from a small task board. Today no team switches `/lean-build` on by itself, so install it as a custom workflow after `init`:
+`/lean-build` is installed by every team except `setup`. It runs several agents from a small task board that any AI tool can read. Add the board scripts once:
+
+```bash
+python3 .autocraft/framework/bin/autocraft board init
+```
+
+Projects installed before `/lean-build` was added to the teams can copy the workflow in by hand:
 
 ```bash
 mkdir -p .autocraft/custom/workflows
 cp ~/autocraft/workflows/lean-build.md .autocraft/custom/workflows/
 python3 .autocraft/framework/bin/autocraft sync
-python3 .autocraft/framework/bin/autocraft board init
-python3 .autocraft/framework/bin/autocraft doctor
 ```
 
 See [lean orchestration](../lean-orchestration.md) for how the board works.

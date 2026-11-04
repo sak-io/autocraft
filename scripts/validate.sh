@@ -153,5 +153,13 @@ for h in "## 1. What is in the diff" "## 2. The system on one page" "## 3. Prope
 [[ -f "$tmp/p/.autocraft/templates/review/review-guide.md" && -f "$tmp/p/.autocraft/framework/templates/review/review-guide.md" ]] || err "review-guide template is not installed with the framework"
 [[ -f "$tmp/p/.claude/skills/review-guide/SKILL.md" ]] || err "review-guide workflow not exported to claude-code skills"
 
+# --- every team that builds ships the lean-build workflow (regression: it was advertised but installed by no team)
+for t in $(ls teams | sed 's/\.md$//'); do
+  [[ "$t" == setup ]] && continue
+  d="$tmp/lb-$t"; mkdir -p "$d"
+  python3 bin/autocraft init "$d" --tool claude-code --team "$t" >/dev/null 2>&1 || { err "init failed for team $t"; continue; }
+  [[ -f "$d/.claude/skills/lean-build/SKILL.md" ]] || err "team $t does not install the lean-build workflow"
+done
+
 ((fail)) && { echo "Validation FAILED" >&2; exit 1; }
 echo "Validation passed: $(echo $ROLES | wc -w) roles, $(ls teams | wc -l) teams, $(echo $WFS | wc -w) workflows, $(echo $ARCHS | wc -w) archetypes, $(($(ls capabilities | wc -l)-1)) capabilities; all 9 tool exports generate, parse and sync idempotently"

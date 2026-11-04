@@ -12,7 +12,7 @@ Why this exists: separate roles each carry their own context and review each oth
 
 ## The agent-agnostic board
 
-> **Installing `/lean-build`:** no team switches this workflow on by default (as of this writing), and `board init` installs the board scripts but not the workflow. To add it to a project, run `mkdir -p .autocraft/custom/workflows && cp <autocraft>/workflows/lean-build.md .autocraft/custom/workflows/`, then `python3 .autocraft/framework/bin/autocraft sync`. `autocraft doctor` should still report OK.
+> **Installing `/lean-build`:** every team except `setup` now includes this workflow, so a fresh `autocraft init` installs it. `board init` adds the board scripts it drives. A project installed before this change can add the workflow with `mkdir -p .autocraft/custom/workflows && cp <autocraft>/workflows/lean-build.md .autocraft/custom/workflows/`, then `python3 .autocraft/framework/bin/autocraft sync`.
 
 `autocraft board init` installs `scripts/board.py` (stdlib Python), `work/{tasks,status}`, `AGENTS.md`. State per task is one small JSON file, so two agents never conflict; a claim is a git push (first push wins); a claim without a heartbeat for `lease_hours` is free again. `AGENTS.md` is read natively by Codex, Cursor and Copilot; Claude Code reads it via the `CLAUDE.md` pointer; chat tools (ChatGPT, Grok, ...) are given `AGENTS.md` + the card and ask a human to run git. The one rule for all of them: **only take tasks that `board.py next` lists.**
 
