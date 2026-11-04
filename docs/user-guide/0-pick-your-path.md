@@ -89,7 +89,7 @@ python3 ~/autocraft/bin/autocraft init . --tool claude-code --team starter \
 
 ## Using the lean task board (`/lean-build`)
 
-`/lean-build` is installed by every team except `setup`. It runs several agents from a small task board that any AI tool can read. Add the board scripts once:
+`/lean-build` is installed by every team except `setup`. It runs several agents from a small task board that any AI tool can read. The workflow installs the board itself the first time you run it. To do that step yourself:
 
 ```bash
 python3 .autocraft/framework/bin/autocraft board init
