@@ -25,7 +25,8 @@ Write `docs/specs/<kebab-case-name>.md` from `.autocraft/templates/architecture/
 4. **Acceptance criteria** – per story, written as checkable `Given / When / Then` statements. Every criterion must be testable by an automated test.
 5. **Non-goals** – what is explicitly *out of scope* for now.
 6. **Non-functional needs** – expected load, latency, availability, data sensitivity, compliance, budget. If unknown, write a stated assumption.
-7. **Assumptions & open questions** – anything you had to guess. Number them (`Q1`, `Q2`).
+7. **Areas of concern** – where two policies or constraints contradict, or one cannot be satisfied (security, privacy, brand, compliance, cost). Name who must decide. Say "none" if none. The owner resolves these with the policy owner before engineering sees the spec.
+8. **Assumptions & open questions** – anything you had to guess. Number them (`Q1`, `Q2`).
 
 ## How you work
 - Ask the human at most **5 focused questions** at a time, each with a suggested default so they can answer "yes, default" and move on. Never block on questions you can reasonably assume; record the assumption instead.

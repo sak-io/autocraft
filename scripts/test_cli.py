@@ -159,6 +159,103 @@ class ToolGuardrailTests(TempCase):
             self.assertTrue(ln.endswith("unspecified"), ln)
 
 
+class ArtifactLintAndMetricsTests(TempCase):
+    def project(self):
+        proj = new_repo(self.tmp)
+        cli(proj, "init", ".", "--tool", "claude-code", "--team", "starter", check=True)
+        return proj
+
+    def test_doctor_flags_a_malformed_handoff(self):
+        proj = self.project()
+        work = proj / ".autocraft" / "work" / "t1"
+        work.mkdir(parents=True)
+        (work / "handoff-1.md").write_text("HANDOFF\nFrom: dev   To: reviewer\nStatus: pending\nSummary: x\n")
+        d = cli(proj, "doctor", ".")
+        self.assertEqual(d.returncode, 1)
+        self.assertIn("missing field(s): Artifacts, Open items, Next", d.out)
+        self.assertIn("Status must be one of", d.out)
+
+    def test_doctor_accepts_a_complete_handoff_and_warns_on_thin_plan(self):
+        proj = self.project()
+        work = proj / ".autocraft" / "work" / "t1"
+        work.mkdir(parents=True)
+        (work / "handoff-1.md").write_text("HANDOFF\nFrom: dev   To: reviewer\nStatus: DONE (phase 1)\nSummary: x\nArtifacts: docs/missing/file.md\nOpen items: none\nNext: review\n")
+        (work / "plan.md").write_text("# Plan\n## Files that change\nx\n")
+        d = cli(proj, "doctor", ".")
+        self.assertEqual(d.returncode, 0, d.out + d.err)
+        self.assertIn("plan is missing section(s): Order of work, Risks, Proof", d.out)
+        self.assertIn("listed artifact not found: docs/missing/file.md", d.out)
+
+    def test_doctor_warns_on_a_thin_intent(self):
+        proj = self.project()
+        (proj / "docs" / "intent").mkdir(parents=True)
+        (proj / "docs" / "intent" / "x.md").write_text("# Intent: x\n## Problem\nbad\n")
+        d = cli(proj, "doctor", ".")
+        self.assertEqual(d.returncode, 0)
+        self.assertIn("intent is missing section(s)", d.out)
+        self.assertIn("no Author/Status line", d.out)
+
+    def test_metrics_reads_the_artifact_chain_from_git(self):
+        proj = self.project()
+
+        def commit(rel, text, when):
+            f = proj / rel
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_text(text)
+            git(proj, "add", "-A")
+            r = subprocess.run(["git", "commit", "-q", "-m", rel], cwd=str(proj), env=dict(ENV, GIT_AUTHOR_DATE=when, GIT_COMMITTER_DATE=when), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.assertEqual(r.returncode, 0, r.stderr)
+        commit("docs/intent/x.md", "intent v1\n", "2026-01-01T00:00:00Z")
+        commit("docs/specs/x.md", "spec v1\n", "2026-01-01T06:00:00Z")
+        commit(".autocraft/work/t1/plan.md", "plan\n", "2026-01-01T08:00:00Z")
+        commit("docs/specs/x.md", "spec v2\n", "2026-01-01T09:00:00Z")
+        commit(".autocraft/custom/team-rules.md", "rule\n", "2026-01-01T10:00:00Z")
+        (proj / ".autocraft").mkdir(exist_ok=True)
+        (proj / ".autocraft" / "gate.log").write_text("t\tblock\tproduction-deploy\tx\nt\tallow\tapproval=CHG-1\ty\n")
+        m = json.loads(cli(proj, "metrics", ".", "--json", check=True).out)
+        self.assertEqual(m["intent_to_spec_hours"], {"count": 1, "median": 6.0})
+        self.assertEqual(m["spec_commits_after_first_plan"], 1)
+        self.assertEqual(m["team_rule_corrections"], 2)  # the init files land in the first commit, then one correction
+        self.assertEqual(m["gate_decisions"], {"block": 1, "allow": 1})
+        self.assertIn("intent -> spec", cli(proj, "metrics", ".", check=True).out)
+
+    def test_gate_logs_decisions_and_init_ignores_the_log(self):
+        proj = self.project()
+        self.assertIn(".autocraft/gate.log", (proj / ".gitignore").read_text().splitlines())
+        gate = proj / ".claude" / "hooks" / "production-gate.py"
+
+        def run(cmd, **env):
+            return subprocess.run([sys.executable, str(gate)], cwd=str(proj), input=json.dumps({"tool_input": {"command": cmd}}).encode(),
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=dict(ENV, **env))
+        run("make deploy production")
+        run("make deploy production", RELEASE_APPROVAL="CHG-7")
+        log = (proj / ".autocraft" / "gate.log").read_text().splitlines()
+        self.assertEqual([ln.split("\t")[1] for ln in log], ["block", "allow"])
+        self.assertIn("approval=CHG-7", log[1])
+
+    def test_eval_runner_runs_tasks_in_a_worktree_and_applies_the_threshold(self):
+        proj = self.project()
+        (proj / "evals").mkdir()
+        (proj / "evals" / "a.json").write_text(json.dumps({"id": "a", "prompt": "make ok.txt", "checks": ["test -f ok.txt"]}))
+        (proj / "evals" / "b.json").write_text(json.dumps({"id": "b", "prompt": "do nothing", "checks": ["test -f never.txt"]}))
+        agent = proj / "agent.sh"
+        agent.write_text('#!/bin/sh\ncase "$1" in *ok.txt*) echo hi > ok.txt;; esac\n')
+        agent.chmod(0o755)
+        git(proj, "add", "-A")
+        subprocess.run(["git", "commit", "-q", "-m", "evals"], cwd=str(proj), env=ENV, check=True)
+        runner = proj / ".autocraft" / "templates" / "evals" / "run_evals.py"
+        base = dict(ENV, AUTOCRAFT_EVAL_AGENT="./agent.sh {prompt}")
+
+        def go(rate):
+            return subprocess.run([sys.executable, str(runner)], cwd=str(proj), env=dict(base, EVAL_MIN_PASS_RATE=rate), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        r = go("0.5")
+        self.assertEqual(r.returncode, 0, r.stdout)
+        self.assertIn(b"PASS a", r.stdout)
+        self.assertIn(b"FAIL b", r.stdout)
+        self.assertEqual(go("1.0").returncode, 1)
+        self.assertFalse((proj / "ok.txt").exists(), "tasks must not touch the checkout")
+
+
 # ---------------------------------------------------------------------------------------------- generated-file markers
 class GitattributesTests(TempCase):
     def check_attr(self, repo, paths):

@@ -1,4 +1,5 @@
 # Intent: <short title>
+Author: <name and team>. Status: draft | accepted | closed.
 
 <!-- Written once, in the originator's own words, then committed (e.g. docs/intent/<name>.md). The requirements-analyst turns it into docs/specs/<name>.md. -->
 

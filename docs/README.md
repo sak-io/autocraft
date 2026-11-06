@@ -22,7 +22,7 @@ Start with the group that matches what you want to do.
 | Handoffs, review rules, labels, autonomy levels | [Collaboration protocol](protocol.md) |
 | Change roles, teams, rules; extend the framework | [Customizing](reference/customizing.md) |
 | The stages a project goes through | [Lifecycle](reference/lifecycle.md) |
-| How autocraft maps to Anthropic's AI-native SDLC playbook, tool-neutral vs tool-specific | [AI-native SDLC](reference/ai-native-sdlc.md) |
+| How autocraft maps to Anthropic's AI-native SDLC playbook, tool-neutral vs tool-specific, and how to measure it | [AI-native SDLC](reference/ai-native-sdlc.md) |
 | Why a team, and how to run it in any tool | [Orchestration patterns](reference/orchestration-patterns.md) |
 | Spend fewer tokens; the task board | [Lean orchestration](reference/lean-orchestration.md) |
 | Two real builds compared | [Lean vs thorough](reference/lean-vs-thorough.md) |

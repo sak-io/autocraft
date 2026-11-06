@@ -974,6 +974,8 @@ def build(proj, dry=False):
                 shutil.copy2(FW / "templates" / "hooks" / "production-gate.py", hp)
                 created.append(GEMINI_GATE_HOOK)
             warnings.append("wrote .gemini/settings.json (production gate hook, shell deny entries); Gemini asks you to trust project hooks on first run; you own it, sync never overwrites it")
+    if any(t in tools for t in ('claude-code', 'cursor', 'gemini-cli')) and ensure_gitignore(proj, ".autocraft/gate.log"):
+        created.append(".gitignore")
     mpath.write_text(json.dumps(manifest, indent=1, sort_keys=True))
     owned = set(files) | set(blocks) | set(removed) | set(created) | {".autocraft/manifest.json", ".autocraft/config.yml", ".autocraft/framework", ".autocraft/templates"}
     if markers_enabled(cfg):
@@ -2154,6 +2156,123 @@ def cmd_github(a):
     print("added:\n  " + "\n  ".join(added) if added else "nothing to add (files already exist)")
 
 
+# ----------------------------------------------------------------------------- artifact lint (doctor) and metrics (git history)
+HANDOFF_STATUS = ("DONE", "NEEDS-CHANGES", "BLOCKED", "NEEDS-HUMAN")
+HANDOFF_FIELDS = ("From", "To", "Status", "Summary", "Artifacts", "Open items", "Next")
+PLAN_SECTIONS = ("Files that change", "Order of work", "Risks", "Proof")
+INTENT_SECTIONS = ("Problem", "Proposed outcome", "Affected users and systems", "Constraints", "Open questions")
+
+
+def md_headings(text):
+    return {m.group(1).strip().lower() for m in re.finditer(r"^#{2,6}\s+(.+?)\s*$", text, re.M)}
+
+
+def ensure_gitignore(proj, line):
+    """Append `line` to .gitignore when missing. Returns True when the file changed."""
+    gi = proj / ".gitignore"
+    cur = gi.read_text() if gi.exists() else ""
+    if line in cur.splitlines():
+        return False
+    gi.write_text(cur + ("" if not cur or cur.endswith("\n") else "\n") + line + "\n")
+    return True
+
+
+def lint_artifacts(proj):
+    """Check the committed artifacts the protocol depends on. Returns (problems, warnings): a malformed handoff is a problem, a thin plan or intent a warning."""
+    problems, warnings = [], []
+    work = proj / ".autocraft" / "work"
+    for p in sorted(work.glob("**/plan.md")) if work.is_dir() else []:
+        miss = [x for x in PLAN_SECTIONS if x.lower() not in md_headings(p.read_text(errors="replace"))]
+        if miss:
+            warnings.append(f"{p.relative_to(proj)}: plan is missing section(s): {', '.join(miss)} (template: .autocraft/templates/plan/plan.md)")
+    for p in sorted((proj / "docs" / "intent").glob("*.md")) if (proj / "docs" / "intent").is_dir() else []:
+        t = p.read_text(errors="replace")
+        miss = [x for x in INTENT_SECTIONS if x.lower() not in md_headings(t)]
+        if miss:
+            warnings.append(f"{p.relative_to(proj)}: intent is missing section(s): {', '.join(miss)}")
+        if not re.search(r"^\s*(Author|Status):", t, re.M | re.I):
+            warnings.append(f"{p.relative_to(proj)}: intent has no Author/Status line")
+    for p in sorted(work.glob("**/handoff*.md")) if work.is_dir() else []:
+        t, rel = p.read_text(errors="replace"), str(p.relative_to(proj))
+        missing = [f for f in HANDOFF_FIELDS if not re.search(rf"(^|\s){re.escape(f)}:", t, re.M)]
+        if missing:
+            problems.append(f"{rel}: handoff is missing field(s): {', '.join(missing)}")
+        m = re.search(r"^\s*Status:\s*\**\s*([A-Za-z-]+)", t, re.M)
+        if m and m.group(1).upper() not in HANDOFF_STATUS:
+            problems.append(f"{rel}: handoff Status must be one of {' | '.join(HANDOFF_STATUS)}, not '{m.group(1)}'")
+        m = re.search(r"^\s*Artifacts:(.*?)(?=^\s*(?:Open items|Next|Summary):|\Z)", t, re.M | re.S)
+        for tok in sorted(set(re.findall(r"(?<![\w./:<-])((?:[\w.-]+/)+[\w.-]+\.\w+)", m.group(1) if m else ""))):
+            if not (proj / tok).exists():
+                warnings.append(f"{rel}: listed artifact not found: {tok}")
+    return problems, warnings
+
+
+def _git(proj, *args):
+    r = subprocess.run(["git", "-C", str(proj), *args], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    return r.stdout.decode("utf-8", "replace") if r.returncode == 0 else ""
+
+
+def _times(proj, *args):
+    return [int(x) for x in _git(proj, "log", "--format=%ct", *args).split()]
+
+
+def compute_metrics(proj):
+    """Leading and lagging indicators of the artifact chain, from git history alone (no model). Proxies are labelled as such."""
+    import statistics
+    med = lambda xs: round(statistics.median(xs), 1) if xs else None
+    out = {}
+    files = _git(proj, "ls-files").split("\n")
+    intents = [f for f in files if re.fullmatch(r"docs/intent/[^/]+\.md", f)]
+    specs = [f for f in files if re.fullmatch(r"docs/specs/[^/]+\.md", f)]
+    hours, changes = [], 0
+    for i in intents:
+        spec = "docs/specs/" + i.split("/")[-1]
+        t_i, t_s = _times(proj, "--diff-filter=A", "--", i), _times(proj, "--diff-filter=A", "--", spec)
+        if t_i and t_s:
+            hours.append((min(t_s) - min(t_i)) / 3600)
+            changes += sum(1 for t in _times(proj, "--", i) if t > min(t_s))
+    out["intent_to_spec_hours"] = {"count": len(hours), "median": med(hours)}
+    out["intent_edits_after_spec"] = changes
+    plans = _times(proj, "--diff-filter=A", "--", ".autocraft/work/*/plan.md")
+    out["spec_commits_after_first_plan"] = sum(1 for s in specs for t in _times(proj, "--", s) if plans and t > min(plans)) if plans else 0
+    merges = _git(proj, "rev-list", "--merges", "HEAD").split()
+    per, span = [], []
+    for m in merges:
+        n = len(_git(proj, "rev-list", f"{m}^1..{m}^2").split())
+        t = _times(proj, "-1", m)
+        first = _times(proj, "--reverse", f"{m}^1..{m}^2")
+        per.append(n)
+        if t and first:
+            span.append((t[0] - min(first)) / 3600)
+    out["merges"] = {"count": len(merges), "median_branch_commits": med(per), "single_commit_share": round(sum(1 for n in per if n == 1) / len(per), 2) if per else None,
+                     "median_hours_first_commit_to_merge": med(span),
+                     "note": "proxy: counts merge commits only; squash or rebase merges are not visible, and a single-commit branch stands in for a first-pass merge"}
+    out["team_rule_corrections"] = len(_times(proj, "--", ".autocraft/custom/team-rules.md"))
+    gl = proj / ".autocraft" / "gate.log"
+    verdicts = [ln.split("\t")[1] for ln in gl.read_text(errors="replace").splitlines() if ln.count("\t") >= 2] if gl.exists() else []
+    out["gate_decisions"] = {"block": verdicts.count("block"), "allow": verdicts.count("allow")}
+    return out
+
+
+def cmd_metrics(a):
+    proj = Path(a.dir).resolve()
+    if not _git(proj, "rev-parse", "--git-dir"):
+        raise SystemExit("error: not a git repository")
+    m = compute_metrics(proj)
+    if a.json:
+        print(json.dumps(m, indent=2))
+        return
+    i, mg, g = m["intent_to_spec_hours"], m["merges"], m["gate_decisions"]
+    print("Artifact chain metrics (from git history)")
+    print(f"  intent -> spec: median {i['median']} h over {i['count']} intent(s); intent edits after the spec existed: {m['intent_edits_after_spec']}")
+    print(f"  spec commits after the first plan.md (requirements rework): {m['spec_commits_after_first_plan']}")
+    print(f"  merges: {mg['count']}; median branch commits {mg['median_branch_commits']}; single-commit share {mg['single_commit_share']}; median first commit -> merge {mg['median_hours_first_commit_to_merge']} h")
+    print(f"  corrections to team-rules.md: {m['team_rule_corrections']}")
+    print(f"  gate decisions logged: {g['block']} blocked, {g['allow']} allowed with approval")
+    print(f"  note: {mg['note']}")
+
+
+
 def cmd_doctor(a):
     proj = Path(a.dir).resolve()
     problems, notes, warnings = [], [], []
@@ -2201,6 +2320,9 @@ def cmd_doctor(a):
             problems.append("no manifest: run autocraft sync")
         _, review_problems = review_settings(cfg)
         problems += review_problems
+        lint_problems, lint_warnings = lint_artifacts(proj)
+        problems += lint_problems
+        warnings += lint_warnings
         if markers_enabled(cfg):
             want, have = expected_generated_globs(proj, cfg), read_ga_block(proj)
             if have is None:
@@ -2256,6 +2378,8 @@ def main():
         p = sp.add_parser(name); p.add_argument("id"); p.add_argument("dir", nargs="?", default="."); p.set_defaults(f=lambda a, add=add: cmd_tool(a, add))
     p = sp.add_parser("new-role"); p.add_argument("id"); p.add_argument("dir", nargs="?", default="."); p.set_defaults(f=cmd_new_role)
     p = sp.add_parser("github"); p.add_argument("dir", nargs="?", default="."); p.add_argument("--lang", required=True, choices=list(LANGS)); p.set_defaults(f=cmd_github)
+    p = sp.add_parser("metrics", help="intent-to-spec time, requirements rework, merge stats and rule corrections, from git history")
+    p.add_argument("dir", nargs="?", default="."); p.add_argument("--json", action="store_true"); p.set_defaults(f=cmd_metrics)
     p = sp.add_parser("doctor"); p.add_argument("dir", nargs="?", default="."); p.set_defaults(f=cmd_doctor)
     p = sp.add_parser("review-map", formatter_class=argparse.RawDescriptionHelpFormatter, help="what is in this diff? product vs tests vs generated (deterministic, no model tokens)",
                       description=REVIEW_MAP_HELP)

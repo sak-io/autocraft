@@ -1,0 +1,20 @@
+# Opt-in: copy to .github/workflows/agent-evals.yml. Runs the agent evals when the configuration that steers the agent changes, and nightly.
+# Needs a secret for your agent's API key and an agent CLI on the runner. Edit the install and AUTOCRAFT_EVAL_AGENT lines for your tool.
+name: Agent evals
+on:
+  pull_request:
+    paths: ['.autocraft/custom/**', '.autocraft/protocol.md', 'AGENTS.md', 'CLAUDE.md', 'GEMINI.md', '.claude/**', '.cursor/**', '.gemini/**', 'evals/**']
+  schedule:
+    - cron: '0 2 * * *'
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g @anthropic-ai/claude-code      # replace with your agent's CLI
+      - name: Run eval suite
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}   # replace with your agent's key
+          AUTOCRAFT_EVAL_AGENT: 'claude -p {prompt} --allowedTools "Read,Edit,Bash(make test)"'
+          EVAL_MIN_PASS_RATE: '0.8'
+        run: python3 .autocraft/templates/evals/run_evals.py

@@ -178,7 +178,8 @@ Levels, from light to heavy: config knobs → team rules → per-role rules → 
 | `autocraft add-role\|remove-role <id>` · `add-tool\|remove-tool <id>` · `new-role <id>` | edit the roster and tools |
 | `autocraft pointer [DIR] --sources …` | write the `CLAUDE.md` pointer for a documents-first kickoff |
 | `autocraft github [DIR] --lang …` | add CI, security scanning and GitHub templates |
-| `autocraft doctor [DIR]` | check config, manifest, drift, sources, the `.gitattributes` generated-file block |
+| `autocraft doctor [DIR]` | check config, manifest, drift, sources, the `.gitattributes` generated-file block, and lint handoffs, `plan.md` and intent files |
+| `autocraft metrics [DIR] [--json]` | intent-to-spec time, requirements rework, merge stats and rule corrections, read from git history |
 | `autocraft init\|sync … --commit` | commit the autocraft-owned files as ONE dedicated commit (`init --no-gitattributes` opts out of the generated-file markers) |
 | `autocraft init … --token-saver` · `--token-mode lean` | spend fewer tokens without changing the quality gates: mid-tier models for reviewer, QA, auditor and analyst, 2 review rounds, 2 parallel developers, work from briefs and short reports; an explicit `--role-model` still wins ([protocol §15](docs/protocol.md)) |
 | `autocraft board init [DIR]` · `board run …` | install the agent-agnostic task board used by the `/lean-build` workflow, or pass arguments through to its `scripts/board.py` (`next`, `claim`, `submit`, ...) ([guide](docs/reference/lean-orchestration.md)) |

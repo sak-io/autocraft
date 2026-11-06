@@ -25,5 +25,8 @@
 | Data sensitivity | none / personal / payments | |
 | Compliance | e.g. GDPR | |
 
-## 6. Assumptions & open questions
+## 6. Areas of concern
+<Places where policies or constraints contradict, or the spec could not satisfy one (security, privacy, brand, compliance, cost). Name the policy owner who must decide. "None" is a valid answer, but say it.>
+
+## 7. Assumptions & open questions
 - Q1 (default: ...): <question>
