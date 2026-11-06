@@ -5,7 +5,7 @@ autocraft lets agents move quickly inside limits you control. This page lists th
 Two kinds of guardrail are mixed together in any agent framework, and it matters which is which:
 
 - **Instructed**: written into the role files and the [protocol](../protocol.md); agents follow them and reviewers check them. They work well in practice but nothing stops an agent that ignores them.
-- **Enforced**: a tool refuses the action regardless of what the agent does (a CI check, GitHub branch protection, the Claude Code permission list, a script).
+- **Enforced**: a tool refuses the action regardless of what the agent does (a CI check, GitHub branch protection, a generated tool permission or hook file, a script).
 
 This list comes from reading the protocol, roles, CLI and templates in this repository. It is not a security audit.
 
@@ -39,7 +39,7 @@ This list comes from reading the protocol, roles, CLI and templates in this repo
 | Secret scanning | A weekly scheduled gitleaks and dependency scan; GitHub secret scanning and push protection turned on by `scripts/onboard-repo.sh`. | Enforced by CI/GitHub once installed |
 | Safe defaults per domain | Capability profiles (authentication, payments, database, email, uploads, search, secrets, hosting, privacy and more) with safe defaults and must-test lists that architects, developers, reviewers and auditors check. | Instructed |
 | Prompt-injection defence for AI products | The `ai-engineer` role treats retrieved text and user input as untrusted data, and the `ai-product` team includes an injection red-team. | Instructed (AI-product teams only) |
-| Command permissions (Claude Code) | The generated `.claude/settings.json` pre-approves a short list of routine git, test and autocraft commands, denies reading `.env`/`secrets/`, force-push, pushes to `main` and `rm -rf`, and runs a `PreToolUse` hook that blocks production deploys until `RELEASE_APPROVAL` is set. | Enforced by Claude Code (other tools: the same rules are instructed, protocol section 17) |
+| Command permissions and shell gate | Claude Code: the generated `.claude/settings.json` pre-approves routine git, test and autocraft commands, denies reading `.env`/`secrets/`, force-push, pushes to `main` and `rm -rf`, and runs a `PreToolUse` hook that blocks production deploys until `RELEASE_APPROVAL` is set. Cursor (`.cursor/hooks.json`, `.cursor/cli.json`, `.cursorignore`) and Gemini CLI (`.gemini/settings.json`) get the same gate script and the deny rules their docs support. Each decision is logged to `.autocraft/gate.log`. | Enforced by those tools. Copilot, Windsurf, Cline, AGENTS.md and plain prompts: instructed only (protocol section 17) |
 
 ### Cost controls
 | Guardrail | Detail | Kind |

@@ -228,7 +228,7 @@ In the worked examples the owner is simulated; the agents' outputs are real.
 - **Only the Claude path has been exercised end to end.** The other exporters follow vendors' documented formats but haven't been run in those products.
 - **A full run from the Claude app on a phone has not been done yet**; the documents-first kickoff was rehearsed in a cloud session, and the install, ingestion and spec steps worked.
 - Agents make mistakes. The process (independent review, tests, CI, a human merge) is what catches them — don't remove the human gate for anything important. A team spends more tokens than a single agent (see [token cost](#token-cost-and-how-to-control-it)); work is saved to files at every step.
-- **Most guardrails are instructions to the agents.** Hard enforcement comes from branch protection, CI and the Claude Code permission list, and only where they are installed. The known gaps are listed in [guardrails](docs/reference/guardrails.md#known-gaps).
+- **Most guardrails are instructions to the agents.** Hard enforcement comes from branch protection, CI and, for Claude Code, Cursor and Gemini CLI, the generated shell gate and deny rules, and only where they are installed. The known gaps are listed in [guardrails](docs/reference/guardrails.md#known-gaps).
 - Not supported yet: per-project custom archetypes/capabilities, per-directory teams in a monorepo.
 - `recommend` is a keyword heuristic; the Team Builder agent reads your documents properly.
 

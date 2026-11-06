@@ -81,7 +81,7 @@ The team **never merges to `main` and never opens a pull request unless you ask.
 - **Ask for less:** *"Stop after the plan and wait for me."* · *"Use only the lean team."* · *"Keep it as simple as safely possible."*
 - **Change your mind:** edit your documents (or say it in chat). The requirements analyst updates the spec and tells you which tasks change.
 - **Session ended or paused?** Work is saved at every step (files and commits). Continue in a new session with `/status`.
-- **Fewer approval taps on a phone:** the install adds `.claude/settings.json` that pre-approves routine, safe commands (git, running tests, the autocraft tool). Review it once.
+- **Fewer approval taps on a phone:** the install adds `.claude/settings.json` that pre-approves routine, safe commands (git, running tests, the autocraft tool) and blocks force-push, pushes to `main` and production deploys until you approve. Review it once.
 
 ## What it costs
 

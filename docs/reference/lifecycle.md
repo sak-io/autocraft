@@ -12,7 +12,9 @@ These phases are the same in every tool. A *team* decides which roles are presen
 | 4 | Build | developer(s) ⇄ pr-reviewer | a ready task | PR with unit + integration tests | `VERDICT: APPROVED`, CI green |
 | 5 | Pre-release | release-gatekeeper (+developer) | approved PR | `agent:release-ready` + human notified | checklist all ✅/N-A |
 | 6 | Release | **human** | release-ready PR | merged to `main`, deployed | human approval |
-| 7 | Operate | security-auditor, delivery-lead | repo | audits, issues, status | ongoing |
+| 7 | Operate | security-auditor, delivery-lead | repo | audits, issues, status; an anomaly becomes an intent (`templates/intent/incident-intent.md`) plus a regression eval | ongoing |
+
+Optional front door: an owner can write `docs/intent/<name>.md` (`templates/intent/intent.md`) before phase 1. Each stage commits an artifact the next one reads; see [AI-native SDLC](ai-native-sdlc.md). `autocraft doctor` lints the intent, plan and handoff files, and `autocraft metrics` reads the chain's timings from git.
 
 ## Quality gates in detail
 

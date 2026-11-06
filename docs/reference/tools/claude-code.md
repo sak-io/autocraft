@@ -9,6 +9,8 @@ cd ~/code/my-app && claude
 ```
 Generated: `.claude/agents/<role>.md` (one subagent per role, tools restricted by ability), `.claude/skills/<workflow>/SKILL.md` (the slash commands), and a managed block in `CLAUDE.md` (team guide + rules; your own `CLAUDE.md` text is preserved).
 
+**Guardrails (generated once, yours afterwards):** `.claude/settings.json` (routine commands pre-approved; deny rules for `.env`, `secrets/`, force-push, pushes to `main`, `rm -rf`) and `.claude/hooks/production-gate.py`, a `PreToolUse` hook that blocks production deploys until `RELEASE_APPROVAL` is set and logs each decision to `.autocraft/gate.log`. `sync` never overwrites them.
+
 ## Use
 - Type **`/start`** for a new project, **`/build-my-team`** to (re)configure, **`/status`** any time, **`/explain <anything>`** when lost.
 - Delegate by name: *"Use the architect subagent to design this from docs/specs/…"*. Reviews: *"Use the pr-reviewer subagent on PR 12."*
