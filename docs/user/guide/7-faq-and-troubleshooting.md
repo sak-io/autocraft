@@ -30,7 +30,7 @@
 
 **How is this different from just writing a good prompt or a CLAUDE.md?** It gives you *separate* agents with separate contexts and permissions, an enforced author≠reviewer loop with round limits, file-based handoffs, domain checklists, and the same setup across tools — all as inspectable files.
 
-**What does it do to my repo?** Adds the generated team files, `.autocraft/` (config, protocol, profiles, a vendored framework copy ≈ 0.9 MB) and `.claude/settings.json`. Remove those paths to uninstall.
+**What does it do to my repo?** Adds the generated team files, `.autocraft/` (config, protocol, profiles, a vendored framework copy ≈ 0.9 MB) and, for Claude Code, Cursor and Gemini CLI, a small guardrail file (`.claude/settings.json`, `.cursor/hooks.json` and friends, `.gemini/settings.json`) with a production-deploy gate. Remove those paths to uninstall.
 
 **How do I keep token use down?** Set `token_mode: lean` (or `autocraft init . --token-mode lean`): agents work from short briefs, run cheap automated checks first, stay within a stated budget, and keep reports short, while the quality gates stay the same. Also start with the lean team, batch related work into one builder and one reviewer, and use `--role-model` to put cheaper models on mechanical roles. The ClassBook example reports its finishing phase against an explicit token budget. See [protocol §15](../../protocol.md).
 

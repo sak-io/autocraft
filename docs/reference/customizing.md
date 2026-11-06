@@ -34,6 +34,7 @@ Independent review, tests with every change, no secrets in code, and **humans me
 - **Team:** add `teams/<id>.md` (`roles`, `optional`, `workflows`, `fits`, and a playbook body).
 - **Archetype / capability:** copy an existing profile and keep its headings.
 - **Another AI tool:** add an `export()` branch in `bin/autocraft`, an entry in `TOOLS`/`HOWTO`, and `docs/reference/tools/<tool>.md`. `scripts/validate.sh` checks it all.
+- **Agent evals:** copy `.autocraft/templates/evals/example-eval.json` to `evals/<id>.json`, and see the README next to it for the runner that works with any agent CLI.
 - **Another language's CI:** add `templates/github/workflows/ci-<lang>.yml` and an entry in `LANGS` in `bin/autocraft`.
 
 ## Update the framework

@@ -9,3 +9,4 @@ python3 autocraft/bin/autocraft init . --tool agents-md --team starter
 - **OpenAI Codex CLI / Jules / Zed / many others** read `AGENTS.md` automatically.
 - **Aider:** `aider --read AGENTS.md --read .autocraft/roles/developer.md`.
 - Combine with a native export for your main tool (`--tool claude-code,agents-md`) so teammates on other tools get the same team.
+**Guardrails:** autocraft generates no permission or hook file for AGENTS.md; the protocol's production gate and irreversible-command rules are instructions here. Back them with branch protection (`scripts/onboard-repo.sh`) and any setting your tool offers. See [enforcement per tool](../ai-native-sdlc.md#enforcement-per-tool).

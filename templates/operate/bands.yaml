@@ -1,0 +1,12 @@
+# Control bands: deterministic detection, tiered response (copy to ops/bands.yaml and edit).
+# Detection stays a plain script (no model): it compares a metric to a rolling baseline and writes a log line.
+# A model is invoked only when a band is breached, and the tier says what it may do.
+metric: ci_test_failure_rate        # or post_deploy_5xx_rate, pr_cycle_time_hours
+baseline: rolling_30d
+rules: western_electric             # mean and standard deviation over the window; catches drift as well as spikes
+tiers:
+  1sigma: { action: log }
+  2sigma: { action: diagnose, read_only: true }              # the agent reads logs and code, changes nothing
+  3sigma: { action: propose, routes: [pull_request, runbook:rollback-deploy] }  # only a PR into the review gate, or a pre-approved runbook
+# Whatever the tool: the responder gets no standing production credentials, and every breach, diagnosis and triage decision is logged with a timestamp.
+# A breach becomes docs/intent/<name>.md (templates/intent/incident-intent.md); a shipped fix adds an eval.

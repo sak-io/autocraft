@@ -1,0 +1,9 @@
+{
+  "id": "fix-rounding-bug",
+  "prompt": "The invoice total is off by one cent for 3 line items of 0.335. Reproduce it with a failing test first, then fix the code without editing that test.",
+  "checks": [
+    "python3 -m pytest -q",
+    "git status --porcelain | grep -q 'tests/'"
+  ],
+  "tags": ["bugfix", "incident"]
+}

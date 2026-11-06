@@ -98,7 +98,7 @@ Agents move quickly inside limits you control. The table says what is in place a
 | Round limits and escalation | After `max_review_rounds` the work stops as `needs-human` with both positions summarised | Instructed |
 | Gates you choose | `autonomy_level` 1–3: spec, plan, release; money, legal and account decisions are always yours | Instructed |
 | Safety rules | No secrets in code or logs; never disable tests, checks or protections; ask before destructive actions; say what was verified versus assumed | Instructed |
-| Command permissions | The generated `.claude/settings.json` pre-approves only routine git, test and autocraft commands | Enforced by Claude Code (Claude Code only) |
+| Command permissions and shell gate | Generated once: `.claude/settings.json` (Claude Code), `.cursor/hooks.json` (Cursor), `.gemini/settings.json` (Gemini CLI). They allow routine commands, deny force-push, push to `main`, `rm -rf` and secrets reads, and gate production deploys | Enforced by those tools; other tools get the written rule only |
 | Security checks | `security-auditor` role; CI templates for 8 stacks (dependency audits where the stack has one), CodeQL, a weekly secret and dependency scan, Dependabot; GitHub secret scanning and push protection via the onboarding script | Enforced by CI and GitHub once installed |
 | Safe defaults per domain | Capability profiles (authentication, payments, secrets, privacy, …) with must-test lists | Instructed; QA and reviewers check |
 | Cost controls | `--token-saver`, `token_mode: lean`, per-role models, review-round and parallelism caps, briefs and short reports | Instructed (budgets are advisory) |
@@ -178,7 +178,8 @@ Levels, from light to heavy: config knobs → team rules → per-role rules → 
 | `autocraft add-role\|remove-role <id>` · `add-tool\|remove-tool <id>` · `new-role <id>` | edit the roster and tools |
 | `autocraft pointer [DIR] --sources …` | write the `CLAUDE.md` pointer for a documents-first kickoff |
 | `autocraft github [DIR] --lang …` | add CI, security scanning and GitHub templates |
-| `autocraft doctor [DIR]` | check config, manifest, drift, sources, the `.gitattributes` generated-file block |
+| `autocraft doctor [DIR]` | check config, manifest, drift, sources, the `.gitattributes` generated-file block, and lint handoffs, `plan.md` and intent files |
+| `autocraft metrics [DIR] [--json]` | intent-to-spec time, requirements rework, merge stats and rule corrections, read from git history |
 | `autocraft init\|sync … --commit` | commit the autocraft-owned files as ONE dedicated commit (`init --no-gitattributes` opts out of the generated-file markers) |
 | `autocraft init … --token-saver` · `--token-mode lean` | spend fewer tokens without changing the quality gates: mid-tier models for reviewer, QA, auditor and analyst, 2 review rounds, 2 parallel developers, work from briefs and short reports; an explicit `--role-model` still wins ([protocol §15](docs/protocol.md)) |
 | `autocraft board init [DIR]` · `board run …` | install the agent-agnostic task board used by the `/lean-build` workflow, or pass arguments through to its `scripts/board.py` (`next`, `claim`, `submit`, ...) ([guide](docs/reference/lean-orchestration.md)) |
@@ -208,7 +209,7 @@ All documents are indexed in [docs/README.md](docs/README.md): `docs/user/` for 
 | Engineers | [For software engineers](docs/user/guide/6-for-software-engineers.md) · [Protocol](docs/protocol.md) · [Orchestration patterns](docs/reference/orchestration-patterns.md) · [Customizing](docs/reference/customizing.md) |
 | Claude app users | [Kick off from your own documents](docs/user/kickoff-existing-docs.md) · [Claude app](docs/reference/tools/claude-app.md) · [Bootstrap prompt](docs/user/bootstrap-prompt.md) |
 | Big pull requests | [Reviewing large PRs](docs/reference/reviewing-large-prs.md) — generated-file markers, the separate install commit, `review-map`, the reviewer's guide, the split offer |
-| Safety and cost | [Guardrails](docs/reference/guardrails.md) · [Lean orchestration](docs/reference/lean-orchestration.md) · [Lean vs thorough](docs/reference/lean-vs-thorough.md) |
+| Safety and cost | [Guardrails](docs/reference/guardrails.md) · [AI-native SDLC mapping](docs/reference/ai-native-sdlc.md) · [Lean orchestration](docs/reference/lean-orchestration.md) · [Lean vs thorough](docs/reference/lean-vs-thorough.md) |
 | Concepts | [Lifecycle](docs/reference/lifecycle.md) · [Archetypes & recipes](archetypes/README.md) · [Capabilities](capabilities/README.md) |
 
 ## Examples
@@ -227,7 +228,7 @@ In the worked examples the owner is simulated; the agents' outputs are real.
 - **Only the Claude path has been exercised end to end.** The other exporters follow vendors' documented formats but haven't been run in those products.
 - **A full run from the Claude app on a phone has not been done yet**; the documents-first kickoff was rehearsed in a cloud session, and the install, ingestion and spec steps worked.
 - Agents make mistakes. The process (independent review, tests, CI, a human merge) is what catches them — don't remove the human gate for anything important. A team spends more tokens than a single agent (see [token cost](#token-cost-and-how-to-control-it)); work is saved to files at every step.
-- **Most guardrails are instructions to the agents.** Hard enforcement comes from branch protection, CI and the Claude Code permission list, and only where they are installed. The known gaps are listed in [guardrails](docs/reference/guardrails.md#known-gaps).
+- **Most guardrails are instructions to the agents.** Hard enforcement comes from branch protection, CI and, for Claude Code, Cursor and Gemini CLI, the generated shell gate and deny rules, and only where they are installed. The known gaps are listed in [guardrails](docs/reference/guardrails.md#known-gaps).
 - Not supported yet: per-project custom archetypes/capabilities, per-directory teams in a monorepo.
 - `recommend` is a keyword heuristic; the Team Builder agent reads your documents properly.
 
