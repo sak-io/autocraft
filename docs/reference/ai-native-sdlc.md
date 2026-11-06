@@ -27,10 +27,24 @@ Anthropic's [AI-native SDLC playbook](https://claude.com/resources/articles/the-
 | Metrics (first-pass merge rate, rework cycles, time intent to merge) | Derivable from git history and `agent-runs.csv` | Neutral |
 
 ## Adopting it, in the playbook's order
-1. Start with the no-prerequisite plays: write an intent file, put your build/test/lint commands and recurring mistakes in `team-rules.md`, ask for `plan.md` before code.
-2. Build the human gates before more automation: turn on branch protection (`scripts/onboard-repo.sh`), keep `autonomy_level` at 1 or 2.
-3. Add `REVIEW.md` for your repository and tune it monthly (rate findings, cap nits).
-4. Raise parallelism only while review keeps up.
+The playbook's Figure 3 (the play dependency graph) says: start with any **entry point**, which needs nothing first; for any other play, adopt the plays that point into it first. In autocraft terms:
+
+| Play | autocraft piece | Adopt after |
+|---|---|---|
+| Capture intent *(entry)* | `intent.md` template | nothing |
+| Project instructions *(entry)* | `.autocraft/custom/team-rules.md` (exported as `CLAUDE.md`, `AGENTS.md`, ...) | nothing |
+| Plan before code *(entry)* | `plan.md` | nothing |
+| Feedback loop *(entry)* | build, test, lint commands that decide "done" (protocol section 17) | nothing |
+| Hooks and gates *(entry)* | production gate, deny rules, branch protection | nothing |
+| Requirements and design | spec from `intent.md` | intent; policy skills help |
+| Skills | capabilities, archetypes, policies in `team-rules.md` | project instructions |
+| Subagents | roles (`qa-engineer` as verifier) | project instructions; feedback loop helps |
+| Evals | regression tasks run in CI (not built yet) | project instructions, feedback loop |
+| PR review | `pr-reviewer` with `REVIEW.md` | evals, project instructions; skills help |
+| CI/CD | CI templates, `release-gatekeeper` | PR review, hooks |
+| Closing the loop | an anomaly becomes a new intent | intent, PR review, CI/CD, hooks |
+
+So: begin with the five entry points, build the human gates (hooks, branch protection) before automating anything that passes through them, and add review and CI/CD only once the plays pointing into them exist.
 
 ## Enforcement per tool
 Instructed rules reach every tool through `sync`. Mechanical enforcement depends on the tool: GitHub branch protection and CI work with any tool; the generated permission deny list and production-gate hook are Claude Code only. For another tool, check its page under [tools](tools/) for an equivalent (permissions file, hooks, rules), and apply the same policy there. Policy lives in the protocol; each tool's file is just one way to enforce it.
