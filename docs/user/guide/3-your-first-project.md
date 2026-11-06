@@ -2,7 +2,7 @@
 
 > *Written step by step for people new to software. If you're a software professional, skim the gates and step 5, then read [page 6](6-for-software-engineers.md) — same journey, with the dials exposed.*
 
-This page walks the whole journey once. For a complete real run with every output, see the [ClassBook worked example](../../examples/classbook/README.md).
+This page walks the whole journey once. For a complete real run with every output, see the [ClassBook worked example](../../../examples/classbook/README.md).
 
 **The journey in one picture**
 
@@ -91,7 +91,7 @@ Open the change, read the summary and the checklist, confirm the automated check
 
 ## What to expect (from the worked example)
 
-The [ClassBook example](../../examples/classbook/README.md) — a booking app for a yoga studio, built with the lean team plus four added roles — recorded what a small real project costs:
+The [ClassBook example](../../../examples/classbook/README.md) — a booking app for a yoga studio, built with the lean team plus four added roles — recorded what a small real project costs:
 
 | | ClassBook |
 |---|---|

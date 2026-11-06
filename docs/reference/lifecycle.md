@@ -37,4 +37,4 @@ developer ──approved PR─► release-gatekeeper
 Spec (minutes) → Architecture (2-3 rounds) → Onboarding (minutes, needs your confirmation) → T1 walking skeleton → T2…Tn features, each a PR → release check on each.
 
 ## The lifecycle adapts to the archetype
-The phases are the same for every project; the *content* of the gates changes. See [archetypes](../archetypes/README.md): e.g. mobile adds store review + staged rollout to the release gate, jobs add idempotency and missed-run alerting, web adds accessibility and E2E journeys, libraries add semver and public-API stability, APIs add contract compatibility and authorization checks.
+The phases are the same for every project; the *content* of the gates changes. See [archetypes](../../archetypes/README.md): e.g. mobile adds store review + staged rollout to the release gate, jobs add idempotency and missed-run alerting, web adds accessibility and E2E journeys, libraries add semver and public-API stability, APIs add contract compatibility and authorization checks.

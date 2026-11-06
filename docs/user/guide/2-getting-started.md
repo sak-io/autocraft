@@ -91,7 +91,7 @@ Run the setup once, naming your tool:
 ```bash
 python3 ~/autocraft/bin/autocraft init . --tool cursor        # or: copilot, gemini-cli, windsurf, cline, agents-md, prompts
 ```
-Then follow the one-page guide for your tool: [Cursor](../tools/cursor.md) · [Copilot](../tools/copilot.md) · [Gemini CLI](../tools/gemini-cli.md) · [Windsurf](../tools/windsurf.md) · [Cline](../tools/cline.md) · [Codex / AGENTS.md](../tools/agents-md.md) · [any chat](../tools/prompts.md).
+Then follow the one-page guide for your tool: [Cursor](../../reference/tools/cursor.md) · [Copilot](../../reference/tools/copilot.md) · [Gemini CLI](../../reference/tools/gemini-cli.md) · [Windsurf](../../reference/tools/windsurf.md) · [Cline](../../reference/tools/cline.md) · [Codex / AGENTS.md](../../reference/tools/agents-md.md) · [any chat](../../reference/tools/prompts.md).
 
 Tools without real sub-agents run the team as **role hats**: one role per session, and **a fresh session for every reviewer**.
 

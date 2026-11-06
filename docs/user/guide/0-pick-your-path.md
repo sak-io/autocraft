@@ -18,11 +18,11 @@ python3 ~/autocraft/bin/autocraft recommend "<your idea in a sentence or two>"
 
 | Your project | Team | Typical extras | Worked example | Read next |
 |---|---|---|---|---|
-| **Simple**: static site, script, scheduled job, small command-line tool | `starter` | `--token-saver` | [Receipt Tally](../../examples/receipt-tally/README.md) | pages 1, 2, 3 |
+| **Simple**: static site, script, scheduled job, small command-line tool | `starter` | `--token-saver` | [Receipt Tally](../../../examples/receipt-tally/README.md) | pages 1, 2, 3 |
 | **Medium**: web app or API with a few features and a database | `starter` plus roles, or `web-product` / `api-backend` | `--capability` for auth, database, payments | between the two examples | pages 3, 4, 5 |
-| **Complex**: several user types, accounts, email, payments, a release gate | `starter` plus `architect`, `principal-engineer`, `qa-engineer`, `release-gatekeeper` | `--capability ...`, `--autonomy 1` or `2` | [ClassBook](../../examples/classbook/README.md) | pages 3, 4, 5, then [guardrails](../guardrails.md) |
+| **Complex**: several user types, accounts, email, payments, a release gate | `starter` plus `architect`, `principal-engineer`, `qa-engineer`, `release-gatekeeper` | `--capability ...`, `--autonomy 1` or `2` | [ClassBook](../../../examples/classbook/README.md) | pages 3, 4, 5, then [guardrails](../../reference/guardrails.md) |
 | **Existing codebase** | `starter` plus `architect`, `qa-engineer` | `--experience expert`, `--commit` | none | [page 6](6-for-software-engineers.md) |
-| **Written documents first** (concept, technical plan) | any | none | [Pantry Pal kickoff](../../examples/pantry-pal-kickoff/README.md) | [kickoff from your documents](../kickoff-existing-docs.md) |
+| **Written documents first** (concept, technical plan) | any | none | [Pantry Pal kickoff](../../../examples/pantry-pal-kickoff/README.md) | [kickoff from your documents](../kickoff-existing-docs.md) |
 | **Idea only, no idea where to start** | decided by `discover` | none | none | [bootstrap prompt](../bootstrap-prompt.md) |
 
 `recommend` suggests these for common ideas: a bakery website maps to `static-site`, a photo-renaming script to `script-automation`, and "online ordering plus an iPhone app" to `fullstack-app` with database, payments and authentication.
@@ -42,7 +42,7 @@ Then open your AI tool in that folder and run `/start` with your idea. Use `--ar
 
 What you can skip: a separate architect, QA engineer, release gatekeeper and parallel developers. What you should not skip: the written spec with acceptance criteria, the tests, and the independent review. In Receipt Tally the reviewer found 2 major and 4 minor issues after the developer had finished, with 4 agent runs in total.
 
-Set a budget before you start, for example "at most 5 agent runs". It is an instruction to the agents, not a hard stop (see [guardrails](../guardrails.md), gap 4).
+Set a budget before you start, for example "at most 5 agent runs". It is an instruction to the agents, not a hard stop (see [guardrails](../../reference/guardrails.md), gap 4).
 
 ## Medium: a web app or an API
 
@@ -59,7 +59,7 @@ python3 ~/autocraft/bin/autocraft init . --tool claude-code --team web-product \
   --archetype web-app --capability authentication,database
 ```
 
-Use `api-backend` instead of `web-product` for an API, a scheduled job or an event processor. Add `--token-saver` if you want the cost levers described in [lean vs thorough](../lean-vs-thorough.md).
+Use `api-backend` instead of `web-product` for an API, a scheduled job or an event processor. Add `--token-saver` if you want the cost levers described in [lean vs thorough](../../reference/lean-vs-thorough.md).
 
 Keep `autonomy_level` at 1 or 2 so you approve the spec, the architecture and every merge. Page 4 shows how to read reviews and change your mind part-way through.
 
@@ -73,9 +73,9 @@ python3 ~/autocraft/bin/autocraft init . --tool claude-code --team starter \
   --add-role architect,principal-engineer,qa-engineer,release-gatekeeper --experience beginner
 ```
 
-Expect more agent runs: a spec, an architecture with review rounds, one task per feature, QA, a security audit and a release check. The ClassBook build used 26 agent runs (about 2.2 million tokens) for an app of roughly 2,400 lines with 539 tests. Its final round used lean mode and took about 190 thousand tokens. See [lean vs thorough](../lean-vs-thorough.md) for a side-by-side comparison, which is not like for like.
+Expect more agent runs: a spec, an architecture with review rounds, one task per feature, QA, a security audit and a release check. The ClassBook build used 26 agent runs (about 2.2 million tokens) for an app of roughly 2,400 lines with 539 tests. Its final round used lean mode and took about 190 thousand tokens. See [lean vs thorough](../../reference/lean-vs-thorough.md) for a side-by-side comparison, which is not like for like.
 
-For money, accounts and personal data, read [guardrails](../guardrails.md) first and turn on branch protection (`scripts/onboard-repo.sh`). Most guardrails are instructions; branch protection and CI are what a tool enforces.
+For money, accounts and personal data, read [guardrails](../../reference/guardrails.md) first and turn on branch protection (`scripts/onboard-repo.sh`). Most guardrails are instructions; branch protection and CI are what a tool enforces.
 
 ## An existing codebase
 
@@ -103,7 +103,7 @@ cp ~/autocraft/workflows/lean-build.md .autocraft/custom/workflows/
 python3 .autocraft/framework/bin/autocraft sync
 ```
 
-See [lean orchestration](../lean-orchestration.md) for how the board works.
+See [lean orchestration](../../reference/lean-orchestration.md) for how the board works.
 
 ## Things that apply to every path
 

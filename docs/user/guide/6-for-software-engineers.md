@@ -4,10 +4,10 @@ You write software for a living. You don't need the "what is a pull request" tou
 
 ## The model in six lines
 
-- A **role** is a markdown file (frontmatter: `id`, `title`, `category`, `abilities`, optional `model`, `description`; body = the job, inputs, outputs, checklist, rules, handoff). 22 ship in [`roles/`](../../roles/).
-- A **team** is a roster plus a playbook ([`teams/`](../../teams/)); a **workflow** is a procedure with `needs: [roles]` ([`workflows/`](../../workflows/)) — workflows switch on automatically when their roles are present.
+- A **role** is a markdown file (frontmatter: `id`, `title`, `category`, `abilities`, optional `model`, `description`; body = the job, inputs, outputs, checklist, rules, handoff). 22 ship in [`roles/`](../../../roles/).
+- A **team** is a roster plus a playbook ([`teams/`](../../../teams/)); a **workflow** is a procedure with `needs: [roles]` ([`workflows/`](../../../workflows/)) — workflows switch on automatically when their roles are present.
 - **Archetypes** (20 software types) and **capabilities** (10 cross-cutting concerns: auth, payments, database, …) are domain checklists that roles read as requirements.
-- The **[protocol](../protocol.md)** is the contract between roles: handoff blocks, severity-tagged reviews, round limits, human gates, label state machine, `gh` vs. GitHub-tools mapping, git modes.
+- The **[protocol](../../protocol.md)** is the contract between roles: handoff blocks, severity-tagged reviews, round limits, human gates, label state machine, `gh` vs. GitHub-tools mapping, git modes.
 - Your project holds only **config** (`.autocraft/config.yml`) and **overlays** (`.autocraft/custom/`). Everything under `.claude/`, `.cursor/`, `AGENTS.md`, … is **generated**; `autocraft sync` regenerates it, `autocraft doctor` flags drift.
 - One neutral source, nine exporters (Claude Code, Claude app, Cursor, Copilot, Gemini CLI, Windsurf, Cline, `AGENTS.md`, plain prompts).
 
@@ -21,7 +21,7 @@ python3 ~/autocraft/bin/autocraft init . --tool claude-code --team starter \
     --add-role architect,qa-engineer --experience expert --autonomy 2 \
     --sources docs/design.md --git-mode pr-per-task --owner your-github-handle --commit
 ```
-`--commit` makes the installation **one dedicated commit** (`chore(autocraft): install agent team (generated files)`) containing only autocraft-owned paths, staged by explicit pathspec, so anything else you have staged or modified is left exactly as it was; hooks run, nothing is pushed. Later `autocraft sync --commit` does the same for regenerated files. Generated files are marked `linguist-generated` in `.gitattributes` (a managed block; `--no-gitattributes` opts out), so GitHub collapses them in pull requests. See [reviewing large PRs](../reviewing-large-prs.md).
+`--commit` makes the installation **one dedicated commit** (`chore(autocraft): install agent team (generated files)`) containing only autocraft-owned paths, staged by explicit pathspec, so anything else you have staged or modified is left exactly as it was; hooks run, nothing is pushed. Later `autocraft sync --commit` does the same for regenerated files. Generated files are marked `linguist-generated` in `.gitattributes` (a managed block; `--no-gitattributes` opts out), so GitHub collapses them in pull requests. See [reviewing large PRs](../../reference/reviewing-large-prs.md).
 
 What lands in your repo: `.claude/agents/` and `.claude/skills/` (or your tool's equivalents), a managed block in `CLAUDE.md` (your own text is preserved), `.autocraft/` (config, manifest, protocol, selected profiles, a **vendored copy of the framework** ≈ 0.9 MB so sessions never need access to this repo), and `.claude/settings.json` pre-approving routine safe commands — **read it after the install commit and change it if you disagree**; `sync` never overwrites it. Nothing is installed globally; `rm -rf` the generated paths to remove it.
 
@@ -106,7 +106,7 @@ After any edit: `autocraft sync && autocraft doctor`. Generated files are overwr
   ```
 - **Mixed tools on one team.** `--tool claude-code,cursor,agents-md` gives everyone the same roster in their own tool's format.
 - **Monorepos.** One `.autocraft/` per repo root. Declare several archetypes (`[mobile-app, api-service]`); the architect tags tasks by component. There is no per-subdirectory team yet.
-- **Cost.** Independent roles re-read context, so a team spends more tokens than one agent (ClassBook ≈ 2.2 M tokens, QA ≈ 16 % of it, and QA found 9 defects). Start lean (`--token-saver`), add roles where you've seen failures, use `--role-model` for high-volume roles. See [guardrails](../guardrails.md) for what the cost controls do and do not enforce.
+- **Cost.** Independent roles re-read context, so a team spends more tokens than one agent (ClassBook ≈ 2.2 M tokens, QA ≈ 16 % of it, and QA found 9 defects). Start lean (`--token-saver`), add roles where you've seen failures, use `--role-model` for high-volume roles. See [guardrails](../../reference/guardrails.md) for what the cost controls do and do not enforce.
 
 ## Extend and contribute
 
@@ -116,10 +116,10 @@ After any edit: `autocraft sync && autocraft doctor`. Generated files are overwr
 | Team | `teams/<id>.md` | roles/workflows exist; every archetype covered by some team |
 | Workflow | `workflows/<id>.md` (`needs:`) | exists; description |
 | Archetype / capability | copy a profile, keep its headings | required headings; listed in the catalog |
-| Tool exporter | an `export()` branch in `bin/autocraft`, `TOOLS`/`HOWTO` entries, `docs/tools/<tool>.md` | validate generates, parses and re-syncs every exporter |
+| Tool exporter | an `export()` branch in `bin/autocraft`, `TOOLS`/`HOWTO` entries, `docs/reference/tools/<tool>.md` | validate generates, parses and re-syncs every exporter |
 | Language CI | `templates/github/workflows/ci-<lang>.yml` + `LANGS` | validate |
 
-`bin/autocraft` is one stdlib-only Python file (no installs). Details: [customizing](../customizing.md).
+`bin/autocraft` is one stdlib-only Python file (no installs). Details: [customizing](../../reference/customizing.md).
 
 ## Known limits
 

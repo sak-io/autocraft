@@ -7,11 +7,18 @@ permissions:
   contents: read
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    name: validate (python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { python: "3.8", os: ubuntu-22.04 }   # the minimum the README promises
+          - { python: "3.12", os: ubuntu-latest }
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
-        with: { python-version: "3.12" }
+        with: { python-version: "${{ matrix.python }}" }
       - run: pip install pyyaml shellcheck-py
       - run: bash scripts/validate.sh
       - run: shellcheck -S warning scripts/*.sh

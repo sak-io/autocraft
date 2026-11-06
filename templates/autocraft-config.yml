@@ -16,7 +16,7 @@ max_parallel_developers: 3 # builder agents at once (independent tasks only)
 default_branch: main
 generated_markers: true    # true | false  keep a managed block in .gitattributes that marks autocraft-generated files linguist-generated (GitHub collapses them in diffs); init --no-gitattributes sets false
 human_review: optional     # optional | required  required = a human will read the PR, so `autocraft review-map` always recommends a reviewer's guide
-review_guide: auto         # auto | always | never  when review-map recommends the /review-guide workflow (see docs/reviewing-large-prs.md)
+review_guide: auto         # auto | always | never  when review-map recommends the /review-guide workflow (see docs/reference/reviewing-large-prs.md)
 review_guide_min_files: 60            # auto: recommend a guide when the diff changes more files than this ...
 review_guide_min_product_lines: 1500  # ... or adds more product-code lines than this (a split into stacked PRs is offered above twice these)
 review_guide_path: docs/review-guide.md  # where /review-guide saves the guide; review-map --json reports guide_status (missing | current | stale) for it
