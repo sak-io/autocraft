@@ -98,7 +98,7 @@ Agents move quickly inside limits you control. The table says what is in place a
 | Round limits and escalation | After `max_review_rounds` the work stops as `needs-human` with both positions summarised | Instructed |
 | Gates you choose | `autonomy_level` 1–3: spec, plan, release; money, legal and account decisions are always yours | Instructed |
 | Safety rules | No secrets in code or logs; never disable tests, checks or protections; ask before destructive actions; say what was verified versus assumed | Instructed |
-| Command permissions | The generated `.claude/settings.json` pre-approves only routine git, test and autocraft commands | Enforced by Claude Code (Claude Code only) |
+| Command permissions and shell gate | Generated once: `.claude/settings.json` (Claude Code), `.cursor/hooks.json` (Cursor), `.gemini/settings.json` (Gemini CLI). They allow routine commands, deny force-push, push to `main`, `rm -rf` and secrets reads, and gate production deploys | Enforced by those tools; other tools get the written rule only |
 | Security checks | `security-auditor` role; CI templates for 8 stacks (dependency audits where the stack has one), CodeQL, a weekly secret and dependency scan, Dependabot; GitHub secret scanning and push protection via the onboarding script | Enforced by CI and GitHub once installed |
 | Safe defaults per domain | Capability profiles (authentication, payments, secrets, privacy, …) with must-test lists | Instructed; QA and reviewers check |
 | Cost controls | `--token-saver`, `token_mode: lean`, per-role models, review-round and parallelism caps, briefs and short reports | Instructed (budgets are advisory) |

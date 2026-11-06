@@ -98,6 +98,67 @@ class ClaudeSettingsTests(TempCase):
         self.assertEqual(json.loads((proj / ".claude" / "settings.json").read_text()), {"mine": True})
 
 
+class ToolGuardrailTests(TempCase):
+    def init_project(self, tool):
+        proj = self.tmp / "p"
+        cli(self.tmp, "init", str(proj), "--tool", tool, "--team", "starter", check=True)
+        return proj
+
+    def run_gate(self, hook, payload, **env):
+        return subprocess.run([sys.executable, str(hook)], input=json.dumps(payload).encode(),
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=dict(ENV, **env))
+
+    def test_cursor_guardrails_are_generated(self):
+        proj = self.init_project("cursor")
+        hooks = json.loads((proj / ".cursor" / "hooks.json").read_text())
+        entry = hooks["hooks"]["beforeShellExecution"][0]
+        self.assertEqual(hooks["version"], 1)
+        self.assertTrue(entry["failClosed"])
+        self.assertTrue((proj / ".cursor" / "hooks" / "production-gate.py").is_file())
+        deny = json.loads((proj / ".cursor" / "cli.json").read_text())["permissions"]["deny"]
+        self.assertIn("Read(.env*)", deny)
+        self.assertIn(".env", (proj / ".cursorignore").read_text().split())
+        gate = proj / ".cursor" / "hooks" / "production-gate.py"
+        self.assertEqual(self.run_gate(gate, {"command": "make deploy production"}).returncode, 2)
+        self.assertEqual(self.run_gate(gate, {"command": "git push --force origin x"}).returncode, 2)
+        self.assertEqual(self.run_gate(gate, {"command": "make deploy production"}, RELEASE_APPROVAL="CHG-1").returncode, 0)
+        self.assertEqual(self.run_gate(gate, {"command": "git status"}).returncode, 0)
+
+    def test_gemini_guardrails_are_generated(self):
+        proj = self.init_project("gemini-cli")
+        cfg = json.loads((proj / ".gemini" / "settings.json").read_text())
+        hook = cfg["hooks"]["BeforeTool"][0]
+        self.assertEqual(hook["matcher"], "run_shell_command")
+        self.assertIn("run_shell_command(rm -rf)", cfg["tools"]["exclude"])
+        gate = proj / ".gemini" / "hooks" / "production-gate.py"
+        self.assertIn(".gemini/hooks/production-gate.py", hook["hooks"][0]["command"])
+        self.assertEqual(self.run_gate(gate, {"tool_name": "run_shell_command", "tool_input": {"command": "rm -rf /"}}).returncode, 2)
+        self.assertEqual(self.run_gate(gate, {"tool_name": "run_shell_command", "tool_input": {"command": "ls"}}).returncode, 0)
+
+    def test_existing_files_are_kept_and_sync_is_idempotent(self):
+        proj = self.tmp / "p"
+        (proj / ".gemini").mkdir(parents=True)
+        (proj / ".gemini" / "settings.json").write_text('{"mine": true}')
+        cli(self.tmp, "init", str(proj), "--tool", "cursor,gemini-cli", "--team", "starter", check=True)
+        self.assertEqual(json.loads((proj / ".gemini" / "settings.json").read_text()), {"mine": True})
+        snap = {f.relative_to(proj): f.read_bytes() for d in (".cursor", ".gemini") for f in (proj / d).rglob("*") if f.is_file()}
+        (proj / ".cursor" / "cli.json").write_text('{"permissions": {"deny": ["Read(x)"]}}')
+        snap[Path(".cursor/cli.json")] = (proj / ".cursor" / "cli.json").read_bytes()
+        cli(proj, "sync", check=True)
+        after = {f.relative_to(proj): f.read_bytes() for d in (".cursor", ".gemini") for f in (proj / d).rglob("*") if f.is_file()}
+        for rel, data in snap.items():
+            self.assertEqual(after[rel], data, str(rel))
+
+    def test_guardrail_files_are_user_owned_not_marked_generated(self):
+        repo = new_repo(self.tmp)
+        cli(repo, "init", ".", "--tool", "cursor,gemini-cli", "--team", "starter", check=True)
+        paths = [".cursor/hooks.json", ".cursor/cli.json", ".cursorignore", ".cursor/hooks/production-gate.py",
+                 ".gemini/settings.json", ".gemini/hooks/production-gate.py"]
+        r = git(repo, "check-attr", "linguist-generated", "--", *paths)
+        for ln in r.out.splitlines():
+            self.assertTrue(ln.endswith("unspecified"), ln)
+
+
 # ---------------------------------------------------------------------------------------------- generated-file markers
 class GitattributesTests(TempCase):
     def check_attr(self, repo, paths):

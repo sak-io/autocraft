@@ -63,6 +63,15 @@ SAFE_COMMANDS = ["Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "B
 DENY_COMMANDS = ["Read(./.env)", "Read(./.env.local)", "Read(./.env.production)", "Read(./secrets/**)",
                  "Bash(git push --force:*)", "Bash(git push -f:*)", "Bash(git push origin main:*)", "Bash(git push origin master:*)", "Bash(rm -rf:*)"]
 GATE_HOOK = ".claude/hooks/production-gate.py"
+# Cursor and Gemini CLI: only formats their official docs describe (Cursor hooks.json + cli.json + .cursorignore; Gemini settings.json hooks + tools.exclude).
+CURSOR_GATE_HOOK = ".cursor/hooks/production-gate.py"
+GEMINI_GATE_HOOK = ".gemini/hooks/production-gate.py"
+CURSOR_HOOKS = {"version": 1, "hooks": {"beforeShellExecution": [{"command": "python3 " + CURSOR_GATE_HOOK, "timeout": 10, "failClosed": True}]}}
+CURSOR_CLI = {"permissions": {"allow": [], "deny": ["Read(.env*)", "Read(secrets/**)", "Write(.env*)", "Write(secrets/**)"]}}
+CURSORIGNORE = "# autocraft: keep secrets out of Cursor's context (not a hard block: terminal and MCP tools can still read files)\n.env\n.env.*\nsecrets/\n"
+GEMINI_SETTINGS = {"tools": {"exclude": ["run_shell_command(git push --force)", "run_shell_command(git push -f)", "run_shell_command(rm -rf)"]},
+                   "hooks": {"BeforeTool": [{"matcher": "run_shell_command", "hooks": [{"type": "command", "name": "production-gate",
+                                                                                         "command": "python3 " + GEMINI_GATE_HOOK, "timeout": 10000}]}]}}
 CLAUDE_HOOKS = {"PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": 'python3 "$CLAUDE_PROJECT_DIR"/' + GATE_HOOK}]}]}
 
 BEGIN, END = "<!-- autocraft:begin (managed block - edit .autocraft/custom/, then run autocraft sync) -->", "<!-- autocraft:end -->"
@@ -933,6 +942,38 @@ def build(proj, dry=False):
                 hp.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(FW / "templates" / "hooks" / "production-gate.py", hp)
                 created.append(GATE_HOOK)
+    if "cursor" in tools:
+        for rel, text in ((".cursor/hooks.json", json.dumps(CURSOR_HOOKS, indent=2) + "\n"), (".cursor/cli.json", json.dumps(CURSOR_CLI, indent=2) + "\n"),
+                          (".cursorignore", CURSORIGNORE)):
+            gp = proj / rel
+            if gp.exists():
+                warnings.append(f"kept your existing {rel}; add autocraft's guardrails by hand (see docs/reference/tools/cursor.md)")
+                continue
+            gp.parent.mkdir(parents=True, exist_ok=True)
+            gp.write_text(text)
+            created.append(rel)
+            if rel == ".cursor/hooks.json":
+                hp = proj / CURSOR_GATE_HOOK
+                if not hp.exists():
+                    hp.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(FW / "templates" / "hooks" / "production-gate.py", hp)
+                    created.append(CURSOR_GATE_HOOK)
+        if any(c.startswith((".cursor/hooks", ".cursor/cli", ".cursorignore")) for c in created):
+            warnings.append("wrote Cursor guardrails (.cursor/hooks.json shell gate, .cursor/cli.json deny rules for the Cursor CLI, .cursorignore); you own them, sync never overwrites them")
+    if "gemini-cli" in tools:
+        gp = proj / ".gemini" / "settings.json"
+        if gp.exists():
+            warnings.append("kept your existing .gemini/settings.json; add autocraft's guardrails by hand (see docs/reference/tools/gemini-cli.md)")
+        else:
+            gp.parent.mkdir(parents=True, exist_ok=True)
+            gp.write_text(json.dumps(GEMINI_SETTINGS, indent=2) + "\n")
+            created.append(".gemini/settings.json")
+            hp = proj / GEMINI_GATE_HOOK
+            if not hp.exists():
+                hp.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(FW / "templates" / "hooks" / "production-gate.py", hp)
+                created.append(GEMINI_GATE_HOOK)
+            warnings.append("wrote .gemini/settings.json (production gate hook, shell deny entries); Gemini asks you to trust project hooks on first run; you own it, sync never overwrites it")
     mpath.write_text(json.dumps(manifest, indent=1, sort_keys=True))
     owned = set(files) | set(blocks) | set(removed) | set(created) | {".autocraft/manifest.json", ".autocraft/config.yml", ".autocraft/framework", ".autocraft/templates"}
     if markers_enabled(cfg):

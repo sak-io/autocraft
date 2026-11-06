@@ -15,7 +15,7 @@ Anthropic's [AI-native SDLC playbook](https://claude.com/resources/articles/the-
 | Feedback loop: tests, build, lint are part of done; fix code not tests; failing test first for bug fixes | Protocol section 17; `developer` role | Neutral rule. A hook that blocks test-file edits during fix tasks is possible only where the tool has hooks |
 | CLAUDE.md: day-one essentials, "mistake twice goes in" | `.autocraft/custom/team-rules.md`, exported by `sync` to every tool's instruction file | Neutral |
 | Skills as institutional knowledge | Capabilities, archetypes and `team-rules.md`; workflows export as each tool's skills or commands | Neutral source, native export |
-| Hooks as deterministic guardrails and approval gates | Protocol "production is a human gate" rule. Claude Code also gets a generated `PreToolUse` hook (`.claude/hooks/production-gate.py`) and `deny` rules | Rule is neutral; **enforcement is Claude Code only** today |
+| Hooks as deterministic guardrails and approval gates | Protocol "production is a human gate" rule. Claude Code gets a generated `PreToolUse` hook and `deny` rules; Cursor and Gemini CLI get a shell hook running the same gate script | Rule is neutral; enforcement is generated for **Claude Code, Cursor and Gemini CLI** |
 | Parallel sessions in worktrees; start with 2 or 3 | `max_parallel_developers`, protocol section 8 and 14 | Neutral |
 | Verifier subagent | `qa-engineer` and the independent `pr-reviewer`, which re-run the tests themselves | Neutral |
 | AI in the PR loop, `REVIEW.md`, severity ranking, author cannot approve own code | `pr-reviewer`, severity tags, `templates/review/REVIEW.md`, separation of duties | Neutral |
@@ -47,10 +47,19 @@ The playbook's Figure 3 (the play dependency graph) says: start with any **entry
 So: begin with the five entry points, build the human gates (hooks, branch protection) before automating anything that passes through them, and add review and CI/CD only once the plays pointing into them exist.
 
 ## Enforcement per tool
-Instructed rules reach every tool through `sync`. Mechanical enforcement depends on the tool: GitHub branch protection and CI work with any tool; the generated permission deny list and production-gate hook are Claude Code only. For another tool, check its page under [tools](tools/) for an equivalent (permissions file, hooks, rules), and apply the same policy there. Policy lives in the protocol; each tool's file is just one way to enforce it.
+Instructed rules reach every tool through `sync`. Mechanical enforcement depends on the tool. GitHub branch protection and CI work with any tool. On top of that, `init` writes guardrail files once, only in formats the tool's official docs describe, and never overwrites them afterwards:
+
+| Tool | Production gate and irreversible commands | Secrets | Page |
+|---|---|---|---|
+| Claude Code | `.claude/settings.json` `PreToolUse` hook; `deny` rules | `Read` deny rules | [claude-code](tools/claude-code.md) |
+| Cursor | `.cursor/hooks.json` `beforeShellExecution` hook (fail-closed) | `.cursor/cli.json` deny (Cursor CLI only); `.cursorignore` | [cursor](tools/cursor.md) |
+| Gemini CLI | `.gemini/settings.json` `BeforeTool` hook; `tools.exclude` | none documented at project level | [gemini-cli](tools/gemini-cli.md) |
+| Copilot, Windsurf, Cline, AGENTS.md, plain prompts | none generated; the protocol rule applies | none | [tools](tools/) |
+
+All three hooks run the same script, `production-gate.py`, which blocks production deploys until a human sets `RELEASE_APPROVAL`, and blocks force-push, push to `main`/`master` and `rm -rf`. Policy lives in the protocol; each tool's file is just one way to enforce it. Hooks are a floor, not a sandbox: a determined agent can route around string matching, so branch protection stays the real backstop.
 
 ## Not yet (candidate next steps)
 - **Continuous evals**: collect 20 to 50 real tasks with acceptance checks and run them in CI when `team-rules.md`, roles or hooks change.
 - **A metrics command** computing the playbook's indicators from git history.
-- **Equivalent guardrail files for other tools** where they support permissions or hooks.
+- **Guardrail files for Copilot, Windsurf and Cline**, once their docs describe a project-level permission or hook format.
 - A handoff lint in `doctor` for `plan.md` and handoff fields.
