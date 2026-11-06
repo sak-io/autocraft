@@ -57,7 +57,7 @@ rm -rf bin/__pycache__
 for l in $(python3 -c "import runpy,sys; m=runpy.run_path('bin/autocraft', run_name='x'); print(' '.join(m['LANGS']))"); do
   [[ -f "templates/github/workflows/ci-$l.yml" ]] || err "no CI template for language $l"; done
 for t in $(python3 -c "import runpy; m=runpy.run_path('bin/autocraft', run_name='x'); print(' '.join(m['TOOLS']))"); do
-  [[ -f "docs/tools/$t.md" ]] || err "missing docs/tools/$t.md"; done
+  [[ -f "docs/reference/tools/$t.md" ]] || err "missing docs/reference/tools/$t.md"; done
 # --- agent-agnostic task board
 [[ -f templates/board/board.py && -f templates/board/AGENTS.md ]] || err "templates/board incomplete"
 python3 -m py_compile templates/board/board.py || err "board.py does not compile"
@@ -152,6 +152,23 @@ for h in "## 1. What is in the diff" "## 2. The system on one page" "## 3. Prope
   grep -q "^$h" templates/review/review-guide.md || err "templates/review/review-guide.md: missing section '$h'"; done
 [[ -f "$tmp/p/.autocraft/templates/review/review-guide.md" && -f "$tmp/p/.autocraft/framework/templates/review/review-guide.md" ]] || err "review-guide template is not installed with the framework"
 [[ -f "$tmp/p/.claude/skills/review-guide/SKILL.md" ]] || err "review-guide workflow not exported to claude-code skills"
+
+# --- every team that builds ships the lean-build workflow (regression: it was advertised but installed by no team)
+for t in $(ls teams | sed 's/\.md$//'); do
+  [[ "$t" == setup ]] && continue
+  d="$tmp/lb-$t"; mkdir -p "$d"
+  python3 bin/autocraft init "$d" --tool claude-code --team "$t" >/dev/null 2>&1 || { err "init failed for team $t"; continue; }
+  [[ -f "$d/.claude/skills/lean-build/SKILL.md" ]] || err "team $t does not install the lean-build workflow"
+done
+
+# --- board init works, is repeatable, and /lean-build still tells the agent to run it when the board is missing
+bd="$tmp/board-proj"; mkdir -p "$bd"
+python3 bin/autocraft init "$bd" --tool claude-code --team starter >/dev/null 2>&1 || err "init failed for board test"
+python3 bin/autocraft board init "$bd" --branch main >/dev/null 2>&1 || err "board init failed"
+[[ -f "$bd/scripts/board.py" && -f "$bd/AGENTS.md" && -d "$bd/work" ]] || err "board init did not create scripts/board.py, AGENTS.md and work/"
+python3 bin/autocraft board init "$bd" --branch main >/dev/null 2>&1 || err "board init is not repeatable"
+grep -q 'Set up the board if needed' "$bd/.claude/skills/lean-build/SKILL.md" || err "lean-build skill lost its board setup step"
+grep -q 'board init' "$bd/.claude/skills/lean-build/SKILL.md" || err "lean-build skill no longer mentions board init"
 
 ((fail)) && { echo "Validation FAILED" >&2; exit 1; }
 echo "Validation passed: $(echo $ROLES | wc -w) roles, $(ls teams | wc -l) teams, $(echo $WFS | wc -w) workflows, $(echo $ARCHS | wc -w) archetypes, $(($(ls capabilities | wc -l)-1)) capabilities; all 9 tool exports generate, parse and sync idempotently"

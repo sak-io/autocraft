@@ -1,6 +1,6 @@
 # Worked example: ClassBook — a booking app for a yoga studio
 
-A real project, built by following the [User Guide](../../docs/user-guide/README.md). Every file under [`project/`](project/) was produced by the agent team; every decision, disagreement and defect below really happened.
+A real project, built by following the [User Guide](../../docs/user/guide/README.md). Every file under [`project/`](project/) was produced by the agent team; every decision, disagreement and defect below really happened.
 
 > **How to read this page:** each step shows **what you (the owner) do**, **what the agents do**, and **what you see**, with links to the real artifacts. Read it top to bottom to see the whole journey, or jump to the [results](#results-at-a-glance) and [what went wrong](#what-went-wrong-and-what-we-changed-because-of-it).
 
@@ -186,7 +186,7 @@ In parallel with QA, the `security-auditor` ran real scanners and a hostile read
 
 These are in [`project/docs/STATUS.md`](project/docs/STATUS.md) — that file is how any future session (or person) would pick up exactly here with `/status`.
 
-*Compared with a lean build of a small tool: [lean vs thorough](../../docs/lean-vs-thorough.md).*
+*Compared with a lean build of a small tool: [lean vs thorough](../../docs/reference/lean-vs-thorough.md).*
 
 ## Token budget (lean mode)
 
@@ -231,8 +231,7 @@ An example that only shows successes isn't trustworthy. In running this one we f
 3. **The architect over-built for a 1,000-student studio** (a security-heavy design with hand-written sessions, a throttling table, a backup design, a hosting ADR). The principal engineer judged it *sound*, not *proportionate*. A real owner can say *"simpler, please"* at the plan gate — **the guide should say so** (added to page 3).
 4. **Two correct branches broke when merged.** Merge early; run everything together.
 5. **A fix made in one place wasn't applied to its twin** (huge IDs fixed on class pages, still crashing on booking routes) — found only by QA and the security auditor. Independent roles looking at the *whole* app pay for themselves.
-6. **Agents ran into the session's usage limit** — long multi-agent runs consume a lot (this one: ≈2M tokens). The guide now says start lean and expect QA to be the biggest single cost.
-7. **A papercut:** the project's `pytest.ini` had `-q` which made the test summary line vanish — a reminder that agents' "all green" claims should be re-run, which the reviewers did.
+6. **A papercut:** the project's `pytest.ini` had `-q` which made the test summary line vanish — a reminder that agents' "all green" claims should be re-run, which the reviewers did.
 
 ## Run it yourself
 

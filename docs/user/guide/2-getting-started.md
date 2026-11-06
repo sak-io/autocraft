@@ -68,7 +68,7 @@ Claude's **Code** sessions run in the cloud against a GitHub repository, so you 
 > - The team commits to the single branch your session was given and **does not open pull requests or push other branches unless you ask** (`git_mode: session-branch`). Say *"open the pull request"* when you are ready to merge.
 > - Cloud sessions have GitHub *tools* rather than the `gh` command; the roles adapt (protocol §13).
 > - A full run from the phone app has not yet been rehearsed end to end; please report anything that surprises you.
-> - Long multi-agent runs can reach your usage limit. Work is saved at each step; continue with `/status` after the limit resets.
+> - Work is saved at each step. If a session ends for any reason, continue in a new one with `/status`.
 
 ---
 
@@ -91,7 +91,7 @@ Run the setup once, naming your tool:
 ```bash
 python3 ~/autocraft/bin/autocraft init . --tool cursor        # or: copilot, gemini-cli, windsurf, cline, agents-md, prompts
 ```
-Then follow the one-page guide for your tool: [Cursor](../tools/cursor.md) · [Copilot](../tools/copilot.md) · [Gemini CLI](../tools/gemini-cli.md) · [Windsurf](../tools/windsurf.md) · [Cline](../tools/cline.md) · [Codex / AGENTS.md](../tools/agents-md.md) · [any chat](../tools/prompts.md).
+Then follow the one-page guide for your tool: [Cursor](../../reference/tools/cursor.md) · [Copilot](../../reference/tools/copilot.md) · [Gemini CLI](../../reference/tools/gemini-cli.md) · [Windsurf](../../reference/tools/windsurf.md) · [Cline](../../reference/tools/cline.md) · [Codex / AGENTS.md](../../reference/tools/agents-md.md) · [any chat](../../reference/tools/prompts.md).
 
 Tools without real sub-agents run the team as **role hats**: one role per session, and **a fresh session for every reviewer**.
 

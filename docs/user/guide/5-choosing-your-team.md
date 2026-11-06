@@ -31,8 +31,8 @@ List everything: `autocraft list teams`, `autocraft list roles`.
 
 The team uses two kinds of knowledge about your project. You rarely pick them by hand — `/discover` does — but you can see and change them in `.autocraft/config.yml`.
 
-- **Archetypes — what you're building** (20): static website, web app, full-stack app, mobile app, desktop app, game, internal tool, chat bot, plugin/extension, API, real-time service, event processor, scheduled job, script, data pipeline, AI assistant, ML service, library/CLI, infrastructure, embedded device. See the [catalog and "recipes"](../../archetypes/README.md) ("an online store = full-stack app + payments + email…").
-- **Capabilities — things most products need** (10): login, payments, database, email/notifications, file uploads, search, monitoring, secrets, hosting, privacy. See [capabilities](../../capabilities/README.md).
+- **Archetypes — what you're building** (20): static website, web app, full-stack app, mobile app, desktop app, game, internal tool, chat bot, plugin/extension, API, real-time service, event processor, scheduled job, script, data pipeline, AI assistant, ML service, library/CLI, infrastructure, embedded device. See the [catalog and "recipes"](../../../archetypes/README.md) ("an online store = full-stack app + payments + email…").
+- **Capabilities — things most products need** (10): login, payments, database, email/notifications, file uploads, search, monitoring, secrets, hosting, privacy. See [capabilities](../../../capabilities/README.md).
 
 ## Changing the team
 

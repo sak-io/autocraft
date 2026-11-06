@@ -1,4 +1,4 @@
-# 7. Give feedback
+# 8. Give feedback
 
 Thank you for testing. You are not being tested — **the guide is**. Anything that confused you, slowed you down, or turned out to be untrue is a bug in the guide or the product, and we want to hear it.
 

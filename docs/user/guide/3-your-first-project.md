@@ -2,7 +2,7 @@
 
 > *Written step by step for people new to software. If you're a software professional, skim the gates and step 5, then read [page 6](6-for-software-engineers.md) — same journey, with the dials exposed.*
 
-This page walks the whole journey once. For a complete real run with every output, see the [ClassBook worked example](../../examples/classbook/README.md).
+This page walks the whole journey once. For a complete real run with every output, see the [ClassBook worked example](../../../examples/classbook/README.md).
 
 **The journey in one picture**
 
@@ -91,7 +91,7 @@ Open the change, read the summary and the checklist, confirm the automated check
 
 ## What to expect (from the worked example)
 
-The [ClassBook example](../../examples/classbook/README.md) — a booking app for a yoga studio, built with the lean team plus four added roles — recorded what a small real project costs:
+The [ClassBook example](../../../examples/classbook/README.md) — a booking app for a yoga studio, built with the lean team plus four added roles — recorded what a small real project costs:
 
 | | ClassBook |
 |---|---|
@@ -104,7 +104,7 @@ The [ClassBook example](../../examples/classbook/README.md) — a booking app fo
 
 **Two lessons from it:**
 1. **Say "simpler" at the plan gate.** The architect built a more careful design than a one-room studio needs. The reviewer judged it sound, not proportionate. If the plan looks heavier than your idea deserves, tell the team: *"This is a small studio, keep it as simple as safely possible."* It will redo the plan.
-2. **Budget for the big steps.** Independent QA and security checks are the most valuable *and* the most expensive steps. Long runs can reach your AI tool's usage limit; work is saved in your files (`/status` resumes it), but plan for pauses. Starting with the lean team keeps usage down.
+2. **Budget for the big steps.** Independent QA and security checks are the most valuable *and* the most expensive steps. Work is saved in your files (`/status` resumes it), so a pause loses nothing. Starting with the lean team (`--token-saver`) keeps usage down.
 
 ## Your time, realistically
 

@@ -1,4 +1,4 @@
-# 6. FAQ and troubleshooting
+# 7. FAQ and troubleshooting
 
 ## Understanding
 
@@ -32,7 +32,7 @@
 
 **What does it do to my repo?** Adds the generated team files, `.autocraft/` (config, protocol, profiles, a vendored framework copy ≈ 0.9 MB) and `.claude/settings.json`. Remove those paths to uninstall.
 
-**How do I keep token use down?** Set `token_mode: lean` (or `autocraft init . --token-mode lean`): agents work from short briefs, run cheap automated checks first, stay within a stated budget, and keep reports short, while the quality gates stay the same. Also start with the lean team, batch related work into one builder and one reviewer, and use `--role-model` to put cheaper models on mechanical roles. The ClassBook example reports its finishing phase against an explicit token budget. See [protocol §15](../protocol.md).
+**How do I keep token use down?** Set `token_mode: lean` (or `autocraft init . --token-mode lean`): agents work from short briefs, run cheap automated checks first, stay within a stated budget, and keep reports short, while the quality gates stay the same. Also start with the lean team, batch related work into one builder and one reviewer, and use `--role-model` to put cheaper models on mechanical roles. The ClassBook example reports its finishing phase against an explicit token budget. See [protocol §15](../../protocol.md).
 
 ## Getting unstuck
 
@@ -70,10 +70,10 @@
 
 ## Tools other than Claude
 
-**The rules aren't being applied in Cursor/Copilot/etc.** Run `autocraft doctor`, confirm the tool's files exist (see its page in [docs/tools](../tools/)), restart the tool, and check the vendor's current file-format docs — formats change. Tell us which tool and version (see [feedback](8-give-feedback.md)).
+**The rules aren't being applied in Cursor/Copilot/etc.** Run `autocraft doctor`, confirm the tool's files exist (see its page in [docs/reference/tools](../../reference/tools/)), restart the tool, and check the vendor's current file-format docs — formats change. Tell us which tool and version (see [feedback](8-give-feedback.md)).
 
 **My tool has no slash commands.** Say the workflow by name: *"Run the start workflow."* Same effect.
 
 ## Where to learn more
 
-[Concepts](1-the-idea.md) · [Protocol](../protocol.md) (the exact rules agents follow) · [Orchestration patterns](../orchestration-patterns.md) · [Customizing](../customizing.md)
+[Concepts](1-the-idea.md) · [Protocol](../../protocol.md) (the exact rules agents follow) · [Orchestration patterns](../../reference/orchestration-patterns.md) · [Customizing](../../reference/customizing.md)

@@ -2,7 +2,7 @@
 
 Two examples in this repo were built with the same framework and the same safeguards (written spec, tests with every change, a *different* agent reviewing and probing, a human owner who decides and merges). They differ in **how much process and how many tokens** were spent:
 
-| | [ClassBook](../examples/classbook/README.md) (thorough) | [Receipt Tally](../examples/receipt-tally/README.md) (lean) |
+| | [ClassBook](../../examples/classbook/README.md) (thorough) | [Receipt Tally](../../examples/receipt-tally/README.md) (lean) |
 |---|---|---|
 | What it is | Web app: accounts, bookings, admin, emails, race conditions | Local command-line tool: bank CSV to monthly summary |
 | Team | 7 roles used (analyst, architect, principal engineer, developers, reviewers, QA, security auditor) | 4 roles (analyst, developer, reviewer, security-auditor installed, scanner run instead) |
@@ -41,7 +41,7 @@ Read the last row honestly: Receipt Tally spent *more* per test, because a fixed
 
 ## What the lean levers were, and what each did
 
-| Lever (see [protocol section 15](protocol.md)) | Receipt Tally | Effect |
+| Lever (see [protocol section 15](../protocol.md)) | Receipt Tally | Effect |
 |---|---|---|
 | **Brief, don't re-explore** | One brief file per run; agents read only what it named | Every run finished in 5-8 tool calls (ClassBook runs averaged 15) |
 | **Batch related work** | T1 and T2 built in one pass; no separate architect (design lives in the spec) | 2 fewer runs, 1 fewer handoff |

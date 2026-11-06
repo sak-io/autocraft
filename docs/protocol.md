@@ -63,7 +63,7 @@ Exactly one `agent:*` state label on a PR at a time. Whoever moves the PR forwar
 | Change branch protection / visibility / delete repo | ❌ never without explicit ask | ✅ |
 | Create the repo | ✅ after human confirmation | ✅ |
 
-Branch protection enforces the human gate: ≥1 approving review is required, and agents run with your credentials, so the *approval click is yours*.
+When branch protection is enabled (applied by `scripts/onboard-repo.sh`, or set up by hand), it enforces the human gate: ≥1 approving review is required, and agents run with your credentials, so the *approval click is yours*. Without it, the gate is the written rule above. See [guardrails](reference/guardrails.md) for what is enforced by tools and what rests on instructions.
 
 ## 6. Autonomy levels (`.autocraft/config.yml → autonomy_level`)
 | Level | You approve | Best for |
@@ -127,7 +127,7 @@ If a needed operation has no tool in your session, say so plainly and fall back 
 - **`pr-per-task`:** one pushed branch and pull request per task with `agent:*` labels (sections 3-4); the owner merges each.
 
 ## 15. Token efficiency (`token_mode: lean`)
-Multi-agent work is token-hungry; most of the cost is agents re-reading and re-exploring, long logs, and over-deep review of low-risk changes. `token_mode: lean` (config; `autocraft init --token-mode lean`) tells every role to spend only what the task safely needs. **Quality gates never change**: tests with every change, independent review, human merge.
+Separate agents each carry their own context, so a team spends more tokens than one agent doing everything; most of the cost is agents re-reading and re-exploring, long logs, and over-deep review of low-risk changes. `token_mode: lean` (config; `autocraft init --token-mode lean`) tells every role to spend only what the task safely needs. **Quality gates never change**: tests with every change, independent review, human merge.
 
 | Lever | Rule |
 |---|---|
@@ -144,4 +144,4 @@ Multi-agent work is token-hungry; most of the cost is agents re-reading and re-e
 
 ## 16. Reviewing large changes
 - The framework install is its own commit (`autocraft init --commit`, later `sync --commit`), made before product work; generated files are marked `linguist-generated` in `.gitattributes` so GitHub collapses them.
-- Before telling the owner to merge, run `autocraft review-map` (deterministic, no model tokens). If `guide_recommended`, a **fresh** `pr-reviewer` writes `docs/review-guide.md` (workflow `review-guide`): counts pasted from the script, every `path:symbol` checked with `review-map --verify-guide`, and a mandatory "what has NOT been independently verified" section that says who reviewed the code. If `split_recommended`, **offer** the stacked-PR split and do it only after an explicit yes. See `docs/reviewing-large-prs.md` in the autocraft repository.
+- Before telling the owner to merge, run `autocraft review-map` (deterministic, no model tokens). If `guide_recommended`, a **fresh** `pr-reviewer` writes `docs/review-guide.md` (workflow `review-guide`): counts pasted from the script, every `path:symbol` checked with `review-map --verify-guide`, and a mandatory "what has NOT been independently verified" section that says who reviewed the code. If `split_recommended`, **offer** the stacked-PR split and do it only after an explicit yes. See `docs/reference/reviewing-large-prs.md` in the autocraft repository.

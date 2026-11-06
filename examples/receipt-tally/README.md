@@ -1,6 +1,6 @@
 # Example: Receipt Tally, built effectively with a small token budget
 
-A second worked example, the opposite of [ClassBook](../classbook/README.md): ClassBook shows a thorough multi-agent build of a web app (24 agent runs, ≈2.0M tokens). **Receipt Tally shows the same safeguards (spec, tests, an independent reviewer that probes, human-owned decisions) on a small tool, with `token_mode: lean` from the first minute.**
+A second worked example, the opposite of [ClassBook](../classbook/README.md): ClassBook shows a thorough multi-agent build of a web app (26 agent runs, ≈2.2M tokens). **Receipt Tally shows the same safeguards (spec, tests, an independent reviewer that probes, human-owned decisions) on a small tool, with `token_mode: lean` from the first minute.**
 
 The owner's idea, in their words ([`project/docs/idea.md`](project/docs/idea.md)): *"a small tool that reads the CSV files my bank lets me download, sorts each transaction into categories using rules I write in a text file, and prints a monthly spending summary. It must never send my data anywhere."*
 
@@ -15,7 +15,7 @@ The budget was set **before** starting: at most 5 agent runs and about 250k toke
 | Agent time | | ≈ 5 minutes |
 | Result | | 274-line stdlib-only package, **36 tests pass**, 17 acceptance criteria, code scan clean, independent review found 2 MAJOR + 4 MINOR issues, all fixed and re-verified |
 
-See the side-by-side [lean vs thorough comparison](../../docs/lean-vs-thorough.md).
+See the side-by-side [lean vs thorough comparison](../../docs/reference/lean-vs-thorough.md).
 
 That is about **one eighth of ClassBook's tokens** (the app is far smaller, so this is not a like-for-like claim; the point is where the tokens went and what was *not* spent).
 

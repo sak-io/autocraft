@@ -1,6 +1,8 @@
 # autocraft User Guide
 
-> **Review draft v0.2** — written to be read and criticised. If anything is confusing, too long, too short, or untrue when you try it, that is exactly the feedback we need. See [Give feedback](8-give-feedback.md).
+> Anything confusing, too long, too short, or untrue when you try it is exactly the feedback we need. See [Give feedback](8-give-feedback.md).
+
+**In a hurry?** [Pick your path](0-pick-your-path.md): the exact commands for a simple, medium or complex project, or an existing codebase.
 
 ## What autocraft is
 
@@ -25,6 +27,7 @@ Neither audience gets a different quality bar. **Independent review, tests with 
 
 | # | Page | Time | You will learn |
 |---|---|---|---|
+| 0 | [**Pick your path**](0-pick-your-path.md) | 3 min | Commands and team for a simple, medium or complex project. |
 | 1 | [The idea: why a team of agents](1-the-idea.md) | 5 min | The mental model. What you do vs. what the agents do. |
 | 2 | [Getting started](2-getting-started.md) | 10 min | Set up in your tool — terminal, Claude app (phone/web), or other tools. |
 | 3 | [Your first project, step by step](3-your-first-project.md) | 15 min | The full journey from idea to something you can merge. *(Newcomers: read it all. Engineers: skim.)* |
@@ -36,7 +39,9 @@ Neither audience gets a different quality bar. **Independent review, tests with 
 
 **Already have your product concept / technical plan written down?** [Kick off a project from your own documents](../kickoff-existing-docs.md) (Claude app or terminal).
 
-**See it in action:** [the ClassBook worked example](../../examples/classbook/README.md) — a real app built by following this guide, with every step and every agent output. (Status: release candidate; the final hardening round is pending — the example says exactly what is done and what is not.)
+**See it in action:** two worked examples with every step and agent output. [ClassBook](../../../examples/classbook/README.md) is a thorough build of a web app. [Receipt Tally](../../../examples/receipt-tally/README.md) is a small tool built with the lean team and a token budget. [Lean vs thorough](../../reference/lean-vs-thorough.md) compares them. Each example says what is done and what is not.
+
+**What is and is not enforced:** [Guardrails](../../reference/guardrails.md).
 
 ## How much to trust this guide (honest status)
 
