@@ -208,7 +208,7 @@ All documents are indexed in [docs/README.md](docs/README.md): `docs/user/` for 
 | Engineers | [For software engineers](docs/user/guide/6-for-software-engineers.md) · [Protocol](docs/protocol.md) · [Orchestration patterns](docs/reference/orchestration-patterns.md) · [Customizing](docs/reference/customizing.md) |
 | Claude app users | [Kick off from your own documents](docs/user/kickoff-existing-docs.md) · [Claude app](docs/reference/tools/claude-app.md) · [Bootstrap prompt](docs/user/bootstrap-prompt.md) |
 | Big pull requests | [Reviewing large PRs](docs/reference/reviewing-large-prs.md) — generated-file markers, the separate install commit, `review-map`, the reviewer's guide, the split offer |
-| Safety and cost | [Guardrails](docs/reference/guardrails.md) · [Lean orchestration](docs/reference/lean-orchestration.md) · [Lean vs thorough](docs/reference/lean-vs-thorough.md) |
+| Safety and cost | [Guardrails](docs/reference/guardrails.md) · [AI-native SDLC mapping](docs/reference/ai-native-sdlc.md) · [Lean orchestration](docs/reference/lean-orchestration.md) · [Lean vs thorough](docs/reference/lean-vs-thorough.md) |
 | Concepts | [Lifecycle](docs/reference/lifecycle.md) · [Archetypes & recipes](archetypes/README.md) · [Capabilities](capabilities/README.md) |
 
 ## Examples

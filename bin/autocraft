@@ -59,6 +59,12 @@ SAFE_COMMANDS = ["Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "B
                  "Bash(git fetch:*)", "Bash(git push -u origin:*)", "Bash(python3 .autocraft/framework/bin/autocraft:*)",
                  "Bash(python3 -m pytest:*)", "Bash(pytest:*)", "Bash(npm test:*)", "Bash(npm run:*)", "Bash(ls:*)"]
 
+# Deny rules beat allow rules: keep secrets out of context and block the irreversible git/disk actions (playbook: managed permissions).
+DENY_COMMANDS = ["Read(./.env)", "Read(./.env.local)", "Read(./.env.production)", "Read(./secrets/**)",
+                 "Bash(git push --force:*)", "Bash(git push -f:*)", "Bash(git push origin main:*)", "Bash(git push origin master:*)", "Bash(rm -rf:*)"]
+GATE_HOOK = ".claude/hooks/production-gate.py"
+CLAUDE_HOOKS = {"PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": 'python3 "$CLAUDE_PROJECT_DIR"/' + GATE_HOOK}]}]}
+
 BEGIN, END = "<!-- autocraft:begin (managed block - edit .autocraft/custom/, then run autocraft sync) -->", "<!-- autocraft:end -->"
 
 EXPERIENCE = {
@@ -918,9 +924,15 @@ def build(proj, dry=False):
     if "claude-code" in tools:
         sp = proj / ".claude" / "settings.json"
         if not sp.exists():
-            sp.write_text(json.dumps({"permissions": {"allow": SAFE_COMMANDS}}, indent=2) + "\n")
+            sp.write_text(json.dumps({"permissions": {"allow": SAFE_COMMANDS, "deny": DENY_COMMANDS}, "hooks": CLAUDE_HOOKS}, indent=2) + "\n")
             created.append(".claude/settings.json")
-            warnings.append("wrote .claude/settings.json pre-approving routine commands (git, tests, autocraft); edit it to taste, sync never overwrites it")
+            warnings.append("wrote .claude/settings.json pre-approving routine commands (git, tests, autocraft), denying secrets reads, force-push and rm -rf, "
+                            "and gating production deploys; edit it to taste, sync never overwrites it")
+            hp = proj / GATE_HOOK
+            if not hp.exists():
+                hp.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(FW / "templates" / "hooks" / "production-gate.py", hp)
+                created.append(GATE_HOOK)
     mpath.write_text(json.dumps(manifest, indent=1, sort_keys=True))
     owned = set(files) | set(blocks) | set(removed) | set(created) | {".autocraft/manifest.json", ".autocraft/config.yml", ".autocraft/framework", ".autocraft/templates"}
     if markers_enabled(cfg):

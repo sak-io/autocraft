@@ -61,6 +61,43 @@ class TempCase(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self._td, True)
 
 
+# ---------------------------------------------------------------------------------------------- Claude Code settings and hook
+class ClaudeSettingsTests(TempCase):
+    def init_project(self):
+        proj = self.tmp / "p"
+        cli(self.tmp, "init", str(proj), "--tool", "claude-code", "--team", "starter", check=True)
+        return proj
+
+    def test_settings_have_deny_rules_and_a_gate_hook(self):
+        proj = self.init_project()
+        cfg = json.loads((proj / ".claude" / "settings.json").read_text())
+        deny = cfg["permissions"]["deny"]
+        for rule in ("Read(./.env)", "Bash(git push --force:*)", "Bash(rm -rf:*)"):
+            self.assertIn(rule, deny)
+        self.assertEqual(cfg["hooks"]["PreToolUse"][0]["matcher"], "Bash")
+        self.assertTrue((proj / ".claude" / "hooks" / "production-gate.py").is_file())
+
+    def test_gate_hook_blocks_production_deploy_until_approved(self):
+        hook = self.init_project() / ".claude" / "hooks" / "production-gate.py"
+
+        def run(command, **env):
+            return subprocess.run([sys.executable, str(hook)], input=json.dumps({"tool_input": {"command": command}}).encode(),
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=dict(ENV, **env))
+        blocked = run("make deploy production")
+        self.assertEqual(blocked.returncode, 2)
+        self.assertIn(b"release authorization", blocked.stderr)
+        self.assertEqual(run("make deploy production", RELEASE_APPROVAL="CHG-1").returncode, 0)
+        self.assertEqual(run("make deploy staging").returncode, 0)
+        self.assertEqual(run("git status").returncode, 0)
+
+    def test_existing_settings_are_never_overwritten(self):
+        proj = self.tmp / "p"
+        (proj / ".claude").mkdir(parents=True)
+        (proj / ".claude" / "settings.json").write_text('{"mine": true}')
+        cli(self.tmp, "init", str(proj), "--tool", "claude-code", "--team", "starter", check=True)
+        self.assertEqual(json.loads((proj / ".claude" / "settings.json").read_text()), {"mine": True})
+
+
 # ---------------------------------------------------------------------------------------------- generated-file markers
 class GitattributesTests(TempCase):
     def check_attr(self, repo, paths):
